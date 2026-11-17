@@ -1,15 +1,15 @@
 services:
   - type: web
-    name: igg-vip-studio
+    name: gardens-studio
     runtime: node
     plan: free
     region: singapore
     branch: main
-    # Free plan = 750 instance-hours/month; this service runs ~24/7 (744h in a
-    # 31-day month), leaving ~6h spare. Every push builds a second instance
-    # while the old one still runs, and that overlap is what pushed the
-    # workspace past 750h. Deploys are manual now: Render dashboard ->
-    # igg-vip-studio -> Manual Deploy. Flip back to true only if the tool
+    # Free plan = 750 instance-hours/month; a 24/7 service uses ~744h of it,
+    # leaving ~6h spare. Every push builds a second instance while the old one
+    # still runs, and that overlap is what pushed the IGG workspace past 750h
+    # there. Keep this false while the plan is free: Render dashboard ->
+    # gardens-studio -> Manual Deploy. Flip back to true only if the tool
     # moves to a paid plan or another host.
     autoDeploy: false
     buildCommand: NPM_CONFIG_PRODUCTION=false npm install && npm run build
@@ -21,13 +21,18 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
+      # Presence-only marker: gate-identity keys the audience off it and
+      # env.server uses it to tell a deployed app from a workspace preview.
+      # The value is never parsed, so it only has to be non-empty.
       - key: GROK_PROJECT_ID
-        value: igg-vip-studio
-      # FetchCity spawns scripts/township/fetch_city.py. Render's native Node
-      # runtime ships python3, and pinning the binary here skips the
+        value: gardens-studio
+      # Some modules spawn scripts/township/*.py. Render's native Node runtime
+      # ships python3, and pinning the binary here skips the
       # python3 -> python fallback probe on every call.
       - key: PYTHON_BIN
         value: python3
+      # License keys (license.server.ts / crypto.server.ts read these names).
+      # Set the values in the Render dashboard, never in this file.
       - key: IGG_VIP_MASTER
         sync: false
       - key: IGG_VIP_OWNER
