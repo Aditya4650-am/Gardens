@@ -1,0 +1,826 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { isDeviceId, mintDeviceId, normalizeDeviceId } from "@/lib/device-id";
+import {
+  getLicense,
+  gsConnect,
+  gsPullDevice,
+  gsPush,
+  gsPushDevice,
+  gsRestore,
+  gsSavePath,
+  gsSnapshot,
+  verifyLicense,
+} from "@/lib/gs-api";
+import {
+  GsCtx,
+  GS_OVERFLOW_TABS,
+  GS_PRIMARY_TABS,
+  GS_TAB_ICON,
+  GS_TAB_LABEL,
+  type GsCtxValue,
+  type GsEditResult,
+  type GsLicense,
+  type GsSnapshot,
+  type GsTab,
+} from "./gs-ctx";
+import { GsIcon, downloadB64, fileToB64 } from "./gs-ui";
+import { GsBackups, GsBoosters, GsDashboard, GsPlayer, GsStatistics } from "./gs-panels-a";
+import { GsCards, GsDecor, GsSeasons, GsSendCards } from "./gs-panels-b";
+import { GsAvatars, GsBadges, GsFrames, GsStyles, GsTitles } from "./gs-panels-c";
+
+// ---------------------------------------------------------------------------
+// Gardenscapes editor — login scene + application shell.
+//
+// Structure mirrors studio-app.tsx (header / sidebar / two-row tab strip /
+// panel host) so the two tools feel like one product, but every helper here is
+// file-local: studio-app's are private to that module, and studio-app itself
+// must stay untouched because ui-regressions.test.mts greps it.
+// ---------------------------------------------------------------------------
+
+const LS_KEY = "gs-garden-key";
+const LS_HWID = "gs-garden-hwid";
+const LS_LANG = "gs-garden-lang";
+const LS_PALETTE = "gs-garden-palette";
+const DEFAULT_SERIAL = "127.0.0.1:21503";
+
+/** The five light-theme color combinations (see styles.css `.gs-palette-*`). */
+const GS_PALETTES: { id: string; label: string; swatch: string }[] = [
+  { id: "garden", label: "Garden", swatch: "#2f9e6f" },
+  { id: "rose", label: "Rose", swatch: "#e0527f" },
+  { id: "ocean", label: "Ocean", swatch: "#2f7fd4" },
+  { id: "sunrise", label: "Sunrise", swatch: "#e08a2f" },
+  { id: "violet", label: "Violet", swatch: "#7c5cd6" },
+];
+
+/** The palette dot row, shared by the login scene and the app header. */
+function PaletteSwitch({
+  palette,
+  onPick,
+}: {
+  palette: string;
+  onPick: (p: string) => void;
+}) {
+  return (
+    <div className="gs-palette-switch" role="group" aria-label="Color palette">
+      {GS_PALETTES.map((p) => (
+        <button
+          key={p.id}
+          type="button"
+          title={p.label}
+          aria-label={`${p.label} palette`}
+          aria-pressed={palette === p.id}
+          style={{ background: p.swatch }}
+          onClick={() => onPick(p.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface NativeBridge {
+  deviceId?: () => Promise<string>;
+  saveKey?: (k: string) => Promise<void>;
+  clearSavedKey?: () => Promise<void>;
+}
+
+function nativeBridge(): NativeBridge | undefined {
+  return (window as unknown as { iggNative?: NativeBridge }).iggNative;
+}
+
+// The WebView2 runtime injects window.chrome.webview before any page script
+// runs, so it is the only signal that answers "are we inside the EXE?"
+// synchronously at first paint.
+function inWebView2(): boolean {
+  try {
+    return Boolean((window as unknown as { chrome?: { webview?: unknown } }).chrome?.webview);
+  } catch {
+    return false;
+  }
+}
+
+function formatRemain(ms: number, lifetime: boolean): string {
+  if (lifetime) return "Lifetime";
+  if (ms <= 0) return "Expired";
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
+
+function Mark({ className }: { className?: string }) {
+  return (
+    <img
+      src="/gs-hero.jpg"
+      className={cn("shrink-0 rounded-md object-cover", className)}
+      alt=""
+      aria-hidden
+      onError={(e) => {
+        e.currentTarget.src = "/logo.jpeg";
+      }}
+    />
+  );
+}
+
+type View = "login" | "app";
+
+export function GsApp() {
+  // --- license / session -------------------------------------------------
+  const [view, setView] = useState<View>("login");
+  const [key, setKey] = useState("");
+  const [token, setToken] = useState("");
+  const [license, setLicense] = useState<GsLicense | null>(null);
+  const [deviceId, setDeviceId] = useState("");
+  const [loginErr, setLoginErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [nowTick, setNowTick] = useState(Date.now());
+
+  const [snap, setSnap] = useState<GsSnapshot | null>(null);
+  const [tab, setTab] = useState<GsTab>("dashboard");
+  const [tabReady, setTabReady] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // --- device transport --------------------------------------------------
+  const [serial, setSerial] = useState(DEFAULT_SERIAL);
+  const [saveName, setSaveName] = useState("");
+
+  // --- palette (one of five light-theme color combinations) --------------
+  const [palette, setPalette] = useState<string>(() => {
+    try {
+      return localStorage.getItem(LS_PALETTE) || "garden";
+    } catch {
+      return "garden";
+    }
+  });
+
+  const pickPalette = (p: string) => {
+    setPalette(p);
+    try {
+      localStorage.setItem(LS_PALETTE, p);
+    } catch {
+      /* private mode */
+    }
+  };
+
+  // --- verb wrappers -----------------------------------------------------
+
+  const act = useCallback(async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
+    setBusy(true);
+    try {
+      return await fn();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Request failed");
+      return undefined;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const note = useCallback((res: GsEditResult | undefined, label: string) => {
+    if (!res) return;
+    if (res.changed.length) toast.success(`${label} · ${res.changed.length} changed`);
+    else if (res.missing.length) toast.warning(`${label} · ${res.missing.length} not found`);
+    else toast.info(`${label} · nothing to change`);
+    if (res.missing.length) {
+      toast.message(`${label}: ${res.missing.slice(0, 4).join(", ")}`);
+    }
+  }, []);
+
+  const reload = useCallback(async () => {
+    if (!token) return;
+    const id = snap?.id;
+    if (!id) return;
+    const s = await act(() => gsSnapshot({ data: { token, sessionId: id } }));
+    if (s) setSnap(s as GsSnapshot);
+  }, [token, snap?.id, act]);
+
+  const go = useCallback((t: GsTab) => setTab(t), []);
+
+  const ctx = useMemo<GsCtxValue>(
+    () => ({ token, sessionId: snap?.id ?? null, snap, license, busy, act, note, reload, go }),
+    [token, snap, license, busy, act, note, reload, go],
+  );
+
+  // --- boot: device id, saved key ---------------------------------------
+
+  useEffect(() => {
+    let stop = false;
+    try {
+      const stored = localStorage.getItem(LS_LANG);
+      if (stored) void stored;
+    } catch {
+      /* private mode */
+    }
+
+    // Boot order, most authoritative first: `?did=` on the URL, then the
+    // bridge, then localStorage, then a fresh mint. Inside the EXE minting is
+    // forbidden — pywebview runs WebView2 with private_mode=True, so storage
+    // is empty on every launch and an allowed mint would win every launch.
+    const inExe = inWebView2();
+
+    const urlDeviceId = (() => {
+      try {
+        const v = new URLSearchParams(window.location.search).get("did");
+        return v && isDeviceId(v) ? normalizeDeviceId(v) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    const readStoredId = (): string | null => {
+      try {
+        const hwid = localStorage.getItem(LS_HWID);
+        return hwid && isDeviceId(hwid) ? normalizeDeviceId(hwid) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const mintNewId = (): string => {
+      const fresh = mintDeviceId();
+      try {
+        localStorage.setItem(LS_HWID, fresh);
+      } catch {
+        /* ignore */
+      }
+      return fresh;
+    };
+
+    if (urlDeviceId) setDeviceId(urlDeviceId);
+    else if (inExe) setDeviceId(readStoredId() ?? "");
+    else setDeviceId(readStoredId() ?? mintNewId());
+
+    const bridgeBudgetMs = inExe && !urlDeviceId ? 20_000 : 1_500;
+
+    void (async () => {
+      const readNative = async (): Promise<string | null> => {
+        try {
+          const fn = nativeBridge()?.deviceId;
+          if (typeof fn !== "function") return null;
+          const nid = await fn();
+          return nid && isDeviceId(nid) ? normalizeDeviceId(nid) : null;
+        } catch {
+          return null;
+        }
+      };
+      let nid = await readNative();
+      if (!nid) {
+        nid = await new Promise<string | null>((resolve) => {
+          let settled = false;
+          let waited = 0;
+          const done = (v: string | null) => {
+            if (settled) return;
+            settled = true;
+            window.clearInterval(tick);
+            window.removeEventListener("igg-native-ready", onEvent);
+            resolve(v);
+          };
+          const probe = (): boolean => {
+            const bridge = nativeBridge();
+            if (!bridge) return false;
+            if (typeof bridge.deviceId !== "function") {
+              done(null);
+              return true;
+            }
+            void (async () => {
+              try {
+                const v = await bridge.deviceId!();
+                done(v && isDeviceId(v) ? normalizeDeviceId(v) : null);
+              } catch {
+                done(null);
+              }
+            })();
+            return true;
+          };
+          const onEvent = () => probe();
+          const tick = window.setInterval(() => {
+            waited += 1;
+            if (probe() || waited * 50 >= bridgeBudgetMs) done(null);
+          }, 50);
+          window.addEventListener("igg-native-ready", onEvent);
+          probe();
+        });
+      }
+      if (!stop && nid) {
+        try {
+          localStorage.setItem(LS_HWID, nid);
+        } catch {
+          /* ignore */
+        }
+        setDeviceId(nid);
+      }
+    })();
+
+    // Resume a previous session's key so a reload does not demand it again.
+    try {
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved) setKey(saved);
+    } catch {
+      /* ignore */
+    }
+
+    setTabReady(true);
+    return () => {
+      stop = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!license || license.lifetime) return;
+    const id = window.setInterval(() => setNowTick(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [license]);
+
+  const remainingMs = !license || license.lifetime ? 0 : Math.max(0, license.expiresAt - nowTick);
+
+  // --- connect / save ----------------------------------------------------
+
+  const connectWith = async (saveB64: string, source: string) => {
+    const s = await act(() => gsConnect({ data: { token, device: source, saveB64 } }));
+    if (s) {
+      setSnap(s as GsSnapshot);
+      return true;
+    }
+    return false;
+  };
+
+  const pullAndConnect = async () => {
+    if (!token) return;
+    const got = await act(() => gsPullDevice({ data: { serial: serial || undefined } }));
+    if (!got) return;
+    const file = (got as { file?: string }).file || serial || "device";
+    const ok = await connectWith((got as { b64: string }).b64, file);
+    if (ok) {
+      setSaveName(file);
+      toast.success(`Save pulled · ${(got as { size?: number }).size ?? "?"} bytes`);
+    }
+  };
+
+  const saveToDevice = async () => {
+    if (!snap) return;
+    const r = await act(() => gsPush({ data: { token, sessionId: snap.id } }));
+    if (!r) return;
+    const b64 = (r as { b64: string }).b64;
+    downloadB64("GameData.db", b64);
+    const pushed = await act(() => gsPushDevice({ data: { b64, serial: serial || undefined } }));
+    if (pushed) toast.success(`Pushed ${(pushed as { size: number }).size} bytes to the device`);
+    else toast.info("Downloaded — device push skipped");
+    await reload();
+  };
+
+  const restoreOriginal = async () => {
+    if (!snap) return;
+    const r = await act(() => gsRestore({ data: { token, sessionId: snap.id } }));
+    if (r) {
+      setSnap(r as GsSnapshot);
+      toast.success("Rolled back to the bytes this session loaded with");
+    }
+  };
+
+  const uploadSave = async (file: File) => {
+    if (!token) return;
+    const b64 = await fileToB64(file).catch((e: Error) => {
+      toast.error(e.message);
+      return "";
+    });
+    if (!b64) return;
+    const ok = await connectWith(b64, file.name);
+    if (ok) {
+      setSaveName(file.name);
+      toast.success(`Loaded ${file.name}`);
+    }
+  };
+
+  // --- unlock ------------------------------------------------------------
+
+  const unlock = async (providedKey?: string) => {
+    const candidate = (providedKey ?? key).trim();
+    setLoginErr("");
+    if (candidate.length < 4) {
+      setLoginErr("Enter your license key (at least 4 characters).");
+      return;
+    }
+    // Never verify against an empty id: the server binds an unbound key to
+    // whatever it is handed, so "" would bind the key to nothing and lock the
+    // real machine out on its next launch.
+    if (!deviceId) {
+      setLoginErr("Device id is still resolving — try again in a moment.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const r = await verifyLicense({ data: { key: candidate, deviceId } });
+      setKey(candidate);
+      setToken(r.token);
+      setDeviceId(r.deviceId);
+      setLicense(r.license as GsLicense);
+      try {
+        const native = nativeBridge();
+        if (native?.saveKey) await native.saveKey(candidate);
+        else localStorage.setItem(LS_KEY, candidate);
+      } catch {
+        /* ignore */
+      }
+      setView("app");
+      toast.success("License verified");
+
+      // Pull the device save straight away so the dashboard has data.
+      const got = await act(() => gsPullDevice({ data: { serial: serial || undefined } }));
+      if (got) {
+        const file = (got as { file?: string }).file || serial;
+        const s = await act(() =>
+          gsConnect({ data: { token: r.token, device: file, saveB64: (got as { b64: string }).b64 } }),
+        );
+        if (s) {
+          setSnap(s as GsSnapshot);
+          setSaveName(file);
+          toast.success("Save loaded from device");
+        }
+      } else {
+        toast.message("No device save found — load a GameData.db file from Backups.");
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unlock failed";
+      if (/invalid key|key revoked|key expired|locked to another device|device not on this key/i.test(message)) {
+        try {
+          const native = nativeBridge();
+          if (native?.clearSavedKey) await native.clearSavedKey();
+          else localStorage.removeItem(LS_KEY);
+        } catch {
+          /* ignore */
+        }
+      }
+      setLoginErr(message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Resume a saved key on the login screen (never auto-submit — a dead key
+  // would loop without ever telling the user why).
+  useEffect(() => {
+    if (view !== "login" || !key || !deviceId) return;
+    // no auto-unlock; the button is the single path.
+  }, [view, key, deviceId]);
+
+  const sessionCount = snap ? 1 : 0;
+
+  // --- login scene -------------------------------------------------------
+
+  if (view === "login") {
+    return (
+      <main className={`login-scene gs-login gs-theme gs-palette-${palette} relative min-h-dvh px-4 py-8 sm:px-8`}>
+        <div className="login-grid mx-auto min-h-[calc(100dvh-8.5rem)] w-full max-w-6xl items-center gap-8">
+          <section className="login-visual gate-in" aria-label="Garden Studio">
+            <div className="gs-login-hero">
+              <img src="/gs-hero.jpg" alt="" className="gs-login-hero-img" draggable={false} />
+              <div className="gs-login-hero-scrim" />
+              <div className="gs-login-hero-body">
+                <p className="kicker">Gardenscapes save editor</p>
+                <p className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+                  Garden <span className="login-brand-wordmark">Studio</span>
+                </p>
+                <p className="login-lead login-tagline mt-4 max-w-lg leading-relaxed text-muted">
+                  Golden pass, data center, decorations, frames, styles, badges, titles,
+                  boosters, cards and card sending — every section of the reference editor,
+                  against one live session.
+                </p>
+                <ul className="login-feature-list mt-6 space-y-3 text-sm text-muted">
+                  <li><span className="login-feature-mark"><GsIcon name="cards" /></span>150-card catalog with arrival invariants re-checked after every edit</li>
+                  <li><span className="login-feature-mark"><GsIcon name="infinite" /></span>Golden pass, both reward roads and every stage</li>
+                  <li><span className="login-feature-mark"><GsIcon name="sendCards" /></span>Validated send plans — never a write that pretends to deliver</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section className="login-card w-full p-6 sm:p-8" aria-labelledby="login-heading">
+            <header className="login-card-heading gate-in flex items-start gap-3">
+              <span className="login-card-mark"><Mark className="size-7" /></span>
+              <div className="min-w-0">
+                <p className="kicker">Garden Studio</p>
+                <h1 id="login-heading" className="mt-1 font-display text-xl font-semibold tracking-tight">
+                  Unlock the editor
+                </h1>
+                <p className="mt-1 text-sm leading-relaxed text-muted">
+                  Your key is bound to this device id.
+                </p>
+              </div>
+            </header>
+            <div className="login-divider" />
+
+            <div className="gate-in mt-5">
+              <div className="login-label">
+                <GsIcon name="device" />
+                <span className="kicker">Device id</span>
+              </div>
+              <div className="device-id-card mt-2">
+                <span className="device-id-icon"><GsIcon name="device" /></span>
+                <div className="min-w-0 flex-1">
+                  <span className="device-id-caption">Device id</span>
+                  <code
+                    className={cn(
+                      "mt-1 block break-all font-mono text-xs leading-relaxed tabular-nums sm:text-sm",
+                      deviceId ? "" : " device-id-pending",
+                    )}
+                  >
+                    {deviceId || "resolving…"}
+                  </code>
+                </div>
+                <button
+                  type="button"
+                  className="copy-button"
+                  disabled={!deviceId}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(deviceId);
+                    } catch {
+                      /* clipboard unavailable */
+                    }
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 1200);
+                  }}
+                >
+                  <GsIcon name={copied ? "check" : "copy"} className="size-4" />
+                  <span>{copied ? "Copied" : "Copy"}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="gate-in mt-5">
+              <div className="login-label">
+                <GsIcon name="styles" />
+                <span className="kicker">Palette</span>
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <PaletteSwitch palette={palette} onPick={pickPalette} />
+                <span className="text-xs text-muted">
+                  {GS_PALETTES.find((p) => p.id === palette)?.label ?? "Garden"} theme
+                </span>
+              </div>
+            </div>
+
+            <div className="gate-in mt-5">
+              <label className="login-label" htmlFor="gs-license">
+                <GsIcon name="key" />
+                <span className="kicker">License key</span>
+              </label>
+              <div className="field-shell mt-2">
+                <GsIcon name="key" className="field-leading-icon" />
+                <input
+                  id="gs-license"
+                  className="field login-field font-mono"
+                  type="password"
+                  autoComplete="off"
+                  placeholder="XXXX-XXXX-XXXX"
+                  value={key}
+                  onChange={(e) => setKey(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void unlock();
+                  }}
+                />
+              </div>
+              {loginErr ? (
+                <p className="login-error mt-3 flex items-start gap-2 px-3 py-2 text-sm text-err">
+                  <GsIcon name="alert" />
+                  <span>{loginErr}</span>
+                </p>
+              ) : null}
+              <Button
+                className="login-unlock mt-5 w-full"
+                size="lg"
+                disabled={busy || !deviceId}
+                onClick={() => void unlock()}
+              >
+                <GsIcon name={busy ? "refresh" : "key"} className={cn("size-5", busy && "animate-spin")} />
+                {busy ? "Unlocking…" : "Unlock"}
+              </Button>
+            </div>
+          </section>
+        </div>
+        <footer className="login-footer gate-in">
+          <span className="login-footer-rule" aria-hidden="true" />
+          <p className="login-footer-credit">
+            {"GARDEN STUDIO · "}
+            <span className="login-brand-wordmark">GARDENSCAPES SAVE EDITOR</span>
+          </p>
+          <span className="login-footer-rule" aria-hidden="true" />
+        </footer>
+      </main>
+    );
+  }
+
+  // --- application shell -------------------------------------------------
+
+  return (
+    <GsCtx.Provider value={ctx}>
+      <div className={`app-root gs-theme gs-palette-${palette} flex min-h-dvh flex-col`}>
+        <header className="app-header sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
+          <span className="header-logo"><Mark className="size-7" /></span>
+          <p className="header-brand font-display font-semibold tracking-tight">
+            Garden <span className="text-primary">Studio</span>
+          </p>
+          <div className="header-statuses ml-auto flex items-center gap-1">
+            <span className="hidden sm:inline-flex">
+              <PaletteSwitch palette={palette} onPick={pickPalette} />
+            </span>
+            {license ? (
+              <span className="status-chip status-chip--license inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-kicker font-semibold tracking-wide uppercase">
+                <GsIcon name="key" className="size-3.5" />
+                <span className="status-chip-label">License</span>
+                <span>{formatRemain(remainingMs, license.lifetime)}</span>
+              </span>
+            ) : null}
+            <span className="status-chip status-chip--online inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-kicker font-semibold tracking-wide uppercase">
+              <span className="status-dot size-1.5 rounded-full" />
+              <span>{snap ? "Online" : "No save"}</span>
+            </span>
+            <button
+              type="button"
+              className="header-action grid size-11 place-items-center rounded-md text-muted hover:text-fg"
+              aria-label="Sign out"
+              onClick={() => {
+                try {
+                  localStorage.removeItem(LS_KEY);
+                } catch {
+                  /* ignore */
+                }
+                setToken("");
+                setLicense(null);
+                setSnap(null);
+                setView("login");
+              }}
+            >
+              <GsIcon name="logout" className="size-4" />
+            </button>
+          </div>
+        </header>
+
+        <div className="console-shell app-workspace">
+          <aside className="app-sidebar flex shrink-0 flex-col gap-4 rounded-lg p-4 lg:gap-5">
+            <div className="sidebar-device-block">
+              <p className="kicker mb-2">Device</p>
+              <div className="device-selector-card">
+                <span className="device-selector-icon"><GsIcon name="device" /></span>
+                <div className="min-w-0 flex-1">
+                  <span className="device-selector-caption">ADB serial</span>
+                  <input
+                    className="device-selector-select font-mono"
+                    value={serial}
+                    onChange={(e) => setSerial(e.target.value)}
+                    aria-label="ADB serial"
+                  />
+                  <span className={cn("device-selector-state", serial ? "device-selector-state--ready" : "")}>
+                    {serial ? "target set" : "empty"}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="icon-refresh device-refresh"
+                  aria-label="Refresh save path"
+                  onClick={() => void act(() => gsSavePath({ data: { token } }))}
+                >
+                  <GsIcon name="refresh" className="size-4" />
+                </Button>
+              </div>
+
+              <div className="sidebar-actions mt-3 flex flex-col gap-2">
+                <Button className="primary-action w-full" disabled={busy || !token} onClick={() => void pullAndConnect()}>
+                  <GsIcon name="device" className="size-5" />
+                  Pull from device
+                </Button>
+                <Button
+                  className="secondary-action w-full"
+                  variant="outline"
+                  disabled={busy || !snap}
+                  onClick={() => void saveToDevice()}
+                >
+                  <GsIcon name="save" className="size-4" />
+                  Save & push
+                </Button>
+                <Button variant="ghost" className="w-full" disabled={busy || !snap} onClick={() => void restoreOriginal()}>
+                  <GsIcon name="reset" className="size-4" />
+                  Restore original
+                </Button>
+                <label className="w-full">
+                  <span className="sr-only">Load a save file</span>
+                  <input
+                    type="file"
+                    accept=".db,.audb,.bin,*/*"
+                    className="gs-file"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void uploadSave(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+
+              <p className="mt-2 hidden text-xs text-muted lg:block">
+                {saveName ? `Loaded: ${saveName}` : "No save loaded"}
+              </p>
+              <p className="mt-1 hidden text-xs text-muted tabular-nums lg:block">
+                {sessionCount ? `${snap?.tables ?? 0} tables · v${snap?.version || "?"}` : "—"}
+              </p>
+            </div>
+
+            <div className="sidebar-log flex max-h-28 flex-col lg:max-h-none lg:min-h-28 lg:flex-1">
+              <p className="kicker mb-2 flex items-center gap-1.5">
+                <GsIcon name="terminal" className="size-3.5" /> Log
+              </p>
+              <div className="min-h-16 flex-1 overflow-auto rounded-md bg-input p-3 font-mono text-xs leading-relaxed text-primary">
+                {(snap?.log?.length ? snap.log : ["ready"]).map((line, i) => (
+                  <p key={i}>› {line}</p>
+                ))}
+              </div>
+            </div>
+          </aside>
+
+          <section className="app-main flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg shadow-hairline">
+            <nav className="feature-tabs relative border-b border-border px-3 pt-3 pb-2">
+              <span aria-hidden className={cn("tab-pill", tabReady && "ready")} />
+              {[GS_PRIMARY_TABS, GS_OVERFLOW_TABS].map((row, ri) => (
+                <div
+                  key={ri}
+                  className={cn(
+                    "feature-tabs-row grid grid-cols-4 gap-1 sm:grid-cols-8",
+                    ri === 1 && "feature-tabs-overflow mt-1 border-t border-border/60 pt-2",
+                  )}
+                >
+                  {row.map((id) => {
+                    const on = tab === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setTab(id)}
+                        aria-current={on ? "page" : undefined}
+                        aria-label={GS_TAB_LABEL[id]}
+                        className={cn(
+                          "feature-tab relative z-10 flex min-h-11 items-center justify-center gap-1 rounded-t-lg px-0.5 text-center text-xs font-semibold leading-tight transition-[color] duration-200 ease-smooth sm:text-sm",
+                          on ? "feature-tab--active text-primary-fg" : "text-muted hover:text-fg",
+                        )}
+                      >
+                        <span className="feature-tab-emoji gs-tab-icon" aria-hidden="true">
+                          <GsIcon name={GS_TAB_ICON[id]} className="size-4" />
+                        </span>
+                        <span className="whitespace-nowrap">{GS_TAB_LABEL[id]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </nav>
+
+            <div className="dashboard-content min-h-0 flex-1 overflow-auto p-4 sm:p-5">
+              {!snap ? (
+                <div className="panel-in grid min-h-64 place-items-center text-center">
+                  <div>
+                    <GsIcon name="device" className="empty-state-icon mx-auto size-8 text-muted" />
+                    <p className="mt-3 text-sm text-muted">No save connected</p>
+                    <p className="mt-1 text-xs text-muted">
+                      Pull from the device, or load a GameData.db file.
+                    </p>
+                    <div className="mt-4 flex justify-center gap-2">
+                      <Button size="sm" disabled={busy} onClick={() => void pullAndConnect()}>
+                        <GsIcon name="device" className="size-4" /> Pull from device
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => go("backups")}>
+                        <GsIcon name="backups" className="size-4" /> Backups
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div key={tab} className="panel-in">
+                  {tab === "dashboard" && <GsDashboard />}
+                  {tab === "player" && <GsPlayer />}
+                  {tab === "statistics" && <GsStatistics />}
+                  {tab === "boosters" && <GsBoosters />}
+                  {tab === "seasons" && <GsSeasons />}
+                  {tab === "cards" && <GsCards />}
+                  {tab === "send" && <GsSendCards />}
+                  {tab === "decor" && <GsDecor />}
+                  {tab === "avatars" && <GsAvatars />}
+                  {tab === "frames" && <GsFrames />}
+                  {tab === "styles" && <GsStyles />}
+                  {tab === "badges" && <GsBadges />}
+                  {tab === "titles" && <GsTitles />}
+                  {tab === "backups" && <GsBackups />}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    </GsCtx.Provider>
+  );
+}

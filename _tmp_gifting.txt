@@ -1,0 +1,572 @@
+
+===== C:\Users\User\Downloads\gardenscapes\_ref\live\GameData.db =====
+  -- CardC3 --
+     CardsGiftingCore: { LastResetDay: 20774, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [0 rows], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsRequester: {  }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: true, WasFirstChestReached: false, WasSecondChestNotificationShown: true, WasSecondChestReached: false, WasThirdChestNotificationShown: false, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: { counter: 178, lastEventTime: 1766117799, limitReached: true }
+  -- CardC4 --
+     CardsGiftingCore: { LastResetDay: 20755, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [0 rows], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsRequester: {  }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: false, WasFirstChestReached: false, WasSecondChestNotificationShown: false, WasSecondChestReached: false, WasThirdChestNotificationShown: false, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsGrandCollectionRewardGiven: false, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: { counter: 5, lastEventTime: 1771937557, limitReached: false }
+  -- CardC5 --
+  -- CardC6 --
+  -- CardC7 --
+     CardsGiftingCore: { LastResetDay: 20755, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [0 rows], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsRequester: {  }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: false, WasFirstChestReached: true, WasSecondChestNotificationShown: false, WasSecondChestReached: false, WasThirdChestNotificationShown: false, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsGrandCollectionRewardGiven: true, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: { counter: 4, lastEventTime: 1789571810, limitReached: false }
+  -- CardC8 --
+     CardsGiftingCore: { LastResetDay: 20774, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [1 rows: { belongingCollectionId: "CardC8", cardId: "card_10", cardSourceId: "ClanRequest", senderId: "neQ2UfwwGz", uniqueGiftingId: "11NF41jqiwKR1794421995" }], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsRequester: { RequestTimestamp: 1794421994 }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: false, WasFirstChestReached: false, WasSecondChestNotificationShown: false, WasSecondChestReached: false, WasThirdChestNotificationShown: false, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsGrandCollectionRewardGiven: false, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: { counter: 3, lastEventTime: 1793282701, limitReached: false }
+  -- CardC9 --
+  -- SeasonalCardsCollection --
+     CardsGiftingCore: { LastResetDay: 20774, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [0 rows], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: true, WasFirstChestReached: false, WasSecondChestNotificationShown: true, WasSecondChestReached: false, WasThirdChestNotificationShown: true, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: {  }
+  FLAT CharacterProperties.cluster2.Chester = { LastPosition: "9349,797,0,1", WalkInGarden: "WaitSit" }
+  FLAT CharacterProperties.cluster3.Chester = { WalkInGarden: "Stealth" }
+  FLAT CharacterProperties.cluster5.Chester = {  }
+  KEY EventsSystem::ClanChest = { launchTable: { ptr: { eventDuration: 0, idCurrentCondition: "", idUsedConditions: [0 rows], lastStartPoint: "", lastStartTimeStamp: 0, launchIndex: 0 }, type: "launchTable" }, statesGrap
+  FLAT Features.BeatTheHeat.OpenChestMiniGameController = { ChestItems: [0 rows] }
+  FLAT Features.SecretPassage.Match3WinTokensAccumulator = {  }
+  KEY Redesign::HappyDayTokens = 0
+  KEY SpecialEvents::ClanChest = { ChestLogic: { CachedSubGoals: [3 rows: { value: 1000 } | { value: 2000 } | { value: 3000 }], ClanGoalOnLeftClan: 0, ClanScore: 3042, ClanScoreOnLeftClan: 0, CompletedByTime: true, CurLa
+  FLAT SpecialEvents.ClanChest.ChestLogic = { CachedSubGoals: [3 rows: { value: 1000 } | { value: 2000 } | { value: 3000 }], ClanGoalOnLeftClan: 0, ClanScore: 3042, ClanScoreOnLeftClan: 0, CompletedByTime: true, CurLaunc
+  FLAT SpecialEvents.ClanChest.ClanChestIconState = { CurrentStateName: "MainWindow" }
+  FLAT SpecialEvents.ResourceModifier.TokensModifierLogic = { DurationType: 1, HasActiveModifier: true, LimitedMultiplier: 2, Multiplier: 2, PrevModifiersTimestamp: 1793275556.600333 }
+  FLAT SpecialEvents.RoomDesignVSO.Tokens1_Purchase = { UseCount: 0 }
+  FLAT SpecialEvents.RoomDesignVSO.Tokens2_Purchase = { UseCount: 0 }
+  FLAT SpecialEvents.RoomDesignVSO.Tokens3_Purchase = { UseCount: 0 }
+  FLAT SpecialEvents.RoomDesignVSO.TokensFree1 = { TimeStart: 0, UseCount: 0 }
+  FLAT SpecialEvents.RoomDesignVSO.TokensMultiplayer_Purchase = { UseCount: 0 }
+  FLAT SpecialEvents.Season58.LastTokenScoreUpdate = 3
+  FLAT SpecialEvents.Season58.LastTokenScoreUpdateType = "LevelEarnedSeasonPassTokens"
+  KEY SpecialEvents::clan_chest = { Analytics: {  }, History: [21 rows: { claimedReward: [0 rows], id: "040322", timeCounters: { end: 1646636400, start: 1646377200 } } | { claimedReward: [0 rows], id: "180322", timeCount
+  FLAT SpecialEvents.clan_chest.chestGoal = 0
+  FLAT SpecialEvents.clan_chest.claimedRewardChestId = "240323"
+  FLAT SpecialEvents.clan_chest.currentChestId = "020623"
+  FLAT SpecialEvents.clan_chest.startedChestsId = "070423"
+  FLAT TableName.Properties.ClanChestCheatTimeOffset = 0
+  FLAT TableName.Properties.SP_makeover2022_tokens1_GroupShown = true
+  FLAT TableName.Properties.SP_makeover2022_tokens1_ShowCount = 1
+  FLAT TableName.Properties.SP_makeover2022_tokens1_Shown = true
+  FLAT TableName.Properties.SP_season22tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_season22tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_season22tokens_2_Shown = true
+  FLAT TableName.Properties.SP_season22tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_season22tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_season22tokens_5_Shown = true
+  FLAT TableName.Properties.SP_season23tokens_1_GroupShown = true
+  FLAT TableName.Properties.SP_season23tokens_1_ShowCount = 1
+  FLAT TableName.Properties.SP_season23tokens_1_Shown = true
+  FLAT TableName.Properties.SP_season23tokens_3_GroupShown = true
+  FLAT TableName.Properties.SP_season23tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_season23tokens_3_Shown = true
+  FLAT TableName.Properties.SP_season26tokens_4_GroupShown = true
+  FLAT TableName.Properties.SP_season26tokens_4_ShowCount = 1
+  FLAT TableName.Properties.SP_season26tokens_4_Shown = true
+  FLAT TableName.Properties.SP_season27tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_season27tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_season27tokens_2_Shown = true
+  FLAT TableName.Properties.SP_season27tokens_4_GroupShown = true
+  FLAT TableName.Properties.SP_season27tokens_4_ShowCount = 1
+  FLAT TableName.Properties.SP_season27tokens_4_Shown = true
+  FLAT TableName.Properties.SP_season28tokens2_GroupShown = true
+  FLAT TableName.Properties.SP_season28tokens3_GroupShown = true
+  FLAT TableName.Properties.SP_season28tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_season28tokens_2_Shown = true
+  FLAT TableName.Properties.SP_season28tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_season28tokens_3_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_1_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_1_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_1_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_2_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_3_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_3_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_4_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_4_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_4_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_5_Shown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_1_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_1_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass17tokens_1_Shown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass17tokens_2_Shown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_3_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass17tokens_3_Shown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_1_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_1_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass19tokens_1_Shown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass19tokens_2_Shown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_3_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass19tokens_3_Shown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass19tokens_5_Shown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass20tokens_2_Shown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_4_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_4_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass20tokens_4_Shown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass20tokens_5_Shown = true
+  FLAT TableName.Properties.SP_seasonpass21tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass21tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass21tokens_5_Shown = true
+  FLAT TableName.Properties.boughtClusterRedesignTokens = 0
+  FLAT TableName.Properties.boughtEventTokens = 0
+  FLAT TableName.Properties.boughtMakeoverTokens = 0
+  FLAT TableName.Properties.boughtRoomTokens = 0
+  FLAT TableName.Properties.boughtTokens = 0
+  FLAT TableName.Properties.earnedClusterRedesignTokensCount = 0
+  FLAT TableName.Properties.earnedEventTokensCount = 3055
+  FLAT TableName.Properties.earnedMakeoverTokensCount = 4480
+  FLAT TableName.Properties.earnedRoomTokensCount = 5163
+  FLAT TableName.Properties.earnedTokensCount = 0
+  FLAT TableName.Properties.event_tokens = 50
+  FLAT TableName.Properties.makeover_tokens = 0
+  FLAT TableName.Properties.realClusterRedesignTokens = 0
+  FLAT TableName.Properties.realEventTokens = 5000
+  FLAT TableName.Properties.realMakeoverTokens = 0
+  FLAT TableName.Properties.realRoomTokens = 0
+  FLAT TableName.Properties.realTokens = 0
+  FLAT TableName.Properties.room_design_tokens = 0
+  FLAT TableName.Properties.spentClusterRedesignTokensCount = 0
+  FLAT TableName.Properties.spentEventTokensCount = 3001577
+  FLAT TableName.Properties.spentMakeoverTokensCount = 4480
+  FLAT TableName.Properties.spentRoomTokensCount = 5001914
+  FLAT TableName.Properties.spentTokensCount = 0
+  FLAT TableName.Properties.tokens = 0
+  KEY accumulateStatistics::AdditionalMovesTokens = 19
+  FLAT accumulateStatistics.Chain.CoinsEarnedFromChests = 0
+  FLAT accumulateStatistics.Chain.TokensEarnedFromChests = 0
+  FLAT accumulateStatistics.Event.CoinsEarnedFromChests = 0
+  FLAT accumulateStatistics.Event.TokensEarnedFromChests = 0
+  FLAT accumulateStatistics.LastLevelTry.AdditionalMovesTokens = 19
+  KEY accumulateStatistics::LevelChests = { LevelSpentCoins: 360300, LevelSpentRealCoins: 0 }
+  KEY accumulateStatistics::LevelEarnedEventTokens = 2755
+  KEY accumulateStatistics::LevelEarnedMakeoverTokens = 2580
+  KEY accumulateStatistics::LevelEarnedMergeTokens = 478
+  KEY accumulateStatistics::LevelEarnedRoomTokens = 4428
+  FLAT accumulateStatistics.LevelStory.AdditionalMovesTokens = 19
+  KEY accumulateStatistics::SpentRealEventTokens = 0
+  KEY accumulateStatistics::SpentRealMakeoverTokens = 0
+  KEY accumulateStatistics::SpentRealRoomTokens = 0
+  FLAT game_statistics.questTimestamp.chATL_CallChester = 1686816439
+  FLAT game_statistics.questTimestamp.chBOT_PutBenchesTop = 1686817546
+  FLAT game_statistics.questTimestamp.chBOT_SeekAdviceFromChester = 1686817079
+  FLAT game_statistics.questTimestamp.chFRI_Break_chest_lock = 1686896528
+  FLAT game_statistics.questTimestamp.chFtp_Find_old_chests = 1686810961
+  FLAT game_statistics.questTimestamp.chGRP_TalkChester = 1686813797
+  FLAT game_statistics.questTimestamp.chINV_DigChest = 1686897884
+  FLAT game_statistics.questTimestamp.chINV_OpenChest = 1686897889
+  FLAT game_statistics.questTimestamp.chLBR_ChestExploration = 1651999615
+  FLAT game_statistics.questTimestamp.chLBR_DigChest = 1651901218
+  FLAT game_statistics.questTimestamp.chLBR_OpenChest = 1651901926
+  FLAT game_statistics.questTimestamp.chOBS_OpenChest = 1686809451
+  FLAT game_statistics.questTimestamp.chPCN_HideTreasureChest = 1686804619
+  FLAT game_statistics.questTimestamp.chSLB_OpenChest = 1686982932
+  FLAT game_statistics.questTimestamp.chSLB_OpenUpChest = 1686982889
+  FLAT game_statistics.questTimestamp.chSPA_Consult_With_Uncle_Chester = 1686888716
+  FLAT game_statistics.questTimestamp.chTHE_InstallOrchestrion = 1686812652
+  FLAT game_statistics.questTimestamp.chTHE_SetUpOrchestrion = 1686813314
+  FLAT game_statistics.questTimestamp.chWST_Call_Chester = 1686984728
+  KEY history_data::chAIR_LetterChester = true
+  KEY history_data::chINV_Day3Letter_Chest = true
+  KEY history_data::chWND_Day3Chester_Letter = true
+  FLAT repairs.chapter17.AstronomerChest = { step: "Finish" }
+  FLAT repairs.chapter18.chest = { step: "dragonSet" }
+  FLAT repairs.chapter20.Chest = { step: "Orchestrion_Scene" }
+  FLAT repairs.chapter22.Column_chest = { step: "empty" }
+  FLAT repairs.chapter22.Fairy_Chest = { step: "NoChest" }
+  FLAT repairs.chapter22.Grotto_Chest = { step: "NoChest" }
+  FLAT repairs.chapter22.Tritons_Chest = { step: "NoChest" }
+  FLAT repairs.chapter26.house_chest = { step: "empty" }
+  FLAT repairs.chapter26.ship_chest = { step: "empty" }
+  FLAT repairs.chapter29.terrace_tree_chest = { step: "empty" }
+  FLAT repairs.chapter29.tree_house_chest = { step: "moved" }
+  FLAT repairs.chapter30.D3_6_ChestHill_1_Chest = { step: "empty" }
+  FLAT repairs.chapter30.D3_6_ChestHill_1_Hole = { step: "cover" }
+  FLAT repairs.chapter30.D3_6_ChestHill_3_Stones = { step: "set_3" }
+  FLAT repairs.chapter30.D3_6_ChestHill_4_Plants = { step: "set_2" }
+  FLAT repairs.chapter31.D3_chest = { step: "clear" }
+  FLAT repairs.chapter41.D4_Chest = { step: "set" }
+  FLAT repairs.chapter41.D4_treasyre_cave_chest = { step: "set" }
+  FLAT repairs.chapter53.d4_orchestra_instrument = { step: "set" }
+  FLAT repairs.chapter53.d4_orchestra_lantern = { step: "set" }
+  FLAT repairs.chapter53.d4_orchestra_platform = { step: "restored" }
+  FLAT repairs.chapter53.d4_orchestra_statue = { step: "move" }
+  FLAT repairs.chapter53.d4_orchestra_wall = { base_step: "half", step: "set2" }
+  FLAT repairs.chapter59.d6_chest = { step: "empty" }
+  FLAT repairs.chapter7.CoachChest = { step: "empty" }
+  FLAT repairs.chapter7.FlowersOrchestrion = { base_step: "empty", step: "Santorini_Flowers_A1" }
+  FLAT repairs.chapter7.Orchestrion = { step: "orchestrion_redesign" }
+  FLAT repairs.chapter7.OrchestrionFlowers = { base_step: "empty", step: "Santorini_Boat_A1" }
+  FLAT repairs.chapter7.OrchestrionLawn = { step: "final_grass" }
+  FLAT repairs.chapter7.OrchestrionScene = { step: "scene_redesign" }
+  FLAT repairs.chapter7.OrchestrionTopiary = { step: "TopiaryCat" }
+  FLAT repairs.chapter9.Hayloft_chest = { step: "Cleared" }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,Closed = { isBuy: true }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,Empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,Finish = { isBuy: true }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,Opened = { isBuy: true }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,noChest = { isBuy: true }
+  KEY repairs_purchases_info::chapter18,chest,EmptyChest = { isBuy: true }
+  KEY repairs_purchases_info::chapter18,chest,dragonSet = { isBuy: true }
+  KEY repairs_purchases_info::chapter18,chest,found = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,CoachChest = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,CoachChest,old = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,Santorini_Flowers_A1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,flowers1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,flowers2 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,flowers3 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,beesOut = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,clean = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,destroy = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,final = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,get = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,no_bees = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,play = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,playDance = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,repair = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,work = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,Santorini_Boat_A1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,final1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,final2 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,final3 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,flowers1_redesign = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,flowers2_redesign = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,flowers3_redesign = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionLawn = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionLawn,final_grass = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionLawn,old_grass = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene,destroy = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene,empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene,final = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene,final1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionTopiary = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionTopiary,BoxCat = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionTopiary,BoxCatNewPlace = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionTopiary,TopiaryCat = { isBuy: true }
+  KEY repairs_purchases_info::chapter9,Hayloft_chest = { isBuy: true }
+  KEY repairs_purchases_info::chapter9,Hayloft_chest,Cleared = { isBuy: true }
+  KEY repairs_purchases_info::chapter9,Hayloft_chest,Closed = { isBuy: true }
+  KEY repairs_purchases_info::chapter9,Hayloft_chest,Opened = { isBuy: true }
+
+===== ../_ref/mined/GameData.db =====
+  -- CardC3 --
+     CardsGiftingCore: { LastResetDay: 20768, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [0 rows], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsRequester: {  }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: true, WasFirstChestReached: false, WasSecondChestNotificationShown: true, WasSecondChestReached: false, WasThirdChestNotificationShown: false, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: { counter: 178, lastEventTime: 1766117799, limitReached: true }
+  -- CardC4 --
+     CardsGiftingCore: { LastResetDay: 20755, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [0 rows], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsRequester: {  }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: false, WasFirstChestReached: false, WasSecondChestNotificationShown: false, WasSecondChestReached: false, WasThirdChestNotificationShown: false, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsGrandCollectionRewardGiven: false, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: { counter: 5, lastEventTime: 1771937557, limitReached: false }
+  -- CardC5 --
+  -- CardC6 --
+  -- CardC7 --
+     CardsGiftingCore: { LastResetDay: 20755, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [0 rows], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsRequester: {  }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: false, WasFirstChestReached: true, WasSecondChestNotificationShown: false, WasSecondChestReached: false, WasThirdChestNotificationShown: false, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsGrandCollectionRewardGiven: true, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: { counter: 4, lastEventTime: 1789571810, limitReached: false }
+  -- CardC8 --
+     CardsGiftingCore: { LastResetDay: 20768, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [0 rows], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsRequester: { RequestTimestamp: 1794421994 }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: false, WasFirstChestReached: false, WasSecondChestNotificationShown: false, WasSecondChestReached: false, WasThirdChestNotificationShown: false, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsGrandCollectionRewardGiven: false, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: { counter: 3, lastEventTime: 1793282701, limitReached: false }
+  -- SeasonalCardsCollection --
+     CardsGiftingCore: { LastResetDay: 20768, PendingReceivedCards: [0 rows], PendingSendCards: [0 rows], ReceivedCards: [0 rows], SendCardsCount: 0, SentCards: [0 rows] }
+     CardsTradeCore: { additionalTokens: 0 }
+     CardsCollectionTrade: { WasFirstChestNotificationShown: true, WasFirstChestReached: false, WasSecondChestNotificationShown: true, WasSecondChestReached: false, WasThirdChestNotificationShown: true, WasThirdChestReached: false }
+     CardsCollectionMainComponents: { IsFinishPostponed: false, IsPromoWindowShown: true, IsWaitingForRewards: false }
+     AnomalyCounter: {  }
+  FLAT CharacterProperties.cluster2.Chester = { LastPosition: "9349,797,0,1", WalkInGarden: "WaitSit" }
+  FLAT CharacterProperties.cluster3.Chester = { WalkInGarden: "Stealth" }
+  FLAT CharacterProperties.cluster5.Chester = {  }
+  KEY EventsSystem::ClanChest = { launchTable: { ptr: { eventDuration: 0, idCurrentCondition: "", idUsedConditions: [0 rows], lastStartPoint: "", lastStartTimeStamp: 0, launchIndex: 0 }, type: "launchTable" }, statesGrap
+  FLAT Features.BeatTheHeat.OpenChestMiniGameController = { ChestItems: [0 rows] }
+  KEY Redesign::HappyDayTokens = 0
+  KEY SpecialEvents::ClanChest = { ChestLogic: { CachedSubGoals: [3 rows: { value: 1000 } | { value: 2000 } | { value: 3000 }], ClanGoalOnLeftClan: 0, ClanScore: 3042, ClanScoreOnLeftClan: 0, CompletedByTime: false, CurL
+  FLAT SpecialEvents.ClanChest.ChestLogic = { CachedSubGoals: [3 rows: { value: 1000 } | { value: 2000 } | { value: 3000 }], ClanGoalOnLeftClan: 0, ClanScore: 3042, ClanScoreOnLeftClan: 0, CompletedByTime: false, CurLaun
+  FLAT SpecialEvents.ClanChest.ClanChestIconState = { CurrentStateName: "MainWindow" }
+  FLAT SpecialEvents.ResourceModifier.TokensModifierLogic = { DurationType: 1, HasActiveModifier: true, LimitedMultiplier: 2, Multiplier: 2, PrevModifiersTimestamp: 1793275556.600333 }
+  FLAT SpecialEvents.RoomDesignVSO.Tokens1_Purchase = { UseCount: 0 }
+  FLAT SpecialEvents.RoomDesignVSO.Tokens2_Purchase = { UseCount: 0 }
+  FLAT SpecialEvents.RoomDesignVSO.Tokens3_Purchase = { UseCount: 0 }
+  FLAT SpecialEvents.RoomDesignVSO.TokensFree1 = { TimeStart: 0, UseCount: 0 }
+  FLAT SpecialEvents.RoomDesignVSO.TokensMultiplayer_Purchase = { UseCount: 0 }
+  FLAT SpecialEvents.Season58.LastTokenScoreUpdate = 3
+  FLAT SpecialEvents.Season58.LastTokenScoreUpdateType = "LevelEarnedSeasonPassTokens"
+  KEY SpecialEvents::clan_chest = { Analytics: {  }, History: [21 rows: { claimedReward: [0 rows], id: "040322", timeCounters: { end: 1646636400, start: 1646377200 } } | { claimedReward: [0 rows], id: "180322", timeCount
+  FLAT SpecialEvents.clan_chest.chestGoal = 0
+  FLAT SpecialEvents.clan_chest.claimedRewardChestId = "240323"
+  FLAT SpecialEvents.clan_chest.currentChestId = "020623"
+  FLAT SpecialEvents.clan_chest.startedChestsId = "070423"
+  FLAT TableName.Properties.ClanChestCheatTimeOffset = 0
+  FLAT TableName.Properties.SP_makeover2022_tokens1_GroupShown = true
+  FLAT TableName.Properties.SP_makeover2022_tokens1_ShowCount = 1
+  FLAT TableName.Properties.SP_makeover2022_tokens1_Shown = true
+  FLAT TableName.Properties.SP_season22tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_season22tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_season22tokens_2_Shown = true
+  FLAT TableName.Properties.SP_season22tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_season22tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_season22tokens_5_Shown = true
+  FLAT TableName.Properties.SP_season23tokens_1_GroupShown = true
+  FLAT TableName.Properties.SP_season23tokens_1_ShowCount = 1
+  FLAT TableName.Properties.SP_season23tokens_1_Shown = true
+  FLAT TableName.Properties.SP_season23tokens_3_GroupShown = true
+  FLAT TableName.Properties.SP_season23tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_season23tokens_3_Shown = true
+  FLAT TableName.Properties.SP_season26tokens_4_GroupShown = true
+  FLAT TableName.Properties.SP_season26tokens_4_ShowCount = 1
+  FLAT TableName.Properties.SP_season26tokens_4_Shown = true
+  FLAT TableName.Properties.SP_season27tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_season27tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_season27tokens_2_Shown = true
+  FLAT TableName.Properties.SP_season27tokens_4_GroupShown = true
+  FLAT TableName.Properties.SP_season27tokens_4_ShowCount = 1
+  FLAT TableName.Properties.SP_season27tokens_4_Shown = true
+  FLAT TableName.Properties.SP_season28tokens2_GroupShown = true
+  FLAT TableName.Properties.SP_season28tokens3_GroupShown = true
+  FLAT TableName.Properties.SP_season28tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_season28tokens_2_Shown = true
+  FLAT TableName.Properties.SP_season28tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_season28tokens_3_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_1_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_1_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_1_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_2_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_3_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_3_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_4_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_4_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_4_Shown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass14tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass14tokens_5_Shown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_1_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_1_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass17tokens_1_Shown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass17tokens_2_Shown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_3_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass17tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass17tokens_3_Shown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_1_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_1_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass19tokens_1_Shown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass19tokens_2_Shown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_3_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_3_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass19tokens_3_Shown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass19tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass19tokens_5_Shown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_2_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_2_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass20tokens_2_Shown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_4_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_4_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass20tokens_4_Shown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass20tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass20tokens_5_Shown = true
+  FLAT TableName.Properties.SP_seasonpass21tokens_5_GroupShown = true
+  FLAT TableName.Properties.SP_seasonpass21tokens_5_ShowCount = 1
+  FLAT TableName.Properties.SP_seasonpass21tokens_5_Shown = true
+  FLAT TableName.Properties.boughtClusterRedesignTokens = 0
+  FLAT TableName.Properties.boughtEventTokens = 0
+  FLAT TableName.Properties.boughtMakeoverTokens = 0
+  FLAT TableName.Properties.boughtRoomTokens = 0
+  FLAT TableName.Properties.boughtTokens = 0
+  FLAT TableName.Properties.earnedClusterRedesignTokensCount = 0
+  FLAT TableName.Properties.earnedEventTokensCount = 3055
+  FLAT TableName.Properties.earnedMakeoverTokensCount = 4480
+  FLAT TableName.Properties.earnedRoomTokensCount = 5163
+  FLAT TableName.Properties.earnedTokensCount = 0
+  FLAT TableName.Properties.event_tokens = 50
+  FLAT TableName.Properties.makeover_tokens = 0
+  FLAT TableName.Properties.realClusterRedesignTokens = 0
+  FLAT TableName.Properties.realEventTokens = 5000
+  FLAT TableName.Properties.realMakeoverTokens = 0
+  FLAT TableName.Properties.realRoomTokens = 0
+  FLAT TableName.Properties.realTokens = 0
+  FLAT TableName.Properties.room_design_tokens = 0
+  FLAT TableName.Properties.spentClusterRedesignTokensCount = 0
+  FLAT TableName.Properties.spentEventTokensCount = 3001577
+  FLAT TableName.Properties.spentMakeoverTokensCount = 4480
+  FLAT TableName.Properties.spentRoomTokensCount = 5001914
+  FLAT TableName.Properties.spentTokensCount = 0
+  FLAT TableName.Properties.tokens = 0
+  KEY accumulateStatistics::AdditionalMovesTokens = 19
+  FLAT accumulateStatistics.Chain.CoinsEarnedFromChests = 0
+  FLAT accumulateStatistics.Chain.TokensEarnedFromChests = 0
+  FLAT accumulateStatistics.Event.CoinsEarnedFromChests = 0
+  FLAT accumulateStatistics.Event.TokensEarnedFromChests = 0
+  FLAT accumulateStatistics.LastLevelTry.AdditionalMovesTokens = 19
+  KEY accumulateStatistics::LevelChests = { LevelSpentCoins: 360300, LevelSpentRealCoins: 0 }
+  KEY accumulateStatistics::LevelEarnedEventTokens = 2755
+  KEY accumulateStatistics::LevelEarnedMakeoverTokens = 2580
+  KEY accumulateStatistics::LevelEarnedMergeTokens = 478
+  KEY accumulateStatistics::LevelEarnedRoomTokens = 4428
+  FLAT accumulateStatistics.LevelStory.AdditionalMovesTokens = 19
+  KEY accumulateStatistics::SpentRealEventTokens = 0
+  KEY accumulateStatistics::SpentRealMakeoverTokens = 0
+  KEY accumulateStatistics::SpentRealRoomTokens = 0
+  FLAT game_statistics.questTimestamp.chATL_CallChester = 1686816439
+  FLAT game_statistics.questTimestamp.chBOT_PutBenchesTop = 1686817546
+  FLAT game_statistics.questTimestamp.chBOT_SeekAdviceFromChester = 1686817079
+  FLAT game_statistics.questTimestamp.chFRI_Break_chest_lock = 1686896528
+  FLAT game_statistics.questTimestamp.chFtp_Find_old_chests = 1686810961
+  FLAT game_statistics.questTimestamp.chGRP_TalkChester = 1686813797
+  FLAT game_statistics.questTimestamp.chINV_DigChest = 1686897884
+  FLAT game_statistics.questTimestamp.chINV_OpenChest = 1686897889
+  FLAT game_statistics.questTimestamp.chLBR_ChestExploration = 1651999615
+  FLAT game_statistics.questTimestamp.chLBR_DigChest = 1651901218
+  FLAT game_statistics.questTimestamp.chLBR_OpenChest = 1651901926
+  FLAT game_statistics.questTimestamp.chOBS_OpenChest = 1686809451
+  FLAT game_statistics.questTimestamp.chPCN_HideTreasureChest = 1686804619
+  FLAT game_statistics.questTimestamp.chSLB_OpenChest = 1686982932
+  FLAT game_statistics.questTimestamp.chSLB_OpenUpChest = 1686982889
+  FLAT game_statistics.questTimestamp.chSPA_Consult_With_Uncle_Chester = 1686888716
+  FLAT game_statistics.questTimestamp.chTHE_InstallOrchestrion = 1686812652
+  FLAT game_statistics.questTimestamp.chTHE_SetUpOrchestrion = 1686813314
+  FLAT game_statistics.questTimestamp.chWST_Call_Chester = 1686984728
+  KEY history_data::chAIR_LetterChester = true
+  KEY history_data::chINV_Day3Letter_Chest = true
+  KEY history_data::chWND_Day3Chester_Letter = true
+  FLAT repairs.chapter17.AstronomerChest = { step: "Finish" }
+  FLAT repairs.chapter18.chest = { step: "dragonSet" }
+  FLAT repairs.chapter20.Chest = { step: "Orchestrion_Scene" }
+  FLAT repairs.chapter22.Column_chest = { step: "empty" }
+  FLAT repairs.chapter22.Fairy_Chest = { step: "NoChest" }
+  FLAT repairs.chapter22.Grotto_Chest = { step: "NoChest" }
+  FLAT repairs.chapter22.Tritons_Chest = { step: "NoChest" }
+  FLAT repairs.chapter26.house_chest = { step: "empty" }
+  FLAT repairs.chapter26.ship_chest = { step: "empty" }
+  FLAT repairs.chapter29.terrace_tree_chest = { step: "empty" }
+  FLAT repairs.chapter29.tree_house_chest = { step: "moved" }
+  FLAT repairs.chapter30.D3_6_ChestHill_1_Chest = { step: "empty" }
+  FLAT repairs.chapter30.D3_6_ChestHill_1_Hole = { step: "cover" }
+  FLAT repairs.chapter30.D3_6_ChestHill_3_Stones = { step: "set_3" }
+  FLAT repairs.chapter30.D3_6_ChestHill_4_Plants = { step: "set_2" }
+  FLAT repairs.chapter31.D3_chest = { step: "clear" }
+  FLAT repairs.chapter41.D4_Chest = { step: "set" }
+  FLAT repairs.chapter41.D4_treasyre_cave_chest = { step: "set" }
+  FLAT repairs.chapter53.d4_orchestra_instrument = { step: "set" }
+  FLAT repairs.chapter53.d4_orchestra_lantern = { step: "set" }
+  FLAT repairs.chapter53.d4_orchestra_platform = { step: "restored" }
+  FLAT repairs.chapter53.d4_orchestra_statue = { step: "move" }
+  FLAT repairs.chapter53.d4_orchestra_wall = { base_step: "half", step: "set2" }
+  FLAT repairs.chapter59.d6_chest = { step: "empty" }
+  FLAT repairs.chapter7.CoachChest = { step: "empty" }
+  FLAT repairs.chapter7.FlowersOrchestrion = { base_step: "empty", step: "Santorini_Flowers_A1" }
+  FLAT repairs.chapter7.Orchestrion = { step: "orchestrion_redesign" }
+  FLAT repairs.chapter7.OrchestrionFlowers = { base_step: "empty", step: "Santorini_Boat_A1" }
+  FLAT repairs.chapter7.OrchestrionLawn = { step: "final_grass" }
+  FLAT repairs.chapter7.OrchestrionScene = { step: "scene_redesign" }
+  FLAT repairs.chapter7.OrchestrionTopiary = { step: "TopiaryCat" }
+  FLAT repairs.chapter9.Hayloft_chest = { step: "Cleared" }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,Closed = { isBuy: true }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,Empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,Finish = { isBuy: true }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,Opened = { isBuy: true }
+  KEY repairs_purchases_info::chapter17,AstronomerChest,noChest = { isBuy: true }
+  KEY repairs_purchases_info::chapter18,chest,EmptyChest = { isBuy: true }
+  KEY repairs_purchases_info::chapter18,chest,dragonSet = { isBuy: true }
+  KEY repairs_purchases_info::chapter18,chest,found = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,CoachChest = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,CoachChest,old = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,Santorini_Flowers_A1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,flowers1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,flowers2 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,FlowersOrchestrion,flowers3 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,beesOut = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,clean = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,destroy = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,final = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,get = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,no_bees = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,play = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,playDance = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,repair = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,Orchestrion,work = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,Santorini_Boat_A1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,final1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,final2 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,final3 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,flowers1_redesign = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,flowers2_redesign = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionFlowers,flowers3_redesign = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionLawn = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionLawn,final_grass = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionLawn,old_grass = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene,destroy = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene,empty = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene,final = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionScene,final1 = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionTopiary = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionTopiary,BoxCat = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionTopiary,BoxCatNewPlace = { isBuy: true }
+  KEY repairs_purchases_info::chapter7,OrchestrionTopiary,TopiaryCat = { isBuy: true }
+  KEY repairs_purchases_info::chapter9,Hayloft_chest = { isBuy: true }
+  KEY repairs_purchases_info::chapter9,Hayloft_chest,Cleared = { isBuy: true }
+  KEY repairs_purchases_info::chapter9,Hayloft_chest,Closed = { isBuy: true }
+  KEY repairs_purchases_info::chapter9,Hayloft_chest,Opened = { isBuy: true }

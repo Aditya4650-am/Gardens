@@ -1,0 +1,85 @@
+// Gardenscapes session store + connect/push pipeline.
+//
+// Mirrors the IGG Township studio.server.ts contract: a long-lived in-memory
+// Map of sessions keyed by id, each holding the decoded AUDB document. The
+// device transport (pull/push via ADB) lives in save.server.ts; this module
+// owns the decode -> edit -> encode round trip that the Connect/Save/Push flow
+// depends on, so a Gardenscapes save never gets re-serialized outside the
+// byte-exact AUDB codec.
+
+import { Buffer } from "node:buffer";
+import { randomUUID } from "node:crypto";
+import { decodeSave, encodeSave, type DecodedGardenscapesSave } from "@/lib/gardenscapes/save-engine";
+
+export type GardenscapesSession = {
+  id: string;
+  token: string;
+  device: string;
+  /** The decoded save the edits mutate. */
+  decoded: DecodedGardenscapesSave;
+  /** Cipher bytes exactly as loaded, before any edit (undo source). */
+  originalCipher: Buffer;
+  log: string[];
+};
+
+const sessions = new Map<string, GardenscapesSession>();
+
+export function connectLoad(
+  token: string,
+  device: string,
+  saveB64: string,
+): GardenscapesSession {
+  const buf = Buffer.from(saveB64.trim(), "base64");
+  if (buf.length < 8) throw new Error("Gardenscapes save is too small");
+  const decoded = decodeSave(buf);
+  const session: GardenscapesSession = {
+    id: randomUUID(),
+    token,
+    device,
+    decoded,
+    originalCipher: Buffer.from(buf),
+    log: ["Save loaded", `Tables: ${decoded.doc.tables.length}`],
+  };
+  sessions.set(session.id, session);
+  return session;
+}
+
+export function getSession(id: string, token: string): GardenscapesSession {
+  const s = sessions.get(id);
+  if (!s || s.token !== token) throw new Error("Session expired - connect again");
+  return s;
+}
+
+export function listSessions(token: string): GardenscapesSession[] {
+  return [...sessions.values()].filter((s) => s.token === token);
+}
+
+export function dropSession(id: string, token: string): boolean {
+  const s = sessions.get(id);
+  if (!s || s.token !== token) return false;
+  sessions.delete(id);
+  return true;
+}
+
+/** Re-encode the (possibly edited) session document to device cipher bytes. */
+export function pushEncode(sessionId: string, token: string): Buffer {
+  const s = getSession(sessionId, token);
+  return encodeSave(s.decoded.doc);
+}
+
+/** Byte-exact undo: restore the document from the originally loaded bytes. */
+export function restoreOriginal(sessionId: string, token: string): void {
+  const s = getSession(sessionId, token);
+  s.decoded = decodeSave(s.originalCipher);
+  s.log.push("Restored original save");
+}
+
+export function snapshot(s: GardenscapesSession) {
+  return {
+    id: s.id,
+    device: s.device,
+    tables: s.decoded.doc.tables.length,
+    version: s.decoded.version,
+    log: s.log,
+  };
+}

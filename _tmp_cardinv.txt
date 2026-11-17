@@ -1,0 +1,52 @@
+
+===== ../_ref/mined/GameData.db =====
+
+--- CardC8 (OwnedCards=10) ---
+  card_04 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_18 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_21 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_43 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_137 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_113 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_12 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_31 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_95 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_08 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  sum(gen)=10 sum(stock)=10 isNew=true:0 TotalObtained=10 streak=0
+  INVARIANT sum(gen)==TotalObtained: HOLDS
+  dup ids: no
+  OwnedSets=15 isRewardGiven=true:0
+    set_01:2 set_02:2 set_03:1 set_04:1 set_05:1 set_06:0 set_07:0 set_08:0 set_09:0 set_10:1 set_11:0 set_12:1 set_13:0 set_14:1 set_15:0
+  GivenPackInfos: PackLevel4=0[gs] PackLevel5=0[gs] PackLevel1=1[gs] PackLevel2=0[gs] PackLevel3=1[gs] StartPack=1[gs]
+  PendingPacks: 0 rows
+
+===== C:\Users\User\Downloads\Telegram Desktop\GameData.db =====
+
+--- CardC7 (OwnedCards=20) ---
+  card_03 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_46 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_20 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_31 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_107 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_28 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_52 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_127 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_102 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_134 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_17 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_06 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_66 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_71 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_74 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_95 gen=1 stock=1 isNew=false [cardId=s,generatedCount=i,inStockCount=i,isNew=f]
+  card_47 gen=1 stock=1 isNew=true [cardId=s,generatedCount=i,inStockCount=i,isNew=t]
+  card_44 gen=1 stock=1 isNew=true [cardId=s,generatedCount=i,inStockCount=i,isNew=t]
+  card_15 gen=1 stock=1 isNew=true [cardId=s,generatedCount=i,inStockCount=i,isNew=t]
+  card_54 gen=1 stock=1 isNew=true [cardId=s,generatedCount=i,inStockCount=i,isNew=t]
+  sum(gen)=20 sum(stock)=20 isNew=true:4 TotalObtained=20 streak=0
+  INVARIANT sum(gen)==TotalObtained: HOLDS
+  dup ids: no
+  OwnedSets=15 isRewardGiven=true:0
+    set_01:2 set_02:2 set_03:1 set_04:1 set_05:1 set_06:1 set_07:1 set_08:2 set_09:0 set_10:1 set_11:2 set_12:0 set_13:1 set_14:1 set_15:0
+  GivenPackInfos: PackLevel3=72[gs] StartPack=3[gs] PackLevel4=0[gs] PackLevel5=59[gs] PackLevel1=0[gs] PackLevel2=59[gs]
+  PendingPacks: 0 rows

@@ -1,0 +1,1126 @@
+
+===== ../_ref/mined/GameData.db =====
+  TABLE AnaliticsProperties :: chPCN_SendManuscript_Letter [s] val="chPCN_OrganizeFlowerBed"
+  TABLE EmergencyFixes :: FIX730_MERGE_CAMPING_FIX_START_EVENT_TIME [s] val="fixed"
+  TABLE EmergencyFixes :: FixSeasonalCardsCollection_290925 [s] val="fixed"
+  TABLE EventsSystem :: ExpFastStart [o] kids=launchTable,statesGraph
+  TABLE EventsSystem :: GameFriends [o] kids=launchTable,statesGraph
+  TABLE EventsSystem :: InviteFriends [o] kids=launchTable,statesGraph
+  TABLE Features :: CardC3 [o] kids=AnomalyCounter,CardC3Loader,CardC3Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC3.CardC3Loader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]]]
+  FLAT  Features.CardC3.CardC3Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC3.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsPromoWindowShown",["t",true]],["IsWaitingForRewards
+  FLAT  Features.CardC3.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",14]]]
+  FLAT  Features.CardC3.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["t",true]],["WasFirstChestReached",["f",false]],["WasS
+  FLAT  Features.CardC3.CardsGiftingCore [o] [["LastResetDay",["k",20768]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC3.CardsRequester [o] []
+  FLAT  Features.CardC3.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  TABLE Features :: CardC4 [o] kids=AnomalyCounter,CardC4Loader,CardC4Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC4.CardC4Loader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]],["IsSupremeCollection",["
+  FLAT  Features.CardC4.CardC4Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC4.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsGrandCollectionRewardGiven",["f",false]],["IsPromoW
+  FLAT  Features.CardC4.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",5]]]
+  FLAT  Features.CardC4.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["f",false]],["WasFirstChestReached",["f",false]],["Was
+  FLAT  Features.CardC4.CardsGiftingCore [o] [["LastResetDay",["k",20755]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC4.CardsRequester [o] []
+  FLAT  Features.CardC4.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  TABLE Features :: CardC5 [o] kids=CardC5Loader,CardC5Main,SingleScheduleComponent
+  FLAT  Features.CardC5.CardC5Loader [o] []
+  FLAT  Features.CardC5.CardC5Main [o] []
+  TABLE Features :: CardC6 [o] kids=CardC6Loader,CardC6Main,SingleScheduleComponent
+  FLAT  Features.CardC6.CardC6Loader [o] []
+  FLAT  Features.CardC6.CardC6Main [o] []
+  TABLE Features :: CardC7 [o] kids=AnomalyCounter,CardC7Loader,CardC7Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC7.CardC7Loader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]],["IsSupremeCollection",["
+  FLAT  Features.CardC7.CardC7Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC7.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsGrandCollectionRewardGiven",["t",true]],["IsPromoWi
+  FLAT  Features.CardC7.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",4]]]
+  FLAT  Features.CardC7.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["f",false]],["WasFirstChestReached",["t",true]],["WasS
+  FLAT  Features.CardC7.CardsGiftingCore [o] [["LastResetDay",["k",20755]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC7.CardsRequester [o] []
+  FLAT  Features.CardC7.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  TABLE Features :: CardC8 [o] kids=AnomalyCounter,CardC8Loader,CardC8Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC8.CardC8Loader [o] [["IsEventActive",["t",true]],["IsGrandCollection",["f",false]],["IsSupremeCollection",["f
+  FLAT  Features.CardC8.CardC8Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC8.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsGrandCollectionRewardGiven",["f",false]],["IsPromoW
+  FLAT  Features.CardC8.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",2]]]
+  FLAT  Features.CardC8.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["f",false]],["WasFirstChestReached",["f",false]],["Was
+  FLAT  Features.CardC8.CardsGiftingCore [o] [["LastResetDay",["k",20768]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC8.CardsRequester [o] [["RequestTimestamp",["k",1794421994]]]
+  FLAT  Features.CardC8.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  FLAT  Features.CollectionsGFF.CardsCollectionLoader [o] []
+  FLAT  Features.Expedition.StartFlowComponent [o] [["Exp41",["o",[["IsPromoShown",["t",true]]]]]]
+  TABLE Features :: SeasonalCardsCollection [o] kids=AnomalyCounter,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCardsCollectionLoader,SeasonalCardsCollectionMain,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.SeasonalCardsCollection.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsPromoWindowShown",["t",true]],["IsWaitingForRewards
+  FLAT  Features.SeasonalCardsCollection.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",28]]]
+  FLAT  Features.SeasonalCardsCollection.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["t",true]],["WasFirstChestReached",["f",false]],["WasS
+  FLAT  Features.SeasonalCardsCollection.CardsGiftingCore [o] [["LastResetDay",["k",20768]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.SeasonalCardsCollection.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  FLAT  Features.SeasonalCardsCollection.SeasonalCardsCollectionLoader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]]]
+  FLAT  Features.SeasonalCardsCollection.SeasonalCardsCollectionMain [o] [["HasEventBeenActive",["t",true]]]
+  TABLE Features :: StartMiniGames [o] kids=StorableVarsContext
+  TABLE Features :: StartScreensGFF [o] kids=Schedule
+  FLAT  Leagues.contest_leagues.isStartScreenplayShown [t] true
+  FLAT  Match3LevelRewardsStatistics.SystemData.StartIndex [i] 327
+  TABLE MultiShotChallengeManager :: attempts [i] val=1
+  TABLE QuestStarsCorrection :: EventCompensationStartedLogging [t] val=true
+  TABLE QuestStarsCorrection :: QuestsStarsCorrected [a] kids=s,s,s,s,s,s,s,s,s,s,s,s,s
+  TABLE QuestStarsCorrection :: QuestsStarsCorrection [a] kids=s,s,s,s,s,s,s,s,s,s,s,s,s,s,…
+  FLAT  SpecialEvents.CR6.IsStartSceneShown [t] true
+  FLAT  SpecialEvents.CR6.StartChatMessage [o] [["firstShowTime",["u",1680265051]],["isRewardsClaimed",["t",true]],["lastShowTime",["u",1
+  TABLE SpecialEvents :: ExpFastStart [o] kids=Balance,Purchases,ScheduleComponent
+  TABLE SpecialEvents :: GameFriends [o] kids=ClanComponent,GameFriendsBridge,GameFriendsFbMigrator,InviteLogic,TimeSignalEmitterComponent
+  FLAT  SpecialEvents.GameFriends.GameFriendsBridge [o] [["AcceptFriendInvitePendingInfo",["a",[]]],["CancelFriendshipPendingInfo",["a",[]]],["Dec
+  FLAT  SpecialEvents.GameFriends.GameFriendsFbMigrator [o] [["FbFriendsSaveIds",["a",[]]],["FbMigratorState",["s","None"]]]
+  TABLE SpecialEvents :: QuestStarsCorrection [o] kids=starsCredit
+  FLAT  SpecialEvents.QuestStarsCorrection.starsCredit [d] 38
+  FLAT  SpecialEvents.RaceGame_Exp_Pathfinder.Swrve_LevelAttempts [o] [["CurrentValue",["d",0]],["TotalValue",["d",0]]]
+  FLAT  SpecialEvents.Season58.StartWasShown [t] true
+  FLAT  SpecialEvents.Season59.StartWasShown [t] true
+  FLAT  SpecialEvents.Season60.StartWasShown [t] true
+  FLAT  SpecialEvents.clan_chest.resultsStartedTime [d] 0
+  FLAT  SpecialEvents.clan_chest.startCluster [s] "cluster1"
+  FLAT  SpecialEvents.clan_chest.startedChestsId [s] "070423"
+  FLAT  SpecialEvents.clan_contest.generatedStartTimeRandomPause [d] 260
+  FLAT  SpecialEvents.clan_contest.startCluster [s] "cluster1"
+  TABLE SpecialEvents :: extra_stars [o] kids=abChangeOnZeroProgress,startCluster,userSegments
+  FLAT  SpecialEvents.extra_stars.startCluster [s] "cluster1"
+  TABLE SpecialEvents :: extra_stars_at_start [o] kids=abChangeOnZeroProgress,startCluster,userSegments
+  FLAT  SpecialEvents.extra_stars_at_start.startCluster [s] "cluster1"
+  FLAT  SpecialEvents.gold_cup.nextStartTime [d] 1794816000
+  FLAT  SpecialEvents.season_pass_procedural.startCluster [s] "cluster1"
+  FLAT  SpecialEvents.shop_coupon.CountLevelAttempts [d] 0
+  FLAT  SpecialEvents.shop_coupon.IsFirstMatch3Start [t] true
+  FLAT  SpecialEvents.shop_coupon.lastEventLaunchStartTime [d] 1695970800
+  FLAT  SpecialEvents.shop_coupon.stars_received [d] 0
+  FLAT  SpecialEvents.shop_coupon.startCluster [s] "cluster4"
+  FLAT  SpecialEvents.shop_coupon.startTime [d] 1696218410.9220002
+  FLAT  SpecialEvents.special_redesign.lastEventLaunchStartTime [d] 1676876400
+  FLAT  SpecialEvents.special_redesign.startCluster [s] "cluster1"
+  FLAT  TableName.Properties.AmplM3StartedChain [s] ""
+  FLAT  TableName.Properties.AmplM3StartedLevel [i] 13590
+  FLAT  TableName.Properties.AmplM3StartedLvlVer [i] 3
+  FLAT  TableName.Properties.AttemptsCount [o] [["candle_mini_start",["o",[["name",["i",3]]]]],["dirt_mini_start",["o",[["name",["i",3]]]
+  FLAT  TableName.Properties.CheckUpdateFriendsNextTime [d] 1758334067.4129999
+  FLAT  TableName.Properties.ClanRedesignFifthHappyDaySegmentId_Cache_FD_last_started_id [d] 10100
+  FLAT  TableName.Properties.ClanRedesignFifthHappyDaySegmentId_Cache_FD_startTime [d] 1656859719
+  FLAT  TableName.Properties.Expedition_FastStartCheatTimeOffset [d] 0
+  FLAT  TableName.Properties.GRC_day3StartCounter [d] 279
+  FLAT  TableName.Properties.InviteFriendTodayCount [d] 1
+  FLAT  TableName.Properties.IsShopCouponStartComicsShowed [t] true
+  FLAT  TableName.Properties.LastLevelAttempt [i] 0
+  FLAT  TableName.Properties.LevelAttemptsCount [i] 0
+  FLAT  TableName.Properties.PublisherVerification_AttemptNum [i] 11
+  FLAT  TableName.Properties.RateUsStartUserProgressLevel [d] 762
+  FLAT  TableName.Properties.SocialApiLivesFromFbFriends [i] 0
+  FLAT  TableName.Properties.StarsTutorialState [i] 3
+  FLAT  TableName.Properties.StartedTutorials [a] []
+  FLAT  TableName.Properties.SyncFriendsSaveIdsLastTime [d] 1758334046.562
+  FLAT  TableName.Properties.TotalLevelAttemptsTo25 [d] 34
+  FLAT  TableName.Properties.TutorialRemindTabletStars [d] 1
+  FLAT  TableName.Properties.earnedStars [i] 100201
+  FLAT  TableName.Properties.firstStartAfterReinstall [u] 1771809647
+  FLAT  TableName.Properties.firstStartHour [d] 456394
+  FLAT  TableName.Properties.lastSessionStartTime [d] 1794421888
+  FLAT  TableName.Properties.m3LevelStarted [f] false
+  FLAT  TableName.Properties.spentStars [i] 25743
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soo    ðiø@s [d] 1651901814
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_big_pie [d] 1652007990
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_box_with_plague [d] 1651065894
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_climbers [d] 1650802626
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_float_chip [d] 1656376043
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_grass [d] 1657334033
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_growing_bush [d] 1652352386
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_ivy [d] 1651127163
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_jam [d] 1656719034
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_jars [d] 1647825056
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_leaf [d] 1657033805
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_order_lock [d] 1652239942
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_plague [d] 1647498741
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_plague_source [d] 1652162117
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_surprise_chip [d] 1651039499
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_water_lily [d] 1653201548
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_wrapped_firework [d] 1658110625
+  FLAT  accumulateStatistics.LastDay.LifelessRedesignStarted [i] 0
+  FLAT  accumulateStatistics.LastDay.RedesignStarted [i] 1479
+  FLAT  accumulateStatistics.LastDay.TabletSocialFriendsShows [i] 0
+  FLAT  accumulateStatistics.LastDays.LevelCompletedWithoutBoostsWithoutFirstAttempt [a] [["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17]
+  FLAT  accumulateStatistics.LastDays.LevelFailedWithoutFirstAttempt [a] [["i",10001],["i",10001],["i",10001],["i",10001],["i",10001],["i",10001],["i",10001],["i",
+  FLAT  accumulateStatistics.LastLevelTry.MovesMadeFromStart [i] 23168
+  FLAT  accumulateStatistics.LastLevelTry.SquareMatchAttempts [i] 0
+  TABLE accumulateStatistics :: LevelCompletedWithoutBoostsWithoutFirstAttempt [d] val=17
+  TABLE accumulateStatistics :: LevelFailedWithoutFirstAttempt [i] val=10001
+  TABLE accumulateStatistics :: MovesMadeFromStart [i] val=23185
+  TABLE accumulateStatistics :: RedesignStarted [i] val=1479
+  TABLE asn::Other :: first_start [s] val="1643019090.0000000000000000"
+  FLAT  game_statistics.questTimestamp.chAIR_OpenGifts [d] 1686818477
+  FLAT  game_statistics.questTimestamp.chAIR_SendInvites [d] 1686818642
+  FLAT  game_statistics.questTimestamp.chAIR_StartAeroshow [d] 1686818869
+  FLAT  game_statistics.questTimestamp.chAIR_StartEngine [d] 1686818415
+  FLAT  game_statistics.questTimestamp.chAIR_UnpackGifts [d] 1686817981
+  FLAT  game_statistics.questTimestamp.chANM_D1_StartShowing [d] 1687361514
+  FLAT  game_statistics.questTimestamp.chANM_D3_UnpackGift [d] 1687361761
+  FLAT  game_statistics.questTimestamp.chAPL_D1_SendSinghala [d] 1687362465
+  FLAT  game_statistics.questTimestamp.chAPL_D1_StartSystem [d] 1687362541
+  FLAT  game_statistics.questTimestamp.chAPL_D5_StartSimulation [d] 1687400843
+  FLAT  game_statistics.questTimestamp.chATL_UnpackGift [d] 1686815477
+  FLAT  game_statistics.questTimestamp.chBOT_SendJenSeeds [d] 1686817235
+  FLAT  game_statistics.questTimestamp.chBOT_StartNewDay3 [d] 1686817191
+  FLAT  game_statistics.questTimestamp.chBOT_StartNewDay4 [d] 1686817380
+  FLAT  game_statistics.questTimestamp.chBOT_StartNewDay5 [d] 1686817569
+  FLAT  game_statistics.questTimestamp.chCSC_SendBee [d] 1656862727
+  FLAT  game_statistics.questTimestamp.chCSC_SendThings [d] 1656312681
+  FLAT  game_statistics.questTimestamp.chCSC_StartOrcestrion [d] 1657033151
+  FLAT  game_statistics.questTimestamp.chCSC_StartWater [d] 1656312821
+  FLAT  game_statistics.questTimestamp.chDin_MakeStarirsBed [d] 1686808742
+  FLAT  game_statistics.questTimestamp.chECO_D5_StartStation [i] 1754717600
+  FLAT  game_statistics.questTimestamp.chELD_D3_DecorateRestArea1 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D3_DecorateRestArea2 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D3_OrganizeRestArea1 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D3_OrganizeRestArea2 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D5_StartFountains [i] 1788535670
+  FLAT  game_statistics.questTimestamp.chELF_D2_CallFriends [d] 1686985731
+  FLAT  game_statistics.questTimestamp.chELF_D5_StartShow [d] 1687067592
+  FLAT  game_statistics.questTimestamp.chENG_D4_GiveGift [d] 1715342086
+  FLAT  game_statistics.questTimestamp.chENG_D5_StartShow [d] 1715342433
+  FLAT  game_statistics.questTimestamp.chETC_D2_CleanStars [d] 1723281901
+  FLAT  game_statistics.questTimestamp.chETC_D2_PlaceStars [d] 1723281982
+  FLAT  game_statistics.questTimestamp.chETC_D6_AcceptGift [d] 1737005691
+  FLAT  game_statistics.questTimestamp.chEast_SendSalveToKolin [d] 1657850387
+  FLAT  game_statistics.questTimestamp.chEast_StartMeditate [d] 1658016569
+  FLAT  game_statistics.questTimestamp.chEast_StartTraining [d] 1657869579
+  FLAT  game_statistics.questTimestamp.chExp10_1biom_Start [d] 1691733579
+  FLAT  game_statistics.questTimestamp.chExp16_1biom_Start [d] 1718192887
+  FLAT  game_statistics.questTimestamp.chExp17_1biom_FindKeyCard [d] 1720605998
+  FLAT  game_statistics.questTimestamp.chExp17_1biom_Start [d] 1720596429
+  FLAT  game_statistics.questTimestamp.chExp18_1biom_Start [d] 1724746439
+  FLAT  game_statistics.questTimestamp.chExp19_1biom_Start [d] 1727963861
+  FLAT  game_statistics.questTimestamp.chExp20_1biom_Start [d] 1731564405
+  FLAT  game_statistics.questTimestamp.chExp21_1biom_Start [d] 1736493237
+  FLAT  game_statistics.questTimestamp.chExp22_1biom_Start [i] 1738759710
+  FLAT  game_statistics.questTimestamp.chExp23_1biom_Start [i] 1742622998
+  FLAT  game_statistics.questTimestamp.chExp24_1biom_Start [i] 1746334849
+  FLAT  game_statistics.questTimestamp.chExp24_4biom_StartLocomotive [i] 1746846693
+  FLAT  game_statistics.questTimestamp.chExp25_1biom_Start [i] 1751099419
+  FLAT  game_statistics.questTimestamp.chExp26_1biom_Start [i] 1753800158
+  FLAT  game_statistics.questTimestamp.chExp26_2biom_FindStars [i] 1754714771
+  FLAT  game_statistics.questTimestamp.chExp26_3biom_BefriendGuard [i] 1754715073
+  FLAT  game_statistics.questTimestamp.chExp27_1biom_Start [i] 1757817921
+  FLAT  game_statistics.questTimestamp.chExp2_1biom_Start [d] 1663074125
+  FLAT  game_statistics.questTimestamp.chExp31_1biom_Start [i] 1771810171
+  FLAT  game_statistics.questTimestamp.chExp3_1biom_Start [d] 1645672600
+  FLAT  game_statistics.questTimestamp.chExp4_1biom_Start [d] 1651766028
+  FLAT  game_statistics.questTimestamp.chExp5_1biom_Start [d] 1658416771
+  FLAT  game_statistics.questTimestamp.chExp6_1biom_Start [d] 1665884050
+  FLAT  game_statistics.questTimestamp.chExp7_1biom_Start [d] 1673263687
+  FLAT  game_statistics.questTimestamp.chExp8_1biom_Start [d] 1677589096
+  FLAT  game_statistics.questTimestamp.chExp9_1biom_Start [d] 1684321673
+  FLAT  game_statistics.questTimestamp.chExp9_2biom_StartTrain [d] 1684325081
+  FLAT  game_statistics.questTimestamp.chExpHocuspocus_1biom_Start [d] 1715258101
+  FLAT  game_statistics.questTimestamp.chExpPanacea_1biom_Start [d] 1695457898
+  FLAT  game_statistics.questTimestamp.chExpScarymansion_1biom_Start [d] 1681297991
+  FLAT  game_statistics.questTimestamp.chExpShambala_1biom_Start [d] 1688044826
+  FLAT  game_statistics.questTimestamp.chExpYeti_1biom_Start [d] 1669725644
+  FLAT  game_statistics.questTimestamp.chExpedition_atlantis_1biom_Start [d] 1730182220
+  FLAT  game_statistics.questTimestamp.chExpedition_china_1biom_Start [d] 1737004087
+  FLAT  game_statistics.questTimestamp.chExpedition_china_3biom_FindMemoryCard [d] 1737004601
+  FLAT  game_statistics.questTimestamp.chExpedition_factory_1biom_Start [d] 1722416770
+  FLAT  game_statistics.questTimestamp.chExpedition_factory_2biom_FindGPSCard [d] 1722419438
+  FLAT  game_statistics.questTimestamp.chExpedition_garden_1biom_Start [d] 1733466700
+  FLAT  game_statistics.questTimestamp.chExpedition_penguins_1biom_Start [i] 1742092919
+  FLAT  game_statistics.questTimestamp.chExpedition_snow_1biom_Start [i] 1744420655
+  FLAT  game_statistics.questTimestamp.chExpedition_snow_4biom_StartGenerator [i] 1745037851
+  FLAT  game_statistics.questTimestamp.chExpedition_snowqueen_1biom_Start [d] 1718884517
+  FLAT  game_statistics.questTimestamp.chExpedition_snowqueen_2biom_CollectStars [d] 1719058620
+  FLAT  game_statistics.questTimestamp.chExpedition_western_1biom_Start [d] 1726840125
+  FLAT  game_statistics.questTimestamp.chFNT_SendParcel [d] 1647497905
+  FLAT  game_statistics.questTimestamp.chFNT_StartDay2 [d] 1645711557
+  FLAT  game_statistics.questTimestamp.chFNT_StartDay3 [d] 1647425454
+  FLAT  game_statistics.questTimestamp.chFNT_StartDay4 [d] 1647498007
+  FLAT  game_statistics.questTimestamp.chFNT_StartPump [d] 1645711306
+  FLAT  game_statistics.questTimestamp.chFRI_PlantElsaGift [d] 1686896774
+  FLAT  game_statistics.questTimestamp.chFRI_StartFilm [d] 1686896939
+  FLAT  game_statistics.questTimestamp.chFRI_WriteFriends [d] 1686896861
+  FLAT  game_statistics.questTimestamp.chFRT_D1_PrepareGift [i] 1771817015
+  FLAT  game_statistics.questTimestamp.chFRT_D2_RestoreCard [i] 1771937550
+  FLAT  game_statistics.questTimestamp.chFRT_D3_StartFountain [i] 1771937648
+  FLAT  game_statistics.questTimestamp.chFRT_D6_SeeoffFriends [i] 1771937954
+  FLAT  game_statistics.questTimestamp.chGRC_SendRoseToLab [d] 1650986478
+  FLAT  game_statistics.questTimestamp.chGRC_StartPump [d] 1650877972
+  FLAT  game_statistics.questTimestamp.chGRC_WaterAnalizSend [d] 1650878132
+  FLAT  game_statistics.questTimestamp.chGRP_StartNewDay5 [d] 1686814200
+  FLAT  game_statistics.questTimestamp.chGRP_StartPicnic1 [d] 1686813998
+  FLAT  game_statistics.questTimestamp.chGRP_StartPicnic2 [d] 1686814002
+  FLAT  game_statistics.questTimestamp.chGTH_SendFigurine [d] 1686807926
+  FLAT  game_statistics.questTimestamp.chGTH_SendMuseum [d] 1686807212
+  FLAT  game_statistics.questTimestamp.chGTH_StartFountain [d] 1686807948
+  FLAT  game_statistics.questTimestamp.chHRS_StartCompetition [d] 1679915404
+  FLAT  game_statistics.questTimestamp.chHRS_StartTraining [d] 1664107098
+  FLAT  game_statistics.questTimestamp.chHTL_D3_StartFilmShooting [d] 1687242534
+  FLAT  game_statistics.questTimestamp.chHTL_D5_AcceptGift [d] 1687242918
+  FLAT  game_statistics.questTimestamp.chINV_FinalStartMachine [d] 1686898373
+  FLAT  game_statistics.questTimestamp.chINV_StartClock [d] 1686898272
+  FLAT  game_statistics.questTimestamp.chINV_StartFlower [d] 1686897879
+  FLAT  game_statistics.questTimestamp.chINV_StartTrain [d] 1686897605
+  FLAT  game_statistics.questTimestamp.chINV_StartWatering [d] 1686898135
+  FLAT  game_statistics.questTimestamp.chINV_TryToStartMachine [d] 1686897977
+  FLAT  game_statistics.questTimestamp.chJNG_D4_Start_Fountaine [d] 1687241314
+  FLAT  game_statistics.questTimestamp.chLBR_SendRhododendron [d] 1651923801
+  FLAT  game_statistics.questTimestamp.chLIH_StartFountain [d] 1686819078
+  FLAT  game_statistics.questTimestamp.chLIH_StartLiH [d] 1686819084
+  FLAT  game_statistics.questTimestamp.chMAR_D1_StartMeteo [i] 1754717899
+  FLAT  game_statistics.questTimestamp.chMAR_D2_StartWaterfall [i] 1754718078
+  FLAT  game_statistics.questTimestamp.chMAR_D6_ArrangeGiftBoxes [i] 1763256752
+  FLAT  game_statistics.questTimestamp.chMTT_D1_Send_drone [d] 1686898560
+  FLAT  game_statistics.questTimestamp.chOBS_StartMechanism [d] 1686809986
+  FLAT  game_statistics.questTimestamp.chPCN_SendManuscript [d] 1686804289
+  FLAT  game_statistics.questTimestamp.chPCN_StartFireworks [d] 1686804678
+  FLAT  game_statistics.questTimestamp.chPCN_StartGenerator [d] 1686804842
+  FLAT  game_statistics.questTimestamp.chPYR_D6_GetStarship [d] 1715344208
+  FLAT  game_statistics.questTimestamp.chSLB_Lay_Stars [d] 1686983714
+  FLAT  game_statistics.questTimestamp.chSPA_Celebrate_Start_Project [d] 1686888668
+  FLAT  game_statistics.questTimestamp.chSPA_Start_new_day2 [d] 1686888177
+  FLAT  game_statistics.questTimestamp.chSTN_D2_StartElectricity [i] 1764120121
+  FLAT  game_statistics.questTimestamp.chSTN_D2_StartFertilizer [i] 1764120198
+  FLAT  game_statistics.questTimestamp.chSTN_D3_StartProduction [i] 1766121188
+  FLAT  game_statistics.questTimestamp.chSTN_D6_DeliverGift [i] 1766122515
+  FLAT  game_statistics.questTimestamp.chTHE_SendInvitations [d] 1686813186
+  FLAT  game_statistics.questTimestamp.chVIL_SendPhotoMathias [d] 1686814631
+  FLAT  game_statistics.questTimestamp.chVIL_StartNewDay5 [d] 1686815260
+  FLAT  game_statistics.questTimestamp.chVIL_Start_the_garden_gear [d] 1686815462
+  FLAT  game_statistics.questTimestamp.chWND_start_newday [d] 1686882580
+  FLAT  game_statistics.questTimestamp.chWST_Hang_sheriffs_stars [d] 1686984573
+  FLAT  game_statistics.questTimestamp.chWST_Prepare_Gifts [d] 1686984454
+  FLAT  game_statistics.questTimestamp.chWST_Unpack_Gifts [d] 1686984467
+  FLAT  game_statistics.questTimestamp.chWTR_FinalStart [d] 1653199482
+  FLAT  game_statistics.questTimestamp.chWed_SendToTravel [d] 1686812249
+  TABLE history_data :: chELV_OstinCallFriends [t] val=true
+  TABLE history_data :: chExp3_1biom_GardenStart [t] val=true
+  TABLE history_data :: chExp9_1biom_GardenStart [t] val=true
+  TABLE history_data :: chFNT_SendParcel [t] val=true
+  TABLE history_data :: chGRC_WaterAnalizSend_Letter [t] val=true
+  TABLE history_data :: chGTH_SendMuseum_Letter [t] val=true
+  TABLE history_data :: chPCN_SendManuscript_Letter [t] val=true
+  FLAT  quests.CH11_OpenNextExpansion.stars [d] 2
+  FLAT  quests.CH26_OpenNextExpansion.stars [d] 2
+  FLAT  quests.CH5_OpenNextExpansion.stars [d] 2
+  FLAT  quests.chBRO_day2_BuildMiniGolf1.stars [i] 5
+  FLAT  quests.chBRO_day2_GreenTheArea.stars [i] 5
+  FLAT  quests.chBRO_day2_PaintHydrant.stars [i] 4
+  FLAT  quests.chGRP_OpenNewSite.stars [d] 2
+  FLAT  quests.chMTT_D5_Travel_to_wonderland.stars [d] 4
+  FLAT  quests_expedition_list.expedition_panacea_chapter1.chExpPanacea_1biom_Start [o] [["collected",["t",true]]]
+  FLAT  repairs.chapter15.RetroCarDown [o] [["step",["s","Installed"]]]
+  FLAT  repairs.chapter16.SeanGift [o] [["step",["s","Install"]]]
+  FLAT  repairs.chapter16.SeanGiftBox [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter21.MotherGift [o] [["keep_step",["s","empty"]],["step",["s","empty"]]]
+  FLAT  repairs.chapter24.SendingBox [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter24.SendingTrees [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter25.GiftFromAlex [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter25.GiftsContentAirship [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter25.GiftsContentDaVinci [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter25.GiftsContentWeather [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter41.D2_ShipRepairStarboardSide [o] [["step",["s","paint"]]]
+  FLAT  repairs.chapter41.D4_Star_Trail [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter41.D4_Zodiac_Stars [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter42.D1_saloon_gifts [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter46.d3_star_tile [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d3_stars [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d4_friends_flowerbed [o] [["step",["s","anim"]]]
+  FLAT  repairs.chapter46.d4_friends_pedestal [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d4_friends_statue [o] [["step",["s","anim"]]]
+  FLAT  repairs.chapter46.d4_friends_statue_lamp [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d5_starship [o] [["step",["s","stage_9"]]]
+  FLAT  repairs.chapter46.d5_starship_chairs [o] [["base_step",["s","0"]],["step",["s","set1"]]]
+  FLAT  repairs.chapter46.d5_starship_console [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d5_starship_flowers [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d5_starship_grass [o] [["step",["s","restored"]]]
+  FLAT  repairs.chapter46.d5_starship_junk [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter46.d5_starship_moss_part [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter46.d5_starship_scaffolding [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter47.d5_lantern_star [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter49.d5_walk_stars [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter52.d6_star_map [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter53.d1_tree_statue_star [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter53.d2_star_pile [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter53.d2_stars [o] [["step",["s","set"]]]
+  FLAT  repairs.christmas22_redesign_chapter.gifts [o] [["keep_step",["s","clear"]],["step",["s","clear"]]]
+  TABLE repairs_purchases_info :: chapter1,Expedition_2_2_yacht,yacht_start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,Paintings,frames_restoration_started [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Barcelona_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Christmas21_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Christmas22_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Easter_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Halloween21_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter10,Flags,StartPaint1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter11,PointToJen,FinalStartDay3 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter15,RetroCarDown,Installed [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter15,RetroCarDown,Installed.xml.auPK [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter16,SeanGift,Install [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter16,SeanGiftBox,box [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter17,Arc,NewArc_panno_stars [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter17,MeteoriteLawn,Day5Start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter17,Tile,Day5Start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter4,Roads,start1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter4,Roads,start2 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter4,Roads,start3 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter46,d5_starship_chairs,set1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter5,fence,NewFence_Start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter6,treasure,TreasureStart [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter7,CascadeTree,cascade_modern_platform_started [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,Fishing,start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,MysteryStone2,WorkStarted1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,OldTree,RemoveStarted [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,OldTree,SawStarted [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,Raft,start [o] kids=isBuy
+
+===== C:\Users\User\Downloads\Telegram Desktop\GameData.db =====
+  TABLE AnaliticsProperties :: chPCN_SendManuscript_Letter [s] val="chPCN_OrganizeFlowerBed"
+  TABLE EmergencyFixes :: FIX730_MERGE_CAMPING_FIX_START_EVENT_TIME [s] val="fixed"
+  TABLE EmergencyFixes :: FixSeasonalCardsCollection_290925 [s] val="fixed"
+  TABLE EventsSystem :: ExpFastStart [o] kids=launchTable,statesGraph
+  TABLE EventsSystem :: GameFriends [o] kids=launchTable,statesGraph
+  TABLE EventsSystem :: InviteFriends [o] kids=launchTable,statesGraph
+  TABLE Features :: CardC3 [o] kids=AnomalyCounter,CardC3Loader,CardC3Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC3.CardC3Loader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]]]
+  FLAT  Features.CardC3.CardC3Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC3.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsPromoWindowShown",["t",true]],["IsWaitingForRewards
+  FLAT  Features.CardC3.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",14]]]
+  FLAT  Features.CardC3.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["t",true]],["WasFirstChestReached",["f",false]],["WasS
+  FLAT  Features.CardC3.CardsGiftingCore [o] [["LastResetDay",["k",20712]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC3.CardsRequester [o] []
+  FLAT  Features.CardC3.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  TABLE Features :: CardC4 [o] kids=AnomalyCounter,CardC4Loader,CardC4Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC4.CardC4Loader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]],["IsSupremeCollection",["
+  FLAT  Features.CardC4.CardC4Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC4.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsGrandCollectionRewardGiven",["f",false]],["IsPromoW
+  FLAT  Features.CardC4.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",5]]]
+  FLAT  Features.CardC4.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["f",false]],["WasFirstChestReached",["f",false]],["Was
+  FLAT  Features.CardC4.CardsGiftingCore [o] [["LastResetDay",["k",20669]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC4.CardsRequester [o] []
+  FLAT  Features.CardC4.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  TABLE Features :: CardC5 [o] kids=CardC5Loader,CardC5Main,SingleScheduleComponent
+  FLAT  Features.CardC5.CardC5Loader [o] []
+  FLAT  Features.CardC5.CardC5Main [o] []
+  TABLE Features :: CardC6 [o] kids=CardC6Loader,CardC6Main,SingleScheduleComponent
+  FLAT  Features.CardC6.CardC6Loader [o] []
+  FLAT  Features.CardC6.CardC6Main [o] []
+  TABLE Features :: CardC7 [o] kids=AnomalyCounter,CardC7Loader,CardC7Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC7.CardC7Loader [o] [["IsEventActive",["t",true]],["IsGrandCollection",["f",false]],["IsSupremeCollection",["t
+  FLAT  Features.CardC7.CardC7Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC7.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsGrandCollectionRewardGiven",["t",true]],["IsPromoWi
+  FLAT  Features.CardC7.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",4]]]
+  FLAT  Features.CardC7.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["f",false]],["WasFirstChestReached",["t",true]],["WasS
+  FLAT  Features.CardC7.CardsGiftingCore [o] [["LastResetDay",["k",20712]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC7.CardsRequester [o] []
+  FLAT  Features.CardC7.CardsTradeCore [o] [["additionalTokens",["i",205]]]
+  TABLE Features :: CardC8 [o] kids=CardC8Loader,CardC8Main,SingleScheduleComponent
+  FLAT  Features.CardC8.CardC8Loader [o] []
+  FLAT  Features.CardC8.CardC8Main [o] []
+  FLAT  Features.CollectionsGFF.CardsCollectionLoader [o] []
+  TABLE Features :: SeasonalCardsCollection [o] kids=AnomalyCounter,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCardsCollectionLoader,SeasonalCardsCollectionMain,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.SeasonalCardsCollection.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsPromoWindowShown",["t",true]],["IsWaitingForRewards
+  FLAT  Features.SeasonalCardsCollection.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",28]]]
+  FLAT  Features.SeasonalCardsCollection.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["t",true]],["WasFirstChestReached",["f",false]],["WasS
+  FLAT  Features.SeasonalCardsCollection.CardsGiftingCore [o] [["LastResetDay",["k",20712]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.SeasonalCardsCollection.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  FLAT  Features.SeasonalCardsCollection.SeasonalCardsCollectionLoader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]]]
+  FLAT  Features.SeasonalCardsCollection.SeasonalCardsCollectionMain [o] [["HasEventBeenActive",["t",true]]]
+  TABLE Features :: StartMiniGames [o] kids=StorableVarsContext
+  TABLE Features :: StartScreensGFF [o] kids=Schedule
+  FLAT  Leagues.contest_leagues.isStartScreenplayShown [t] true
+  FLAT  Match3LevelRewardsStatistics.SystemData.StartIndex [i] 327
+  TABLE MultiShotChallengeManager :: attempts [i] val=1
+  TABLE QuestStarsCorrection :: EventCompensationStartedLogging [t] val=true
+  TABLE QuestStarsCorrection :: QuestsStarsCorrected [a] kids=s,s,s,s,s,s,s,s,s,s,s,s,s
+  TABLE QuestStarsCorrection :: QuestsStarsCorrection [a] kids=s,s,s,s,s,s,s,s,s,s,s,s,s,s,…
+  FLAT  SpecialEvents.CR6.IsStartSceneShown [t] true
+  FLAT  SpecialEvents.CR6.StartChatMessage [o] [["firstShowTime",["u",1680265051]],["isRewardsClaimed",["t",true]],["lastShowTime",["u",1
+  TABLE SpecialEvents :: ExpFastStart [o] kids=Balance,Purchases,ScheduleComponent
+  TABLE SpecialEvents :: GameFriends [o] kids=ClanComponent,GameFriendsBridge,GameFriendsFbMigrator
+  FLAT  SpecialEvents.GameFriends.GameFriendsBridge [o] [["AcceptFriendInvitePendingInfo",["a",[]]],["CancelFriendshipPendingInfo",["a",[]]],["Dec
+  FLAT  SpecialEvents.GameFriends.GameFriendsFbMigrator [o] [["FbFriendsSaveIds",["a",[]]],["FbMigratorState",["s","None"]]]
+  TABLE SpecialEvents :: QuestStarsCorrection [o] kids=starsCredit
+  FLAT  SpecialEvents.QuestStarsCorrection.starsCredit [d] 38
+  FLAT  SpecialEvents.RaceGame_Exp_Pathfinder.Swrve_LevelAttempts [o] [["CurrentValue",["d",0]],["TotalValue",["d",0]]]
+  FLAT  SpecialEvents.Season57.StartWasShown [t] true
+  FLAT  SpecialEvents.Season58.StartWasShown [t] true
+  FLAT  SpecialEvents.clan_chest.resultsStartedTime [d] 0
+  FLAT  SpecialEvents.clan_chest.startCluster [s] "cluster1"
+  FLAT  SpecialEvents.clan_chest.startedChestsId [s] "070423"
+  FLAT  SpecialEvents.clan_contest.generatedStartTimeRandomPause [d] 260
+  FLAT  SpecialEvents.clan_contest.startCluster [s] "cluster1"
+  TABLE SpecialEvents :: extra_stars [o] kids=abChangeOnZeroProgress,startCluster,userSegments
+  FLAT  SpecialEvents.extra_stars.startCluster [s] "cluster1"
+  TABLE SpecialEvents :: extra_stars_at_start [o] kids=abChangeOnZeroProgress,startCluster,userSegments
+  FLAT  SpecialEvents.extra_stars_at_start.startCluster [s] "cluster1"
+  FLAT  SpecialEvents.gold_cup.nextStartTime [d] 1789977600
+  FLAT  SpecialEvents.gold_cup.startCluster [s] "cluster6"
+  FLAT  SpecialEvents.season_pass_procedural.startCluster [s] "cluster1"
+  FLAT  SpecialEvents.shop_coupon.CountLevelAttempts [d] 0
+  FLAT  SpecialEvents.shop_coupon.IsFirstMatch3Start [t] true
+  FLAT  SpecialEvents.shop_coupon.lastEventLaunchStartTime [d] 1695970800
+  FLAT  SpecialEvents.shop_coupon.stars_received [d] 0
+  FLAT  SpecialEvents.shop_coupon.startCluster [s] "cluster4"
+  FLAT  SpecialEvents.shop_coupon.startTime [d] 1696218410.9220002
+  FLAT  SpecialEvents.special_redesign.lastEventLaunchStartTime [d] 1676876400
+  FLAT  SpecialEvents.special_redesign.startCluster [s] "cluster1"
+  FLAT  TableName.Properties.AmplM3StartedChain [s] ""
+  FLAT  TableName.Properties.AmplM3StartedLevel [i] 13590
+  FLAT  TableName.Properties.AmplM3StartedLvlVer [i] 3
+  FLAT  TableName.Properties.AttemptsCount [o] [["candle_mini_start",["o",[["name",["i",3]]]]],["dirt_mini_start",["o",[["name",["i",3]]]
+  FLAT  TableName.Properties.CheckUpdateFriendsNextTime [d] 1758334067.4129999
+  FLAT  TableName.Properties.ClanRedesignFifthHappyDaySegmentId_Cache_FD_last_started_id [d] 10100
+  FLAT  TableName.Properties.ClanRedesignFifthHappyDaySegmentId_Cache_FD_startTime [d] 1656859719
+  FLAT  TableName.Properties.Expedition_FastStartCheatTimeOffset [d] 0
+  FLAT  TableName.Properties.GRC_day3StartCounter [d] 279
+  FLAT  TableName.Properties.InviteFriendTodayCount [d] 1
+  FLAT  TableName.Properties.IsShopCouponStartComicsShowed [t] true
+  FLAT  TableName.Properties.LastLevelAttempt [i] 0
+  FLAT  TableName.Properties.LevelAttemptsCount [i] 0
+  FLAT  TableName.Properties.PublisherVerification_AttemptNum [i] 11
+  FLAT  TableName.Properties.RateUsStartUserProgressLevel [d] 762
+  FLAT  TableName.Properties.SocialApiLivesFromFbFriends [i] 0
+  FLAT  TableName.Properties.StarsTutorialState [i] 3
+  FLAT  TableName.Properties.StartedTutorials [a] []
+  FLAT  TableName.Properties.SyncFriendsSaveIdsLastTime [d] 1758334046.562
+  FLAT  TableName.Properties.TotalLevelAttemptsTo25 [d] 34
+  FLAT  TableName.Properties.TutorialRemindTabletStars [d] 1
+  FLAT  TableName.Properties.earnedStars [i] 100201
+  FLAT  TableName.Properties.firstStartAfterReinstall [u] 1771809647
+  FLAT  TableName.Properties.firstStartHour [d] 456394
+  FLAT  TableName.Properties.lastSessionStartTime [d] 1789623424
+  FLAT  TableName.Properties.m3LevelStarted [f] false
+  FLAT  TableName.Properties.spentStars [i] 25743
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soo    ðiø@s [d] 1651901814
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_big_pie [d] 1652007990
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_box_with_plague [d] 1651065894
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_climbers [d] 1650802626
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_float_chip [d] 1656376043
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_grass [d] 1657334033
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_growing_bush [d] 1652352386
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_ivy [d] 1651127163
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_jam [d] 1656719034
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_jars [d] 1647825056
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_leaf [d] 1657033805
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_order_lock [d] 1652239942
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_plague [d] 1647498741
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_plague_source [d] 1652162117
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_surprise_chip [d] 1651039499
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_water_lily [d] 1653201548
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_wrapped_firework [d] 1658110625
+  FLAT  accumulateStatistics.LastDay.LifelessRedesignStarted [i] 0
+  FLAT  accumulateStatistics.LastDay.RedesignStarted [i] 1474
+  FLAT  accumulateStatistics.LastDay.TabletSocialFriendsShows [i] 0
+  FLAT  accumulateStatistics.LastDays.LevelCompletedWithoutBoostsWithoutFirstAttempt [a] [["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17]
+  FLAT  accumulateStatistics.LastDays.LevelFailedWithoutFirstAttempt [a] [["i",10001],["i",10001],["i",10001],["i",10001],["i",10001],["i",10001],["i",10001],["i",
+  FLAT  accumulateStatistics.LastLevelTry.MovesMadeFromStart [i] 23168
+  FLAT  accumulateStatistics.LastLevelTry.SquareMatchAttempts [i] 0
+  TABLE accumulateStatistics :: LevelCompletedWithoutBoostsWithoutFirstAttempt [d] val=17
+  TABLE accumulateStatistics :: LevelFailedWithoutFirstAttempt [i] val=10001
+  TABLE accumulateStatistics :: MovesMadeFromStart [i] val=23185
+  TABLE accumulateStatistics :: RedesignStarted [i] val=1478
+  TABLE asn::Other :: first_start [s] val="1643019090.0000000000000000"
+  FLAT  game_statistics.questTimestamp.chAIR_OpenGifts [d] 1686818477
+  FLAT  game_statistics.questTimestamp.chAIR_SendInvites [d] 1686818642
+  FLAT  game_statistics.questTimestamp.chAIR_StartAeroshow [d] 1686818869
+  FLAT  game_statistics.questTimestamp.chAIR_StartEngine [d] 1686818415
+  FLAT  game_statistics.questTimestamp.chAIR_UnpackGifts [d] 1686817981
+  FLAT  game_statistics.questTimestamp.chANM_D1_StartShowing [d] 1687361514
+  FLAT  game_statistics.questTimestamp.chANM_D3_UnpackGift [d] 1687361761
+  FLAT  game_statistics.questTimestamp.chAPL_D1_SendSinghala [d] 1687362465
+  FLAT  game_statistics.questTimestamp.chAPL_D1_StartSystem [d] 1687362541
+  FLAT  game_statistics.questTimestamp.chAPL_D5_StartSimulation [d] 1687400843
+  FLAT  game_statistics.questTimestamp.chATL_UnpackGift [d] 1686815477
+  FLAT  game_statistics.questTimestamp.chBOT_SendJenSeeds [d] 1686817235
+  FLAT  game_statistics.questTimestamp.chBOT_StartNewDay3 [d] 1686817191
+  FLAT  game_statistics.questTimestamp.chBOT_StartNewDay4 [d] 1686817380
+  FLAT  game_statistics.questTimestamp.chBOT_StartNewDay5 [d] 1686817569
+  FLAT  game_statistics.questTimestamp.chCSC_SendBee [d] 1656862727
+  FLAT  game_statistics.questTimestamp.chCSC_SendThings [d] 1656312681
+  FLAT  game_statistics.questTimestamp.chCSC_StartOrcestrion [d] 1657033151
+  FLAT  game_statistics.questTimestamp.chCSC_StartWater [d] 1656312821
+  FLAT  game_statistics.questTimestamp.chDin_MakeStarirsBed [d] 1686808742
+  FLAT  game_statistics.questTimestamp.chECO_D5_StartStation [i] 1754717600
+  FLAT  game_statistics.questTimestamp.chELD_D3_DecorateRestArea1 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D3_DecorateRestArea2 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D3_OrganizeRestArea1 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D3_OrganizeRestArea2 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D5_StartFountains [i] 1788535670
+  FLAT  game_statistics.questTimestamp.chELF_D2_CallFriends [d] 1686985731
+  FLAT  game_statistics.questTimestamp.chELF_D5_StartShow [d] 1687067592
+  FLAT  game_statistics.questTimestamp.chENG_D4_GiveGift [d] 1715342086
+  FLAT  game_statistics.questTimestamp.chENG_D5_StartShow [d] 1715342433
+  FLAT  game_statistics.questTimestamp.chETC_D2_CleanStars [d] 1723281901
+  FLAT  game_statistics.questTimestamp.chETC_D2_PlaceStars [d] 1723281982
+  FLAT  game_statistics.questTimestamp.chETC_D6_AcceptGift [d] 1737005691
+  FLAT  game_statistics.questTimestamp.chEast_SendSalveToKolin [d] 1657850387
+  FLAT  game_statistics.questTimestamp.chEast_StartMeditate [d] 1658016569
+  FLAT  game_statistics.questTimestamp.chEast_StartTraining [d] 1657869579
+  FLAT  game_statistics.questTimestamp.chExp10_1biom_Start [d] 1691733579
+  FLAT  game_statistics.questTimestamp.chExp16_1biom_Start [d] 1718192887
+  FLAT  game_statistics.questTimestamp.chExp17_1biom_FindKeyCard [d] 1720605998
+  FLAT  game_statistics.questTimestamp.chExp17_1biom_Start [d] 1720596429
+  FLAT  game_statistics.questTimestamp.chExp18_1biom_Start [d] 1724746439
+  FLAT  game_statistics.questTimestamp.chExp19_1biom_Start [d] 1727963861
+  FLAT  game_statistics.questTimestamp.chExp20_1biom_Start [d] 1731564405
+  FLAT  game_statistics.questTimestamp.chExp21_1biom_Start [d] 1736493237
+  FLAT  game_statistics.questTimestamp.chExp22_1biom_Start [i] 1738759710
+  FLAT  game_statistics.questTimestamp.chExp23_1biom_Start [i] 1742622998
+  FLAT  game_statistics.questTimestamp.chExp24_1biom_Start [i] 1746334849
+  FLAT  game_statistics.questTimestamp.chExp24_4biom_StartLocomotive [i] 1746846693
+  FLAT  game_statistics.questTimestamp.chExp25_1biom_Start [i] 1751099419
+  FLAT  game_statistics.questTimestamp.chExp26_1biom_Start [i] 1753800158
+  FLAT  game_statistics.questTimestamp.chExp26_2biom_FindStars [i] 1754714771
+  FLAT  game_statistics.questTimestamp.chExp26_3biom_BefriendGuard [i] 1754715073
+  FLAT  game_statistics.questTimestamp.chExp27_1biom_Start [i] 1757817921
+  FLAT  game_statistics.questTimestamp.chExp2_1biom_Start [d] 1663074125
+  FLAT  game_statistics.questTimestamp.chExp31_1biom_Start [i] 1771810171
+  FLAT  game_statistics.questTimestamp.chExp3_1biom_Start [d] 1645672600
+  FLAT  game_statistics.questTimestamp.chExp4_1biom_Start [d] 1651766028
+  FLAT  game_statistics.questTimestamp.chExp5_1biom_Start [d] 1658416771
+  FLAT  game_statistics.questTimestamp.chExp6_1biom_Start [d] 1665884050
+  FLAT  game_statistics.questTimestamp.chExp7_1biom_Start [d] 1673263687
+  FLAT  game_statistics.questTimestamp.chExp8_1biom_Start [d] 1677589096
+  FLAT  game_statistics.questTimestamp.chExp9_1biom_Start [d] 1684321673
+  FLAT  game_statistics.questTimestamp.chExp9_2biom_StartTrain [d] 1684325081
+  FLAT  game_statistics.questTimestamp.chExpHocuspocus_1biom_Start [d] 1715258101
+  FLAT  game_statistics.questTimestamp.chExpPanacea_1biom_Start [d] 1695457898
+  FLAT  game_statistics.questTimestamp.chExpScarymansion_1biom_Start [d] 1681297991
+  FLAT  game_statistics.questTimestamp.chExpShambala_1biom_Start [d] 1688044826
+  FLAT  game_statistics.questTimestamp.chExpYeti_1biom_Start [d] 1669725644
+  FLAT  game_statistics.questTimestamp.chExpedition_atlantis_1biom_Start [d] 1730182220
+  FLAT  game_statistics.questTimestamp.chExpedition_china_1biom_Start [d] 1737004087
+  FLAT  game_statistics.questTimestamp.chExpedition_china_3biom_FindMemoryCard [d] 1737004601
+  FLAT  game_statistics.questTimestamp.chExpedition_factory_1biom_Start [d] 1722416770
+  FLAT  game_statistics.questTimestamp.chExpedition_factory_2biom_FindGPSCard [d] 1722419438
+  FLAT  game_statistics.questTimestamp.chExpedition_garden_1biom_Start [d] 1733466700
+  FLAT  game_statistics.questTimestamp.chExpedition_penguins_1biom_Start [i] 1742092919
+  FLAT  game_statistics.questTimestamp.chExpedition_snow_1biom_Start [i] 1744420655
+  FLAT  game_statistics.questTimestamp.chExpedition_snow_4biom_StartGenerator [i] 1745037851
+  FLAT  game_statistics.questTimestamp.chExpedition_snowqueen_1biom_Start [d] 1718884517
+  FLAT  game_statistics.questTimestamp.chExpedition_snowqueen_2biom_CollectStars [d] 1719058620
+  FLAT  game_statistics.questTimestamp.chExpedition_western_1biom_Start [d] 1726840125
+  FLAT  game_statistics.questTimestamp.chFNT_SendParcel [d] 1647497905
+  FLAT  game_statistics.questTimestamp.chFNT_StartDay2 [d] 1645711557
+  FLAT  game_statistics.questTimestamp.chFNT_StartDay3 [d] 1647425454
+  FLAT  game_statistics.questTimestamp.chFNT_StartDay4 [d] 1647498007
+  FLAT  game_statistics.questTimestamp.chFNT_StartPump [d] 1645711306
+  FLAT  game_statistics.questTimestamp.chFRI_PlantElsaGift [d] 1686896774
+  FLAT  game_statistics.questTimestamp.chFRI_StartFilm [d] 1686896939
+  FLAT  game_statistics.questTimestamp.chFRI_WriteFriends [d] 1686896861
+  FLAT  game_statistics.questTimestamp.chFRT_D1_PrepareGift [i] 1771817015
+  FLAT  game_statistics.questTimestamp.chFRT_D2_RestoreCard [i] 1771937550
+  FLAT  game_statistics.questTimestamp.chFRT_D3_StartFountain [i] 1771937648
+  FLAT  game_statistics.questTimestamp.chFRT_D6_SeeoffFriends [i] 1771937954
+  FLAT  game_statistics.questTimestamp.chGRC_SendRoseToLab [d] 1650986478
+  FLAT  game_statistics.questTimestamp.chGRC_StartPump [d] 1650877972
+  FLAT  game_statistics.questTimestamp.chGRC_WaterAnalizSend [d] 1650878132
+  FLAT  game_statistics.questTimestamp.chGRP_StartNewDay5 [d] 1686814200
+  FLAT  game_statistics.questTimestamp.chGRP_StartPicnic1 [d] 1686813998
+  FLAT  game_statistics.questTimestamp.chGRP_StartPicnic2 [d] 1686814002
+  FLAT  game_statistics.questTimestamp.chGTH_SendFigurine [d] 1686807926
+  FLAT  game_statistics.questTimestamp.chGTH_SendMuseum [d] 1686807212
+  FLAT  game_statistics.questTimestamp.chGTH_StartFountain [d] 1686807948
+  FLAT  game_statistics.questTimestamp.chHRS_StartCompetition [d] 1679915404
+  FLAT  game_statistics.questTimestamp.chHRS_StartTraining [d] 1664107098
+  FLAT  game_statistics.questTimestamp.chHTL_D3_StartFilmShooting [d] 1687242534
+  FLAT  game_statistics.questTimestamp.chHTL_D5_AcceptGift [d] 1687242918
+  FLAT  game_statistics.questTimestamp.chINV_FinalStartMachine [d] 1686898373
+  FLAT  game_statistics.questTimestamp.chINV_StartClock [d] 1686898272
+  FLAT  game_statistics.questTimestamp.chINV_StartFlower [d] 1686897879
+  FLAT  game_statistics.questTimestamp.chINV_StartTrain [d] 1686897605
+  FLAT  game_statistics.questTimestamp.chINV_StartWatering [d] 1686898135
+  FLAT  game_statistics.questTimestamp.chINV_TryToStartMachine [d] 1686897977
+  FLAT  game_statistics.questTimestamp.chJNG_D4_Start_Fountaine [d] 1687241314
+  FLAT  game_statistics.questTimestamp.chLBR_SendRhododendron [d] 1651923801
+  FLAT  game_statistics.questTimestamp.chLIH_StartFountain [d] 1686819078
+  FLAT  game_statistics.questTimestamp.chLIH_StartLiH [d] 1686819084
+  FLAT  game_statistics.questTimestamp.chMAR_D1_StartMeteo [i] 1754717899
+  FLAT  game_statistics.questTimestamp.chMAR_D2_StartWaterfall [i] 1754718078
+  FLAT  game_statistics.questTimestamp.chMAR_D6_ArrangeGiftBoxes [i] 1763256752
+  FLAT  game_statistics.questTimestamp.chMTT_D1_Send_drone [d] 1686898560
+  FLAT  game_statistics.questTimestamp.chOBS_StartMechanism [d] 1686809986
+  FLAT  game_statistics.questTimestamp.chPCN_SendManuscript [d] 1686804289
+  FLAT  game_statistics.questTimestamp.chPCN_StartFireworks [d] 1686804678
+  FLAT  game_statistics.questTimestamp.chPCN_StartGenerator [d] 1686804842
+  FLAT  game_statistics.questTimestamp.chPYR_D6_GetStarship [d] 1715344208
+  FLAT  game_statistics.questTimestamp.chSLB_Lay_Stars [d] 1686983714
+  FLAT  game_statistics.questTimestamp.chSPA_Celebrate_Start_Project [d] 1686888668
+  FLAT  game_statistics.questTimestamp.chSPA_Start_new_day2 [d] 1686888177
+  FLAT  game_statistics.questTimestamp.chSTN_D2_StartElectricity [i] 1764120121
+  FLAT  game_statistics.questTimestamp.chSTN_D2_StartFertilizer [i] 1764120198
+  FLAT  game_statistics.questTimestamp.chSTN_D3_StartProduction [i] 1766121188
+  FLAT  game_statistics.questTimestamp.chSTN_D6_DeliverGift [i] 1766122515
+  FLAT  game_statistics.questTimestamp.chTHE_SendInvitations [d] 1686813186
+  FLAT  game_statistics.questTimestamp.chVIL_SendPhotoMathias [d] 1686814631
+  FLAT  game_statistics.questTimestamp.chVIL_StartNewDay5 [d] 1686815260
+  FLAT  game_statistics.questTimestamp.chVIL_Start_the_garden_gear [d] 1686815462
+  FLAT  game_statistics.questTimestamp.chWND_start_newday [d] 1686882580
+  FLAT  game_statistics.questTimestamp.chWST_Hang_sheriffs_stars [d] 1686984573
+  FLAT  game_statistics.questTimestamp.chWST_Prepare_Gifts [d] 1686984454
+  FLAT  game_statistics.questTimestamp.chWST_Unpack_Gifts [d] 1686984467
+  FLAT  game_statistics.questTimestamp.chWTR_FinalStart [d] 1653199482
+  FLAT  game_statistics.questTimestamp.chWed_SendToTravel [d] 1686812249
+  TABLE history_data :: chELV_OstinCallFriends [t] val=true
+  TABLE history_data :: chExp3_1biom_GardenStart [t] val=true
+  TABLE history_data :: chExp9_1biom_GardenStart [t] val=true
+  TABLE history_data :: chFNT_SendParcel [t] val=true
+  TABLE history_data :: chGRC_WaterAnalizSend_Letter [t] val=true
+  TABLE history_data :: chGTH_SendMuseum_Letter [t] val=true
+  TABLE history_data :: chPCN_SendManuscript_Letter [t] val=true
+  FLAT  quests.CH11_OpenNextExpansion.stars [d] 2
+  FLAT  quests.CH26_OpenNextExpansion.stars [d] 2
+  FLAT  quests.CH5_OpenNextExpansion.stars [d] 2
+  FLAT  quests.chBRO_day2_BuildMiniGolf1.stars [i] 5
+  FLAT  quests.chBRO_day2_GreenTheArea.stars [i] 5
+  FLAT  quests.chBRO_day2_PaintHydrant.stars [i] 4
+  FLAT  quests.chGRP_OpenNewSite.stars [d] 2
+  FLAT  quests.chMTT_D5_Travel_to_wonderland.stars [d] 4
+  FLAT  quests_expedition_list.expedition_panacea_chapter1.chExpPanacea_1biom_Start [o] [["collected",["t",true]]]
+  FLAT  repairs.chapter15.RetroCarDown [o] [["step",["s","Installed"]]]
+  FLAT  repairs.chapter16.SeanGift [o] [["step",["s","Install"]]]
+  FLAT  repairs.chapter16.SeanGiftBox [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter21.MotherGift [o] [["keep_step",["s","empty"]],["step",["s","empty"]]]
+  FLAT  repairs.chapter24.SendingBox [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter24.SendingTrees [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter25.GiftFromAlex [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter25.GiftsContentAirship [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter25.GiftsContentDaVinci [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter25.GiftsContentWeather [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter41.D2_ShipRepairStarboardSide [o] [["step",["s","paint"]]]
+  FLAT  repairs.chapter41.D4_Star_Trail [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter41.D4_Zodiac_Stars [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter42.D1_saloon_gifts [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter46.d3_star_tile [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d3_stars [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d4_friends_flowerbed [o] [["step",["s","anim"]]]
+  FLAT  repairs.chapter46.d4_friends_pedestal [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d4_friends_statue [o] [["step",["s","anim"]]]
+  FLAT  repairs.chapter46.d4_friends_statue_lamp [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d5_starship [o] [["step",["s","stage_9"]]]
+  FLAT  repairs.chapter46.d5_starship_chairs [o] [["base_step",["s","0"]],["step",["s","set1"]]]
+  FLAT  repairs.chapter46.d5_starship_console [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d5_starship_flowers [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d5_starship_grass [o] [["step",["s","restored"]]]
+  FLAT  repairs.chapter46.d5_starship_junk [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter46.d5_starship_moss_part [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter46.d5_starship_scaffolding [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter47.d5_lantern_star [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter49.d5_walk_stars [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter52.d6_star_map [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter53.d1_tree_statue_star [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter53.d2_star_pile [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter53.d2_stars [o] [["step",["s","set"]]]
+  FLAT  repairs.christmas22_redesign_chapter.gifts [o] [["keep_step",["s","clear"]],["step",["s","clear"]]]
+  TABLE repairs_purchases_info :: chapter1,Expedition_2_2_yacht,yacht_start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,Paintings,frames_restoration_started [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Barcelona_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Christmas21_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Christmas22_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Easter_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Halloween21_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter10,Flags,StartPaint1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter11,PointToJen,FinalStartDay3 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter15,RetroCarDown,Installed [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter15,RetroCarDown,Installed.xml.auPK [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter16,SeanGift,Install [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter16,SeanGiftBox,box [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter17,Arc,NewArc_panno_stars [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter17,MeteoriteLawn,Day5Start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter17,Tile,Day5Start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter4,Roads,start1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter4,Roads,start2 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter4,Roads,start3 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter46,d5_starship_chairs,set1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter5,fence,NewFence_Start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter6,treasure,TreasureStart [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter7,CascadeTree,cascade_modern_platform_started [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,Fishing,start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,MysteryStone2,WorkStarted1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,OldTree,RemoveStarted [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,OldTree,SawStarted [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,Raft,start [o] kids=isBuy
+
+===== C:\Users\User\Downloads\gardenscapes\_ref\live\GameData.db =====
+  TABLE AnaliticsProperties :: chPCN_SendManuscript_Letter [s] val="chPCN_OrganizeFlowerBed"
+  TABLE EmergencyFixes :: FIX730_MERGE_CAMPING_FIX_START_EVENT_TIME [s] val="fixed"
+  TABLE EmergencyFixes :: FixSeasonalCardsCollection_290925 [s] val="fixed"
+  TABLE EventsSystem :: ExpFastStart [o] kids=launchTable,statesGraph
+  TABLE EventsSystem :: GameFriends [o] kids=launchTable,statesGraph
+  TABLE EventsSystem :: InviteFriends [o] kids=launchTable,statesGraph
+  TABLE Features :: CardC3 [o] kids=AnomalyCounter,CardC3Loader,CardC3Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC3.CardC3Loader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]]]
+  FLAT  Features.CardC3.CardC3Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC3.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsPromoWindowShown",["t",true]],["IsWaitingForRewards
+  FLAT  Features.CardC3.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",14]]]
+  FLAT  Features.CardC3.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["t",true]],["WasFirstChestReached",["f",false]],["WasS
+  FLAT  Features.CardC3.CardsGiftingCore [o] [["LastResetDay",["k",20774]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC3.CardsRequester [o] []
+  FLAT  Features.CardC3.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  TABLE Features :: CardC4 [o] kids=AnomalyCounter,CardC4Loader,CardC4Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC4.CardC4Loader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]],["IsSupremeCollection",["
+  FLAT  Features.CardC4.CardC4Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC4.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsGrandCollectionRewardGiven",["f",false]],["IsPromoW
+  FLAT  Features.CardC4.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",5]]]
+  FLAT  Features.CardC4.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["f",false]],["WasFirstChestReached",["f",false]],["Was
+  FLAT  Features.CardC4.CardsGiftingCore [o] [["LastResetDay",["k",20755]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC4.CardsRequester [o] []
+  FLAT  Features.CardC4.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  TABLE Features :: CardC5 [o] kids=CardC5Loader,CardC5Main,SingleScheduleComponent
+  FLAT  Features.CardC5.CardC5Loader [o] []
+  FLAT  Features.CardC5.CardC5Main [o] []
+  TABLE Features :: CardC6 [o] kids=CardC6Loader,CardC6Main,SingleScheduleComponent
+  FLAT  Features.CardC6.CardC6Loader [o] []
+  FLAT  Features.CardC6.CardC6Main [o] []
+  TABLE Features :: CardC7 [o] kids=AnomalyCounter,CardC7Loader,CardC7Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC7.CardC7Loader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]],["IsSupremeCollection",["
+  FLAT  Features.CardC7.CardC7Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC7.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsGrandCollectionRewardGiven",["t",true]],["IsPromoWi
+  FLAT  Features.CardC7.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",4]]]
+  FLAT  Features.CardC7.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["f",false]],["WasFirstChestReached",["t",true]],["WasS
+  FLAT  Features.CardC7.CardsGiftingCore [o] [["LastResetDay",["k",20755]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC7.CardsRequester [o] []
+  FLAT  Features.CardC7.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  TABLE Features :: CardC8 [o] kids=AnomalyCounter,CardC8Loader,CardC8Main,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsRequester,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.CardC8.CardC8Loader [o] [["IsEventActive",["t",true]],["IsGrandCollection",["f",false]],["IsSupremeCollection",["f
+  FLAT  Features.CardC8.CardC8Main [o] [["HasEventBeenActive",["t",true]]]
+  FLAT  Features.CardC8.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsGrandCollectionRewardGiven",["f",false]],["IsPromoW
+  FLAT  Features.CardC8.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",3]]]
+  FLAT  Features.CardC8.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["f",false]],["WasFirstChestReached",["f",false]],["Was
+  FLAT  Features.CardC8.CardsGiftingCore [o] [["LastResetDay",["k",20774]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.CardC8.CardsRequester [o] [["RequestTimestamp",["k",1794421994]]]
+  FLAT  Features.CardC8.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  TABLE Features :: CardC9 [o] kids=CardC9Loader,CardC9Main,SingleScheduleComponent
+  FLAT  Features.CardC9.CardC9Loader [o] []
+  FLAT  Features.CardC9.CardC9Main [o] []
+  FLAT  Features.CollectionsGFF.CardsCollectionLoader [o] []
+  FLAT  Features.Expedition.StartFlowComponent [o] [["Exp41",["o",[["IsPromoShown",["t",true]]]]]]
+  TABLE Features :: SeasonalCardsCollection [o] kids=AnomalyCounter,CardsCollectionMainComponents,CardsCollectionMainWindow,CardsCollectionTrade,CardsGiftingCore,CardsTradeCore,Core,FixSavesCurrentRun,SeasonalCardsCollectionLoader,SeasonalCardsCollectionMain,SeasonalCollectionInfoWindow,SingleScheduleComponent,StateMachine
+  FLAT  Features.SeasonalCardsCollection.CardsCollectionMainComponents [o] [["IsFinishPostponed",["f",false]],["IsPromoWindowShown",["t",true]],["IsWaitingForRewards
+  FLAT  Features.SeasonalCardsCollection.CardsCollectionMainWindow [o] [["MainWindowOpenerCounter",["i",28]]]
+  FLAT  Features.SeasonalCardsCollection.CardsCollectionTrade [o] [["WasFirstChestNotificationShown",["t",true]],["WasFirstChestReached",["f",false]],["WasS
+  FLAT  Features.SeasonalCardsCollection.CardsGiftingCore [o] [["LastResetDay",["k",20774]],["PendingReceivedCards",["a",[]]],["PendingSendCards",["a",[
+  FLAT  Features.SeasonalCardsCollection.CardsTradeCore [o] [["additionalTokens",["i",0]]]
+  FLAT  Features.SeasonalCardsCollection.SeasonalCardsCollectionLoader [o] [["IsEventActive",["f",false]],["IsGrandCollection",["f",false]]]
+  FLAT  Features.SeasonalCardsCollection.SeasonalCardsCollectionMain [o] [["HasEventBeenActive",["t",true]]]
+  TABLE Features :: StartMiniGames [o] kids=StorableVarsContext
+  TABLE Features :: StartScreensGFF [o] kids=Schedule
+  FLAT  Leagues.contest_leagues.isStartScreenplayShown [t] true
+  FLAT  Match3LevelRewardsStatistics.SystemData.StartIndex [i] 327
+  TABLE MultiShotChallengeManager :: attempts [i] val=1
+  TABLE QuestStarsCorrection :: EventCompensationStartedLogging [t] val=true
+  TABLE QuestStarsCorrection :: QuestsStarsCorrected [a] kids=s,s,s,s,s,s,s,s,s,s,s,s,s
+  TABLE QuestStarsCorrection :: QuestsStarsCorrection [a] kids=s,s,s,s,s,s,s,s,s,s,s,s,s,s,…
+  FLAT  SpecialEvents.CR6.IsStartSceneShown [t] true
+  FLAT  SpecialEvents.CR6.StartChatMessage [o] [["firstShowTime",["u",1680265051]],["isRewardsClaimed",["t",true]],["lastShowTime",["u",1
+  TABLE SpecialEvents :: ExpFastStart [o] kids=Balance,Purchases,ScheduleComponent
+  TABLE SpecialEvents :: GameFriends [o] kids=ClanComponent,GameFriendsBridge,GameFriendsFbMigrator,InviteLogic,TimeSignalEmitterComponent
+  FLAT  SpecialEvents.GameFriends.GameFriendsBridge [o] [["AcceptFriendInvitePendingInfo",["a",[]]],["CancelFriendshipPendingInfo",["a",[]]],["Dec
+  FLAT  SpecialEvents.GameFriends.GameFriendsFbMigrator [o] [["FbFriendsSaveIds",["a",[]]],["FbMigratorState",["s","None"]]]
+  TABLE SpecialEvents :: QuestStarsCorrection [o] kids=starsCredit
+  FLAT  SpecialEvents.QuestStarsCorrection.starsCredit [d] 38
+  FLAT  SpecialEvents.RaceGame_Exp_Pathfinder.Swrve_LevelAttempts [o] [["CurrentValue",["d",0]],["TotalValue",["d",0]]]
+  FLAT  SpecialEvents.Season58.StartWasShown [t] true
+  FLAT  SpecialEvents.Season59.StartWasShown [t] true
+  FLAT  SpecialEvents.Season60.StartWasShown [t] true
+  FLAT  SpecialEvents.clan_chest.resultsStartedTime [d] 0
+  FLAT  SpecialEvents.clan_chest.startCluster [s] "cluster1"
+  FLAT  SpecialEvents.clan_chest.startedChestsId [s] "070423"
+  FLAT  SpecialEvents.clan_contest.generatedStartTimeRandomPause [d] 260
+  FLAT  SpecialEvents.clan_contest.startCluster [s] "cluster1"
+  TABLE SpecialEvents :: extra_stars [o] kids=abChangeOnZeroProgress,startCluster,userSegments
+  FLAT  SpecialEvents.extra_stars.startCluster [s] "cluster1"
+  TABLE SpecialEvents :: extra_stars_at_start [o] kids=abChangeOnZeroProgress,startCluster,userSegments
+  FLAT  SpecialEvents.extra_stars_at_start.startCluster [s] "cluster1"
+  FLAT  SpecialEvents.gold_cup.nextStartTime [d] 1795420800
+  FLAT  SpecialEvents.season_pass_procedural.startCluster [s] "cluster1"
+  FLAT  SpecialEvents.shop_coupon.CountLevelAttempts [d] 0
+  FLAT  SpecialEvents.shop_coupon.IsFirstMatch3Start [t] true
+  FLAT  SpecialEvents.shop_coupon.lastEventLaunchStartTime [d] 1695970800
+  FLAT  SpecialEvents.shop_coupon.stars_received [d] 0
+  FLAT  SpecialEvents.shop_coupon.startCluster [s] "cluster4"
+  FLAT  SpecialEvents.shop_coupon.startTime [d] 1696218410.9220002
+  FLAT  SpecialEvents.special_redesign.lastEventLaunchStartTime [d] 1676876400
+  FLAT  SpecialEvents.special_redesign.startCluster [s] "cluster1"
+  FLAT  TableName.Properties.AmplM3StartedChain [s] ""
+  FLAT  TableName.Properties.AmplM3StartedLevel [i] 13590
+  FLAT  TableName.Properties.AmplM3StartedLvlVer [i] 3
+  FLAT  TableName.Properties.AttemptsCount [o] [["candle_mini_start",["o",[["name",["i",3]]]]],["dirt_mini_start",["o",[["name",["i",3]]]
+  FLAT  TableName.Properties.CheckUpdateFriendsNextTime [d] 1758334067.4129999
+  FLAT  TableName.Properties.ClanRedesignFifthHappyDaySegmentId_Cache_FD_last_started_id [d] 10100
+  FLAT  TableName.Properties.ClanRedesignFifthHappyDaySegmentId_Cache_FD_startTime [d] 1656859719
+  FLAT  TableName.Properties.Expedition_FastStartCheatTimeOffset [d] 0
+  FLAT  TableName.Properties.GRC_day3StartCounter [d] 279
+  FLAT  TableName.Properties.InviteFriendTodayCount [d] 1
+  FLAT  TableName.Properties.IsShopCouponStartComicsShowed [t] true
+  FLAT  TableName.Properties.LastFriendsListEmpty [i] 0
+  FLAT  TableName.Properties.LastLevelAttempt [i] 0
+  FLAT  TableName.Properties.LevelAttemptsCount [i] 0
+  FLAT  TableName.Properties.PublisherVerification_AttemptNum [i] 11
+  FLAT  TableName.Properties.RateUsStartUserProgressLevel [d] 762
+  FLAT  TableName.Properties.SocialApiLivesFromFbFriends [i] 0
+  FLAT  TableName.Properties.StarsTutorialState [i] 2
+  FLAT  TableName.Properties.StartedTutorials [a] []
+  FLAT  TableName.Properties.SyncFriendsSaveIdsLastTime [d] 1758334046.562
+  FLAT  TableName.Properties.TotalLevelAttemptsTo25 [d] 34
+  FLAT  TableName.Properties.TrackedNewFriends [a] [["s","ZpQpbVCWQI"]]
+  FLAT  TableName.Properties.TutorialRemindTabletStars [d] 1
+  FLAT  TableName.Properties.earnedStars [i] 100201
+  FLAT  TableName.Properties.firstStartAfterReinstall [u] 1771809647
+  FLAT  TableName.Properties.firstStartHour [d] 456394
+  FLAT  TableName.Properties.lastSessionStartTime [d] 1794928512
+  FLAT  TableName.Properties.m3LevelStarted [f] false
+  FLAT  TableName.Properties.spentStars [i] 25743
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soo    ðiø@s [d] 1651901814
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_big_pie [d] 1652007990
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_box_with_plague [d] 1651065894
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_climbers [d] 1650802626
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_float_chip [d] 1656376043
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_grass [d] 1657334033
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_growing_bush [d] 1652352386
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_ivy [d] 1651127163
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_jam [d] 1656719034
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_jars [d] 1647825056
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_leaf [d] 1657033805
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_order_lock [d] 1652239942
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_plague [d] 1647498741
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_plague_source [d] 1652162117
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_surprise_chip [d] 1651039499
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_water_lily [d] 1653201548
+  FLAT  TableName.Properties.time_start_local_notification_new_element_soon_wrapped_firework [d] 1658110625
+  FLAT  accumulateStatistics.LastDay.LifelessRedesignStarted [i] 0
+  FLAT  accumulateStatistics.LastDay.RedesignStarted [i] 1479
+  FLAT  accumulateStatistics.LastDay.TabletSocialFriendsShows [i] 0
+  FLAT  accumulateStatistics.LastDays.LevelCompletedWithoutBoostsWithoutFirstAttempt [a] [["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17],["i",17]
+  FLAT  accumulateStatistics.LastDays.LevelFailedWithoutFirstAttempt [a] [["i",10001],["i",10001],["i",10001],["i",10001],["i",10001],["i",10001],["i",10001],["i",
+  FLAT  accumulateStatistics.LastLevelTry.MovesMadeFromStart [i] 23168
+  FLAT  accumulateStatistics.LastLevelTry.SquareMatchAttempts [i] 0
+  TABLE accumulateStatistics :: LevelCompletedWithoutBoostsWithoutFirstAttempt [d] val=17
+  TABLE accumulateStatistics :: LevelFailedWithoutFirstAttempt [i] val=10001
+  TABLE accumulateStatistics :: MovesMadeFromStart [i] val=23185
+  TABLE accumulateStatistics :: RedesignStarted [i] val=1482
+  TABLE asn::Other :: first_start [s] val="1643019090.0000000000000000"
+  FLAT  game_statistics.questTimestamp.chAIR_OpenGifts [d] 1686818477
+  FLAT  game_statistics.questTimestamp.chAIR_SendInvites [d] 1686818642
+  FLAT  game_statistics.questTimestamp.chAIR_StartAeroshow [d] 1686818869
+  FLAT  game_statistics.questTimestamp.chAIR_StartEngine [d] 1686818415
+  FLAT  game_statistics.questTimestamp.chAIR_UnpackGifts [d] 1686817981
+  FLAT  game_statistics.questTimestamp.chANM_D1_StartShowing [d] 1687361514
+  FLAT  game_statistics.questTimestamp.chANM_D3_UnpackGift [d] 1687361761
+  FLAT  game_statistics.questTimestamp.chAPL_D1_SendSinghala [d] 1687362465
+  FLAT  game_statistics.questTimestamp.chAPL_D1_StartSystem [d] 1687362541
+  FLAT  game_statistics.questTimestamp.chAPL_D5_StartSimulation [d] 1687400843
+  FLAT  game_statistics.questTimestamp.chATL_UnpackGift [d] 1686815477
+  FLAT  game_statistics.questTimestamp.chBOT_SendJenSeeds [d] 1686817235
+  FLAT  game_statistics.questTimestamp.chBOT_StartNewDay3 [d] 1686817191
+  FLAT  game_statistics.questTimestamp.chBOT_StartNewDay4 [d] 1686817380
+  FLAT  game_statistics.questTimestamp.chBOT_StartNewDay5 [d] 1686817569
+  FLAT  game_statistics.questTimestamp.chCSC_SendBee [d] 1656862727
+  FLAT  game_statistics.questTimestamp.chCSC_SendThings [d] 1656312681
+  FLAT  game_statistics.questTimestamp.chCSC_StartOrcestrion [d] 1657033151
+  FLAT  game_statistics.questTimestamp.chCSC_StartWater [d] 1656312821
+  FLAT  game_statistics.questTimestamp.chDin_MakeStarirsBed [d] 1686808742
+  FLAT  game_statistics.questTimestamp.chECO_D5_StartStation [i] 1754717600
+  FLAT  game_statistics.questTimestamp.chELD_D3_DecorateRestArea1 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D3_DecorateRestArea2 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D3_OrganizeRestArea1 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D3_OrganizeRestArea2 [i] 1788534946
+  FLAT  game_statistics.questTimestamp.chELD_D5_StartFountains [i] 1788535670
+  FLAT  game_statistics.questTimestamp.chELF_D2_CallFriends [d] 1686985731
+  FLAT  game_statistics.questTimestamp.chELF_D5_StartShow [d] 1687067592
+  FLAT  game_statistics.questTimestamp.chENG_D4_GiveGift [d] 1715342086
+  FLAT  game_statistics.questTimestamp.chENG_D5_StartShow [d] 1715342433
+  FLAT  game_statistics.questTimestamp.chETC_D2_CleanStars [d] 1723281901
+  FLAT  game_statistics.questTimestamp.chETC_D2_PlaceStars [d] 1723281982
+  FLAT  game_statistics.questTimestamp.chETC_D6_AcceptGift [d] 1737005691
+  FLAT  game_statistics.questTimestamp.chEast_SendSalveToKolin [d] 1657850387
+  FLAT  game_statistics.questTimestamp.chEast_StartMeditate [d] 1658016569
+  FLAT  game_statistics.questTimestamp.chEast_StartTraining [d] 1657869579
+  FLAT  game_statistics.questTimestamp.chExp10_1biom_Start [d] 1691733579
+  FLAT  game_statistics.questTimestamp.chExp16_1biom_Start [d] 1718192887
+  FLAT  game_statistics.questTimestamp.chExp17_1biom_FindKeyCard [d] 1720605998
+  FLAT  game_statistics.questTimestamp.chExp17_1biom_Start [d] 1720596429
+  FLAT  game_statistics.questTimestamp.chExp18_1biom_Start [d] 1724746439
+  FLAT  game_statistics.questTimestamp.chExp19_1biom_Start [d] 1727963861
+  FLAT  game_statistics.questTimestamp.chExp20_1biom_Start [d] 1731564405
+  FLAT  game_statistics.questTimestamp.chExp21_1biom_Start [d] 1736493237
+  FLAT  game_statistics.questTimestamp.chExp22_1biom_Start [i] 1738759710
+  FLAT  game_statistics.questTimestamp.chExp23_1biom_Start [i] 1742622998
+  FLAT  game_statistics.questTimestamp.chExp24_1biom_Start [i] 1746334849
+  FLAT  game_statistics.questTimestamp.chExp24_4biom_StartLocomotive [i] 1746846693
+  FLAT  game_statistics.questTimestamp.chExp25_1biom_Start [i] 1751099419
+  FLAT  game_statistics.questTimestamp.chExp26_1biom_Start [i] 1753800158
+  FLAT  game_statistics.questTimestamp.chExp26_2biom_FindStars [i] 1754714771
+  FLAT  game_statistics.questTimestamp.chExp26_3biom_BefriendGuard [i] 1754715073
+  FLAT  game_statistics.questTimestamp.chExp27_1biom_Start [i] 1757817921
+  FLAT  game_statistics.questTimestamp.chExp2_1biom_Start [d] 1663074125
+  FLAT  game_statistics.questTimestamp.chExp31_1biom_Start [i] 1771810171
+  FLAT  game_statistics.questTimestamp.chExp3_1biom_Start [d] 1645672600
+  FLAT  game_statistics.questTimestamp.chExp4_1biom_Start [d] 1651766028
+  FLAT  game_statistics.questTimestamp.chExp5_1biom_Start [d] 1658416771
+  FLAT  game_statistics.questTimestamp.chExp6_1biom_Start [d] 1665884050
+  FLAT  game_statistics.questTimestamp.chExp7_1biom_Start [d] 1673263687
+  FLAT  game_statistics.questTimestamp.chExp8_1biom_Start [d] 1677589096
+  FLAT  game_statistics.questTimestamp.chExp9_1biom_Start [d] 1684321673
+  FLAT  game_statistics.questTimestamp.chExp9_2biom_StartTrain [d] 1684325081
+  FLAT  game_statistics.questTimestamp.chExpHocuspocus_1biom_Start [d] 1715258101
+  FLAT  game_statistics.questTimestamp.chExpPanacea_1biom_Start [d] 1695457898
+  FLAT  game_statistics.questTimestamp.chExpScarymansion_1biom_Start [d] 1681297991
+  FLAT  game_statistics.questTimestamp.chExpShambala_1biom_Start [d] 1688044826
+  FLAT  game_statistics.questTimestamp.chExpYeti_1biom_Start [d] 1669725644
+  FLAT  game_statistics.questTimestamp.chExpedition_atlantis_1biom_Start [d] 1730182220
+  FLAT  game_statistics.questTimestamp.chExpedition_china_1biom_Start [d] 1737004087
+  FLAT  game_statistics.questTimestamp.chExpedition_china_3biom_FindMemoryCard [d] 1737004601
+  FLAT  game_statistics.questTimestamp.chExpedition_factory_1biom_Start [d] 1722416770
+  FLAT  game_statistics.questTimestamp.chExpedition_factory_2biom_FindGPSCard [d] 1722419438
+  FLAT  game_statistics.questTimestamp.chExpedition_garden_1biom_Start [d] 1733466700
+  FLAT  game_statistics.questTimestamp.chExpedition_penguins_1biom_Start [i] 1742092919
+  FLAT  game_statistics.questTimestamp.chExpedition_snow_1biom_Start [i] 1744420655
+  FLAT  game_statistics.questTimestamp.chExpedition_snow_4biom_StartGenerator [i] 1745037851
+  FLAT  game_statistics.questTimestamp.chExpedition_snowqueen_1biom_Start [d] 1718884517
+  FLAT  game_statistics.questTimestamp.chExpedition_snowqueen_2biom_CollectStars [d] 1719058620
+  FLAT  game_statistics.questTimestamp.chExpedition_western_1biom_Start [d] 1726840125
+  FLAT  game_statistics.questTimestamp.chFNT_SendParcel [d] 1647497905
+  FLAT  game_statistics.questTimestamp.chFNT_StartDay2 [d] 1645711557
+  FLAT  game_statistics.questTimestamp.chFNT_StartDay3 [d] 1647425454
+  FLAT  game_statistics.questTimestamp.chFNT_StartDay4 [d] 1647498007
+  FLAT  game_statistics.questTimestamp.chFNT_StartPump [d] 1645711306
+  FLAT  game_statistics.questTimestamp.chFRI_PlantElsaGift [d] 1686896774
+  FLAT  game_statistics.questTimestamp.chFRI_StartFilm [d] 1686896939
+  FLAT  game_statistics.questTimestamp.chFRI_WriteFriends [d] 1686896861
+  FLAT  game_statistics.questTimestamp.chFRT_D1_PrepareGift [i] 1771817015
+  FLAT  game_statistics.questTimestamp.chFRT_D2_RestoreCard [i] 1771937550
+  FLAT  game_statistics.questTimestamp.chFRT_D3_StartFountain [i] 1771937648
+  FLAT  game_statistics.questTimestamp.chFRT_D6_SeeoffFriends [i] 1771937954
+  FLAT  game_statistics.questTimestamp.chGRC_SendRoseToLab [d] 1650986478
+  FLAT  game_statistics.questTimestamp.chGRC_StartPump [d] 1650877972
+  FLAT  game_statistics.questTimestamp.chGRC_WaterAnalizSend [d] 1650878132
+  FLAT  game_statistics.questTimestamp.chGRP_StartNewDay5 [d] 1686814200
+  FLAT  game_statistics.questTimestamp.chGRP_StartPicnic1 [d] 1686813998
+  FLAT  game_statistics.questTimestamp.chGRP_StartPicnic2 [d] 1686814002
+  FLAT  game_statistics.questTimestamp.chGTH_SendFigurine [d] 1686807926
+  FLAT  game_statistics.questTimestamp.chGTH_SendMuseum [d] 1686807212
+  FLAT  game_statistics.questTimestamp.chGTH_StartFountain [d] 1686807948
+  FLAT  game_statistics.questTimestamp.chHRS_StartCompetition [d] 1679915404
+  FLAT  game_statistics.questTimestamp.chHRS_StartTraining [d] 1664107098
+  FLAT  game_statistics.questTimestamp.chHTL_D3_StartFilmShooting [d] 1687242534
+  FLAT  game_statistics.questTimestamp.chHTL_D5_AcceptGift [d] 1687242918
+  FLAT  game_statistics.questTimestamp.chINV_FinalStartMachine [d] 1686898373
+  FLAT  game_statistics.questTimestamp.chINV_StartClock [d] 1686898272
+  FLAT  game_statistics.questTimestamp.chINV_StartFlower [d] 1686897879
+  FLAT  game_statistics.questTimestamp.chINV_StartTrain [d] 1686897605
+  FLAT  game_statistics.questTimestamp.chINV_StartWatering [d] 1686898135
+  FLAT  game_statistics.questTimestamp.chINV_TryToStartMachine [d] 1686897977
+  FLAT  game_statistics.questTimestamp.chJNG_D4_Start_Fountaine [d] 1687241314
+  FLAT  game_statistics.questTimestamp.chLBR_SendRhododendron [d] 1651923801
+  FLAT  game_statistics.questTimestamp.chLIH_StartFountain [d] 1686819078
+  FLAT  game_statistics.questTimestamp.chLIH_StartLiH [d] 1686819084
+  FLAT  game_statistics.questTimestamp.chMAR_D1_StartMeteo [i] 1754717899
+  FLAT  game_statistics.questTimestamp.chMAR_D2_StartWaterfall [i] 1754718078
+  FLAT  game_statistics.questTimestamp.chMAR_D6_ArrangeGiftBoxes [i] 1763256752
+  FLAT  game_statistics.questTimestamp.chMTT_D1_Send_drone [d] 1686898560
+  FLAT  game_statistics.questTimestamp.chOBS_StartMechanism [d] 1686809986
+  FLAT  game_statistics.questTimestamp.chPCN_SendManuscript [d] 1686804289
+  FLAT  game_statistics.questTimestamp.chPCN_StartFireworks [d] 1686804678
+  FLAT  game_statistics.questTimestamp.chPCN_StartGenerator [d] 1686804842
+  FLAT  game_statistics.questTimestamp.chPYR_D6_GetStarship [d] 1715344208
+  FLAT  game_statistics.questTimestamp.chSLB_Lay_Stars [d] 1686983714
+  FLAT  game_statistics.questTimestamp.chSPA_Celebrate_Start_Project [d] 1686888668
+  FLAT  game_statistics.questTimestamp.chSPA_Start_new_day2 [d] 1686888177
+  FLAT  game_statistics.questTimestamp.chSTN_D2_StartElectricity [i] 1764120121
+  FLAT  game_statistics.questTimestamp.chSTN_D2_StartFertilizer [i] 1764120198
+  FLAT  game_statistics.questTimestamp.chSTN_D3_StartProduction [i] 1766121188
+  FLAT  game_statistics.questTimestamp.chSTN_D6_DeliverGift [i] 1766122515
+  FLAT  game_statistics.questTimestamp.chTHE_SendInvitations [d] 1686813186
+  FLAT  game_statistics.questTimestamp.chVIL_SendPhotoMathias [d] 1686814631
+  FLAT  game_statistics.questTimestamp.chVIL_StartNewDay5 [d] 1686815260
+  FLAT  game_statistics.questTimestamp.chVIL_Start_the_garden_gear [d] 1686815462
+  FLAT  game_statistics.questTimestamp.chWND_start_newday [d] 1686882580
+  FLAT  game_statistics.questTimestamp.chWST_Hang_sheriffs_stars [d] 1686984573
+  FLAT  game_statistics.questTimestamp.chWST_Prepare_Gifts [d] 1686984454
+  FLAT  game_statistics.questTimestamp.chWST_Unpack_Gifts [d] 1686984467
+  FLAT  game_statistics.questTimestamp.chWTR_FinalStart [d] 1653199482
+  FLAT  game_statistics.questTimestamp.chWed_SendToTravel [d] 1686812249
+  TABLE history_data :: chELV_OstinCallFriends [t] val=true
+  TABLE history_data :: chExp3_1biom_GardenStart [t] val=true
+  TABLE history_data :: chExp9_1biom_GardenStart [t] val=true
+  TABLE history_data :: chFNT_SendParcel [t] val=true
+  TABLE history_data :: chGRC_WaterAnalizSend_Letter [t] val=true
+  TABLE history_data :: chGTH_SendMuseum_Letter [t] val=true
+  TABLE history_data :: chPCN_SendManuscript_Letter [t] val=true
+  FLAT  quests.CH11_OpenNextExpansion.stars [d] 2
+  FLAT  quests.CH26_OpenNextExpansion.stars [d] 2
+  FLAT  quests.CH5_OpenNextExpansion.stars [d] 2
+  FLAT  quests.chBRO_day2_BuildMiniGolf1.stars [i] 5
+  FLAT  quests.chBRO_day2_GreenTheArea.stars [i] 5
+  FLAT  quests.chBRO_day2_PaintHydrant.stars [i] 4
+  FLAT  quests.chGRP_OpenNewSite.stars [d] 2
+  FLAT  quests.chMTT_D5_Travel_to_wonderland.stars [d] 4
+  FLAT  quests_expedition_list.expedition_panacea_chapter1.chExpPanacea_1biom_Start [o] [["collected",["t",true]]]
+  FLAT  repairs.chapter15.RetroCarDown [o] [["step",["s","Installed"]]]
+  FLAT  repairs.chapter16.SeanGift [o] [["step",["s","Install"]]]
+  FLAT  repairs.chapter16.SeanGiftBox [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter21.MotherGift [o] [["keep_step",["s","empty"]],["step",["s","empty"]]]
+  FLAT  repairs.chapter24.SendingBox [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter24.SendingTrees [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter25.GiftFromAlex [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter25.GiftsContentAirship [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter25.GiftsContentDaVinci [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter25.GiftsContentWeather [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter41.D2_ShipRepairStarboardSide [o] [["step",["s","paint"]]]
+  FLAT  repairs.chapter41.D4_Star_Trail [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter41.D4_Zodiac_Stars [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter42.D1_saloon_gifts [o] [["step",["s","clear"]]]
+  FLAT  repairs.chapter46.d3_star_tile [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d3_stars [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d4_friends_flowerbed [o] [["step",["s","anim"]]]
+  FLAT  repairs.chapter46.d4_friends_pedestal [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d4_friends_statue [o] [["step",["s","anim"]]]
+  FLAT  repairs.chapter46.d4_friends_statue_lamp [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d5_starship [o] [["step",["s","stage_9"]]]
+  FLAT  repairs.chapter46.d5_starship_chairs [o] [["base_step",["s","0"]],["step",["s","set1"]]]
+  FLAT  repairs.chapter46.d5_starship_console [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d5_starship_flowers [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter46.d5_starship_grass [o] [["step",["s","restored"]]]
+  FLAT  repairs.chapter46.d5_starship_junk [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter46.d5_starship_moss_part [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter46.d5_starship_scaffolding [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter47.d5_lantern_star [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter49.d5_walk_stars [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter52.d6_star_map [o] [["step",["s","set"]]]
+  FLAT  repairs.chapter53.d1_tree_statue_star [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter53.d2_star_pile [o] [["step",["s","empty"]]]
+  FLAT  repairs.chapter53.d2_stars [o] [["step",["s","set"]]]
+  FLAT  repairs.christmas22_redesign_chapter.gifts [o] [["keep_step",["s","clear"]],["step",["s","clear"]]]
+  TABLE repairs_purchases_info :: chapter1,Expedition_2_2_yacht,yacht_start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,Paintings,frames_restoration_started [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Barcelona_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Christmas21_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Christmas22_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Easter_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter1,bell,Halloween21_DingDongSTART [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter10,Flags,StartPaint1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter11,PointToJen,FinalStartDay3 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter15,RetroCarDown,Installed [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter15,RetroCarDown,Installed.xml.auPK [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter16,SeanGift,Install [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter16,SeanGiftBox,box [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter17,Arc,NewArc_panno_stars [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter17,MeteoriteLawn,Day5Start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter17,Tile,Day5Start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter4,Roads,start1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter4,Roads,start2 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter4,Roads,start3 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter46,d5_starship_chairs,set1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter5,fence,NewFence_Start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter6,treasure,TreasureStart [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter7,CascadeTree,cascade_modern_platform_started [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,Fishing,start [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,MysteryStone2,WorkStarted1 [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,OldTree,RemoveStarted [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,OldTree,SawStarted [o] kids=isBuy
+  TABLE repairs_purchases_info :: chapter8,Raft,start [o] kids=isBuy
