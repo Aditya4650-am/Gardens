@@ -37,6 +37,14 @@ export const getLicense = createServerFn({ method: "POST" })
     return licenseStatus(data.token);
   });
 
+/** Current client release (EXE auto-update: version + download URL + SHA-256). */
+export const gsGetRelease = createServerFn({ method: "POST" })
+  .validator(z.object({ token: z.string() }))
+  .handler(async ({ data }) => {
+    const { getRelease } = await import("./server/update.server");
+    return getRelease(data.token);
+  });
+
 // --- session / save pipeline ----------------------------------------------
 
 /** Decode a save (file bytes or device pull) into an editable session. */
@@ -560,6 +568,34 @@ export const gsUnlockFrames = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const m = await import("./server/gardenscapes/profile.server");
     return m.unlockFrames(await sessionOf(data.token, data.sessionId), data.ids);
+  });
+
+export const gsUnlockBadges = createServerFn({ method: "POST" })
+  .validator(sess.extend({ ids: z.array(z.string()).min(1).max(200) }))
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/profile.server");
+    return m.unlockBadges(await sessionOf(data.token, data.sessionId), data.ids);
+  });
+
+export const gsUnlockAllBadges = createServerFn({ method: "POST" })
+  .validator(sess)
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/profile.server");
+    return m.unlockAllBadges(await sessionOf(data.token, data.sessionId));
+  });
+
+export const gsUnlockTitles = createServerFn({ method: "POST" })
+  .validator(sess.extend({ ids: z.array(z.string()).min(1).max(200) }))
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/profile.server");
+    return m.unlockTitles(await sessionOf(data.token, data.sessionId), data.ids);
+  });
+
+export const gsUnlockAllTitles = createServerFn({ method: "POST" })
+  .validator(sess)
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/profile.server");
+    return m.unlockAllTitles(await sessionOf(data.token, data.sessionId));
   });
 
 /** Frame / avatar catalogs (static — no session needed, token still gated). */

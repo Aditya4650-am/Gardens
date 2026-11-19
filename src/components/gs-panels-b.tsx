@@ -115,7 +115,7 @@ export function GsSeasons() {
   return (
     <div className="gs-stack">
       <Bar
-        hint="Golden pass, season score and every reward stage on both roads. The premium road's game id is `gold`."
+        hint="Golden pass, season score and every reward stage on both roads."
         extra={
           <Button size="sm" onClick={() => void load()} disabled={c.busy}>
             <GsIcon name="refresh" className="size-4" /> Refresh
@@ -284,7 +284,6 @@ export function GsDecor() {
   const c = useGs();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [filter, setFilter] = useState("");
   const [open, setOpen] = useState<string | null>(null);
 
   const load = async () => {
@@ -303,9 +302,7 @@ export function GsDecor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.sessionId]);
 
-  const shown = filter
-    ? chapters.filter((x) => x.key.toLowerCase().includes(filter.toLowerCase()))
-    : chapters;
+  const shown = chapters;
   const bought = purchases.filter((p) => p.isBuy).length;
 
   const act2 = async (fn: () => Promise<unknown>, label: string) => {
@@ -317,7 +314,7 @@ export function GsDecor() {
   return (
     <div className="gs-stack">
       <Bar
-        hint="Garden chapters and their repair / decor purchases. `opened` gates a chapter, `completed` finishes it; purchases are booleans the save already holds."
+        hint="Garden chapters and their repair / decor purchases. Opened opens a chapter, completed finishes it."
         onAll={() => void act2(() => gsWriteChapters({ data: { ...sessOf(c), keys: chapters.map((x) => x.key), completed: true } }), "All chapters")}
         onClear={() => void act2(() => gsWriteChapters({ data: { ...sessOf(c), keys: chapters.map((x) => x.key), completed: false, opened: true } }), "All chapters")}
         allLabel="Complete all"
@@ -366,8 +363,7 @@ export function GsDecor() {
       </Panel>
 
       <Panel title="Chapters" icon="quests">
-        <input className="field w-full font-mono" placeholder="filter chapters…" value={filter} onChange={(e) => setFilter(e.target.value)} />
-        <div className="gs-list mt-3">
+        <div className="gs-list">
           {shown.map((ch) => (
             <div key={ch.key} className="gs-row">
               <button type="button" className="gs-row-main" onClick={() => setOpen(open === ch.key ? null : ch.key)}>
@@ -597,7 +593,7 @@ export function GsCards() {
   return (
     <div className="gs-stack">
       <Bar
-        hint="150 cards in 15 sets of ten. Grant writes `generatedCount` + `inStockCount` together and keeps every arrival invariant true."
+        hint="150 cards in 15 sets of ten. Grant writes stock and counters together."
         onAll={selectSet}
         onClear={() => setSel(new Set())}
         allLabel="Tick everything"
@@ -625,7 +621,7 @@ export function GsCards() {
       <Panel
         title="Batch"
         icon="cards"
-        hint="Amount is per ticked card. Stock 1–9999; real saves hold 1–4, so anything above that is your call."
+        hint="Amount is per ticked card. Stock 1–9999."
       >
         <div className="gs-pair">
           <Field label="Grant amount" value={amount} onChange={setAmount} suffix={`× ${sel.size} cards`} />
@@ -680,7 +676,7 @@ export function GsCards() {
         <CardGrid info={info} mode="pick" sel={sel} onToggle={toggle} onAll={selectSet} onNone={() => setSel(new Set())} />
       </Panel>
 
-      <Panel title="Sets" icon="layers" hint="`lastSeenProgress` is re-established from the rows after every edit.">
+      <Panel title="Sets" icon="layers" hint="Collection progress per set of ten.">
         <Grid cols="wide">
           {(info?.sets ?? []).map((s, i) => (
             <div key={s.setId} className="gs-stat" data-tone={String((i % 7) + 1)}>
@@ -696,7 +692,7 @@ export function GsCards() {
         </Grid>
       </Panel>
 
-      <Panel title="Packs" icon="barn" hint="GivenPackInfos rows (type `g`), 0–65535.">
+      <Panel title="Packs" icon="cards" hint="Card pack counts, 0–65535.">
         <div className="gs-form">
           {GS_CARD_PACKS.map((id) => (
             <Field
@@ -740,7 +736,7 @@ export function GsCards() {
         </div>
       </Panel>
 
-      <Panel title="Feature flags" icon="gear" hint="Event window and the Grand Collection switch — both proven writes.">
+      <Panel title="Feature flags" icon="gear" hint="Event window and the Grand Collection switch.">
         <div className="gs-actions">
           <Toggle on={!!info?.eventActive} disabled={c.busy}
             onClick={() => void run(() => gsSetEventActive({ data: { ...sessOf(c), on: !info?.eventActive } }), "Event")}>
@@ -777,7 +773,7 @@ export function GsCards() {
       </Panel>
 
       {info?.blockers.length ? (
-        <Panel title="Blockers" icon="lock" hint="Trash pairs the game uses to hold a set back.">
+        <Panel title="Blockers" icon="lock" hint="Hold-back switches a set may carry.">
           <div className="gs-list">
             {info.blockers.map((b) => (
               <div key={`${b.featureId}-${b.setId}`} className="gs-row">
@@ -881,7 +877,7 @@ export function GsSendCards() {
       <Panel
         title="Recipients"
         icon="users"
-        hint="Saves carry no friend roster and Playrix exposes no card-delivery endpoint, so ids are entered by hand (4–32 letters/digits). The plan below is validated against your own collection — it never writes."
+        hint="One save id per line (4–32 letters/digits). Your plan is checked against your own collection first."
       >
         <textarea
           className="field gs-textarea font-mono"
@@ -936,7 +932,6 @@ export function GsSendCards() {
             <Chip tone="gold" icon="cards">{plan.totalCards} cards total</Chip>
             <Chip tone="ok" icon="check">{plan.ownedCount} owned</Chip>
             {plan.unownedCount ? <Chip tone="warn" icon="alert">{plan.unownedCount} unowned</Chip> : null}
-            <Chip tone="neutral" icon="lock">delivery: not possible from a save edit</Chip>
           </div>
           <div className="gs-list mt-3">
             {plan.rows.map((r) => (

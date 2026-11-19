@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { isDeviceId, mintDeviceId, normalizeDeviceId } from "@/lib/device-id";
 import {
-  getLicense,
   gsConnect,
+  gsGetRelease,
   gsPullDevice,
   gsPush,
   gsPushDevice,
@@ -34,17 +34,37 @@ import { GsAvatars, GsBadges, GsFrames, GsStyles, GsTitles } from "./gs-panels-c
 // ---------------------------------------------------------------------------
 // Gardenscapes editor — login scene + application shell.
 //
-// Structure mirrors studio-app.tsx (header / sidebar / two-row tab strip /
-// panel host) so the two tools feel like one product, but every helper here is
-// file-local: studio-app's are private to that module, and studio-app itself
-// must stay untouched because ui-regressions.test.mts greps it.
+// Structure: header / sidebar / two-row tab strip / panel host. Every helper
+// here is file-local so the shell can be reused without the panel components
+// reaching into module scope.
 // ---------------------------------------------------------------------------
 
 const LS_KEY = "gs-garden-key";
 const LS_HWID = "gs-garden-hwid";
-const LS_LANG = "gs-garden-lang";
 const LS_PALETTE = "gs-garden-palette";
+const LS_MODE = "gs-garden-mode";
 const DEFAULT_SERIAL = "127.0.0.1:21503";
+
+// --- sidebar log colouring --------------------------------------------------
+// The server ships the log as plain strings, so the *meaning* is decided here
+// rather than in seventeen `log.push` call sites: one classifier, one place to
+// tune. Order matters — a refusal must read red even when it also contains a
+// word a success line would carry.
+type GsLogKind = "ok" | "bad" | "warn" | "info";
+
+const GS_LOG_BAD =
+  /\b(error|errors|failed|failure|refused|refusal|rejected|denied|invalid|blocked|timeout|timed out|not found|no data|unsupported|unavailable|cannot|can't|wrong format|disconnected)\b/i;
+const GS_LOG_WARN =
+  /(no pending|nothing to change|no change|unchanged|unmeasured|no save|no cards|no rows|nothing was|skipped|warning|not possible|empty|partly|incomplete)/i;
+const GS_LOG_OK =
+  /(changed|unlocked|granted|restored|accepted|earned|reordered|loaded|wearing|worn|marked|streak|ready|saved|pushed|applied|done|complete|->|\b(?:on|off)\b|collected|cleared)/i;
+
+function gsLogKind(line: string): GsLogKind {
+  if (GS_LOG_BAD.test(line)) return "bad";
+  if (GS_LOG_WARN.test(line)) return "warn";
+  if (GS_LOG_OK.test(line)) return "ok";
+  return "info";
+}
 
 /** The five light-theme color combinations (see styles.css `.gs-palette-*`). */
 const GS_PALETTES: { id: string; label: string; swatch: string }[] = [
@@ -80,10 +100,43 @@ function PaletteSwitch({
   );
 }
 
+/**
+ * Light / dark switch. It is a two-state pill rather than a bare icon so the
+ * current mode is legible at a glance, and the sliding knob is what carries the
+ * gold-on-green premium treatment shared with the ENABLE button.
+ */
+function ThemeSwitch({ dark, onPick }: { dark: boolean; onPick: (d: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={dark}
+      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      title={dark ? "Light mode" : "Dark mode"}
+      className="gs-theme-switch"
+      onClick={() => onPick(!dark)}
+    >
+      <span className="gs-theme-switch-track" aria-hidden>
+        <span className="gs-theme-switch-thumb">
+          <GsIcon name={dark ? "moon" : "sun"} className="size-3.5" />
+        </span>
+      </span>
+      <span className="gs-theme-switch-label">{dark ? "Dark" : "Light"}</span>
+    </button>
+  );
+}
+
 interface NativeBridge {
   deviceId?: () => Promise<string>;
   saveKey?: (k: string) => Promise<void>;
   clearSavedKey?: () => Promise<void>;
+  version?: () => Promise<string>;
+  installUpdate?: (release: {
+    version: string;
+    notes?: string;
+    downloadUrl: string;
+    sha256: string;
+  }) => Promise<{ ok: boolean; version?: string; reason?: string }>;
 }
 
 function nativeBridge(): NativeBridge | undefined {
@@ -168,6 +221,28 @@ export function GsApp() {
     }
   };
 
+  // --- appearance: light / dark ------------------------------------------
+  // Light stays the default so the shipped tool keeps the garden theme; dark is
+  // opt-in per machine and rides the same node as `.gs-theme`.
+  const [dark, setDark] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(LS_MODE) === "dark";
+    } catch {
+      return false;
+    }
+  });
+
+  const pickDark = (d: boolean) => {
+    setDark(d);
+    try {
+      localStorage.setItem(LS_MODE, d ? "dark" : "light");
+    } catch {
+      /* private mode */
+    }
+  };
+
+  const modeClass = dark ? "gs-dark" : "gs-light";
+
   // --- verb wrappers -----------------------------------------------------
 
   const act = useCallback(async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
@@ -211,12 +286,6 @@ export function GsApp() {
 
   useEffect(() => {
     let stop = false;
-    try {
-      const stored = localStorage.getItem(LS_LANG);
-      if (stored) void stored;
-    } catch {
-      /* private mode */
-    }
 
     // Boot order, most authoritative first: `?did=` on the URL, then the
     // bridge, then localStorage, then a fresh mint. Inside the EXE minting is
@@ -336,6 +405,71 @@ export function GsApp() {
     const id = window.setInterval(() => setNowTick(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [license]);
+
+  // --- client auto-update (EXE only) --------------------------------------
+  // Same contract as the release poller: poll, compare against the EXE's
+  // own version, install once per version. A release with no download URL and
+  // SHA-256 (env vars unset) never shows a banner and never installs.
+  const [freshRelease, setFreshRelease] = useState<{
+    version: string;
+    notes: string;
+    downloadUrl: string;
+    sha256: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let stop = false;
+    const compareVersions = (a: string, b: string) => {
+      const pa = a.split(".").map((x) => Number.parseInt(x, 10) || 0);
+      const pb = b.split(".").map((x) => Number.parseInt(x, 10) || 0);
+      for (let i = 0; i < 3; i++) {
+        if ((pa[i] || 0) > (pb[i] || 0)) return 1;
+        if ((pa[i] || 0) < (pb[i] || 0)) return -1;
+      }
+      return 0;
+    };
+    const tick = async () => {
+      try {
+        const native = nativeBridge();
+        if (!native?.version) return; // browser tab — nothing to update
+        const current = await native.version();
+        const r = await gsGetRelease({ data: { token } });
+        if (stop || !current) return;
+        if (!r.downloadUrl || !r.sha256) return;
+        if (compareVersions(r.version, current) <= 0) return;
+        const marker = `gs-auto-update-${r.version}`;
+        try {
+          if (localStorage.getItem(marker) === "done") return;
+        } catch {
+          /* ignore */
+        }
+        setFreshRelease(r);
+        if (native.installUpdate) {
+          try {
+            const result = await native.installUpdate(r);
+            if (result.ok) {
+              try {
+                localStorage.setItem(marker, "done");
+              } catch {
+                /* ignore */
+              }
+            }
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Update failed");
+          }
+        }
+      } catch {
+        /* keep the editor usable if the poll misses once */
+      }
+    };
+    void tick();
+    const id = window.setInterval(() => void tick(), 15 * 60 * 1000);
+    return () => {
+      stop = true;
+      window.clearInterval(id);
+    };
+  }, [token]);
 
   const remainingMs = !license || license.lifetime ? 0 : Math.max(0, license.expiresAt - nowTick);
 
@@ -462,41 +596,17 @@ export function GsApp() {
     }
   };
 
-  // Resume a saved key on the login screen (never auto-submit — a dead key
-  // would loop without ever telling the user why).
-  useEffect(() => {
-    if (view !== "login" || !key || !deviceId) return;
-    // no auto-unlock; the button is the single path.
-  }, [view, key, deviceId]);
-
   const sessionCount = snap ? 1 : 0;
 
   // --- login scene -------------------------------------------------------
 
   if (view === "login") {
     return (
-      <main className={`login-scene gs-login gs-theme gs-palette-${palette} relative min-h-dvh px-4 py-8 sm:px-8`}>
+      <main className={`login-scene gs-login gs-theme ${modeClass} gs-palette-${palette} relative min-h-dvh px-4 py-8 sm:px-8`}>
         <div className="login-grid mx-auto min-h-[calc(100dvh-8.5rem)] w-full max-w-6xl items-center gap-8">
           <section className="login-visual gate-in" aria-label="Garden Studio">
             <div className="gs-login-hero">
               <img src="/gs-hero.jpg" alt="" className="gs-login-hero-img" draggable={false} />
-              <div className="gs-login-hero-scrim" />
-              <div className="gs-login-hero-body">
-                <p className="kicker">Gardenscapes save editor</p>
-                <p className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-                  Garden <span className="login-brand-wordmark">Studio</span>
-                </p>
-                <p className="login-lead login-tagline mt-4 max-w-lg leading-relaxed text-muted">
-                  Golden pass, data center, decorations, frames, styles, badges, titles,
-                  boosters, cards and card sending — every section of the reference editor,
-                  against one live session.
-                </p>
-                <ul className="login-feature-list mt-6 space-y-3 text-sm text-muted">
-                  <li><span className="login-feature-mark"><GsIcon name="cards" /></span>150-card catalog with arrival invariants re-checked after every edit</li>
-                  <li><span className="login-feature-mark"><GsIcon name="infinite" /></span>Golden pass, both reward roads and every stage</li>
-                  <li><span className="login-feature-mark"><GsIcon name="sendCards" /></span>Validated send plans — never a write that pretends to deliver</li>
-                </ul>
-              </div>
             </div>
           </section>
 
@@ -620,13 +730,14 @@ export function GsApp() {
 
   return (
     <GsCtx.Provider value={ctx}>
-      <div className={`app-root gs-theme gs-palette-${palette} flex min-h-dvh flex-col`}>
+      <div className={`app-root gs-theme ${modeClass} gs-palette-${palette} flex min-h-dvh flex-col`}>
         <header className="app-header sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
           <span className="header-logo"><Mark className="size-7" /></span>
           <p className="header-brand font-display font-semibold tracking-tight">
             Garden <span className="text-primary">Studio</span>
           </p>
           <div className="header-statuses ml-auto flex items-center gap-1">
+            <ThemeSwitch dark={dark} onPick={pickDark} />
             <span className="hidden sm:inline-flex">
               <PaletteSwitch palette={palette} onPick={pickPalette} />
             </span>
@@ -661,6 +772,35 @@ export function GsApp() {
             </button>
           </div>
         </header>
+
+        {freshRelease ? (
+          <div className="update-banner gs-update-banner flex shrink-0 items-center gap-3 px-4 py-2">
+            <GsIcon name="star" className="size-4 shrink-0 text-primary" />
+            <p className="min-w-0 flex-1 truncate text-sm">
+              <span className="font-semibold text-primary">Update ready · v{freshRelease.version}</span>
+              {freshRelease.notes ? <span className="hidden text-muted sm:inline"> · {freshRelease.notes}</span> : null}
+            </p>
+            <Button
+              size="sm"
+              className="primary-action"
+              onClick={async () => {
+                const native = nativeBridge();
+                if (native?.installUpdate && freshRelease.downloadUrl && freshRelease.sha256) {
+                  try {
+                    await native.installUpdate(freshRelease);
+                    return;
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Update failed");
+                    return;
+                  }
+                }
+                window.location.reload();
+              }}
+            >
+              Update now
+            </Button>
+          </div>
+        ) : null}
 
         <div className="console-shell app-workspace">
           <aside className="app-sidebar flex shrink-0 flex-col gap-4 rounded-lg p-4 lg:gap-5">
@@ -736,10 +876,16 @@ export function GsApp() {
               <p className="kicker mb-2 flex items-center gap-1.5">
                 <GsIcon name="terminal" className="size-3.5" /> Log
               </p>
-              <div className="min-h-16 flex-1 overflow-auto rounded-md bg-input p-3 font-mono text-xs leading-relaxed text-primary">
-                {(snap?.log?.length ? snap.log : ["ready"]).map((line, i) => (
-                  <p key={i}>› {line}</p>
-                ))}
+              <div className="gs-log-body min-h-16 flex-1 overflow-auto rounded-md bg-input p-3 font-mono text-xs leading-relaxed">
+                {(snap?.log?.length ? snap.log : ["ready"]).map((line, i) => {
+                  const kind = gsLogKind(line);
+                  return (
+                    <p key={i} className={`gs-log-line gs-log-line--${kind}`}>
+                      <span aria-hidden className="gs-log-dot" />
+                      <span className="gs-log-text">{line}</span>
+                    </p>
+                  );
+                })}
               </div>
             </div>
           </aside>

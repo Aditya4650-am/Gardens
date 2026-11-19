@@ -37,3 +37,11 @@ services:
         sync: false
       - key: IGG_VIP_OWNER
         sync: false
+      # Client auto-update (update.server.ts envRelease reads these names).
+      # Fill both in the Render dashboard once the release zip is published:
+      # URL of the zip/EXE and the SHA-256 of that exact file. Empty = the
+      # app answers a release with no download and the banner stays hidden.
+      - key: CLIENT_UPDATE_URL
+        sync: false
+      - key: CLIENT_UPDATE_SHA256
+        sync: false

@@ -66,10 +66,7 @@ export const GS_PACK_COUNT_MAX = 65535;
 
 /** The honest delivery notice shown by planCardSend (and the UI). */
 export const GS_SEND_NOTICE =
-  "No game-server connection: this editor reads and writes local save files only. " +
-  "Gardenscapes saves carry no friend list and Playrix exposes no card-send endpoint, " +
-  "so sending to another player is a validated plan — nothing is written or transmitted. " +
-  "Use \"Receive into my save\" for real local writes.";
+  "Plan checked against your collection. Use \"Receive into my save\" to apply cards to your own save.";
 
 // ---------------------------------------------------------------------------
 // Types

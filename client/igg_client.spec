@@ -40,17 +40,19 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-# onedir, NOT onefile: the onefile bootloader ships the whole app as one
-# encrypted blob and unpacks it to %TEMP%\_MEIxxxx on every launch. That
-# self-unpacking shape is the single largest contributor to antivirus
-# false-positives on this build (Trojan:Win32/Wacatac) — malware authors use
-# PyInstaller onefile heavily, so heuristics score it down for everyone. A
-# plain folder of files unpacks nothing and scans as what it is.
+# onefile, deliberately: the release is ONE .exe — no zip, no folder to
+# extract. The cost is known and accepted: the bootloader unpacks the app to
+# %TEMP%\_MEIxxxx on every launch, the self-unpacking shape antivirus
+# heuristics score down (this build drew Trojan:Win32/Wacatac as onefile
+# before), so ship the hash with the file and use Microsoft's false-positive
+# portal if a machine quarantines it. upx=False stays either way — UPX makes
+# the score worse and buys nothing here.
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.datas,
     [],
-    exclude_binaries=True,
     name="IGG VIP TOOL",
     debug=False,
     bootloader_ignore_signals=False,
@@ -64,14 +66,4 @@ exe = EXE(
     entitlements_file=None,
     icon=str(ROOT / "icon.ico") if (ROOT / "icon.ico").exists() else None,
     version="version_info.txt" if (ROOT / "version_info.txt").exists() else None,
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.datas,
-    strip=False,
-    upx=False,
-    upx_exclude=[],
-    name="IGG VIP TOOL",
 )

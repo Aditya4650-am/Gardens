@@ -27,7 +27,6 @@ import {
 import { useGs, sessOf, type GsEditResult, type GsTab } from "./gs-ctx";
 import {
   Bar,
-  Chip,
   Field,
   GsIcon,
   Grid,
@@ -132,9 +131,6 @@ function labelize(key: string): string {
     .trim();
 }
 
-/** Stats whose value is a name / id the Player tab owns — still editable here. */
-const TEXT_STAT = new Set(["name", "dogname", "horse_name", "PlayerId", "gameId"]);
-
 // === Dashboard =============================================================
 
 export function GsDashboard() {
@@ -176,22 +172,7 @@ export function GsDashboard() {
   return (
     <div className="gs-stack">
       <section className="gs-hero">
-        <img src="/gs-hero.jpg" alt="" className="gs-hero-img" draggable={false} />
-        <div className="gs-hero-scrim" />
-        <div className="gs-hero-body">
-          <p className="kicker">Gardenscapes save editor</p>
-          <h2 className="gs-hero-title">Garden <span>Studio</span></h2>
-          <p className="gs-hero-sub">
-            Every section of the reference editor — golden pass, data center, decorations,
-            frames, styles, badges, titles, boosters, cards and card sending — against one
-            live session.
-          </p>
-          <div className="gs-hero-chips">
-            <Chip tone="ok" icon="check">{c.snap?.tables ?? 0} tables</Chip>
-            <Chip tone="info" icon="layers">v{c.snap?.version ?? "?"}</Chip>
-            <Chip tone="gold" icon="crown">{c.snap?.device || "file"}</Chip>
-          </div>
-        </div>
+        <img src="/gs-dash.jpg" alt="" className="gs-hero-img" draggable={false} />
       </section>
 
       {err ? <p className="gs-msg gs-msg--err">{err}</p> : null}
@@ -312,7 +293,7 @@ export function GsPlayer() {
       <Panel
         title="Identity"
         icon="player"
-        hint="Name, pet names and headline numbers — written to TableName.Properties by key, never created if the save does not hold one."
+        hint="Name, pet names and headline numbers — updated in place, never created."
         actions={
           <Button size="sm" onClick={() => void apply()} disabled={c.busy}>
             <GsIcon name="save" className="size-4" /> Apply
@@ -323,7 +304,7 @@ export function GsPlayer() {
           {KEYS.map((k) => (
             <Field
               key={k}
-              label={TEXT_STAT.has(k) ? labelize(k) : labelize(k)}
+              label={labelize(k)}
               value={f[k] ?? ""}
               placeholder="—"
               onChange={(v) => setF((p) => ({ ...p, [k]: v }))}
@@ -361,7 +342,6 @@ export function GsStatistics() {
   const c = useGs();
   const [fields, setFields] = useState<StatField[]>([]);
   const [edits, setEdits] = useState<Record<string, string>>({});
-  const [q, setQ] = useState("");
   const [pair, setPair] = useState<Record<string, { current: number; max: number }>>({});
 
   const load = async () => {
@@ -403,17 +383,13 @@ export function GsStatistics() {
     await load();
   };
 
-  const shown = q
-    ? fields.filter((f) => f.key.toLowerCase().includes(q.toLowerCase()))
-    : fields;
+  const shown = fields;
 
   return (
     <div className="gs-stack">
       <Bar
-        hint="Every counter the save holds under TableName.Properties. No soft caps — what you type is what is written; a value a server can still read is your call to make."
-        onAll={() => setQ("")}
+        hint="Every counter the save holds. What you type is what is written."
         onClear={() => setEdits(Object.fromEntries(fields.map((f) => [f.key, String(f.value ?? "")])))}
-        allLabel="Show all"
         clearLabel="Reset edits"
         extra={
           <Button size="sm" onClick={() => void apply()} disabled={c.busy}>
@@ -421,15 +397,6 @@ export function GsStatistics() {
           </Button>
         }
       />
-
-      <Panel title="Find" icon="search">
-        <input
-          className="field w-full font-mono"
-          placeholder="filter by key…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-      </Panel>
 
       <div className="gs-actions">
         {(["lives", "expedition_energy"] as const).map((k) => {
@@ -484,7 +451,7 @@ export function GsStatistics() {
           </label>
         ))}
       </Grid>
-      {!shown.length ? <p className="gs-empty">No stat matches “{q}”.</p> : null}
+      {!shown.length ? <p className="gs-empty">No stats in this save.</p> : null}
     </div>
   );
 }
@@ -550,7 +517,7 @@ export function GsBoosters() {
   return (
     <div className="gs-stack">
       <Bar
-        hint="Every entry the save's `items` table holds. Fill sets them all; Top-up only raises anything below the number."
+        hint="Every entry the save holds. Fill sets them all; Top-up only raises anything below the number."
         onAll={() => setEdits(Object.fromEntries(items.map((x) => [x.key, String(x.value)])))}
         onClear={() => setEdits(Object.fromEntries(items.map((x) => [x.key, String(x.value)])))}
         allLabel="Reset"
@@ -692,7 +659,7 @@ export function GsBackups() {
         {path ? <p className="gs-hint-line">Device path: <code>{path}</code></p> : null}
       </Panel>
 
-      <Panel title="Device (server-side ADB)" icon="device" hint="The server talks to the emulator itself — no Windows bridge needed.">
+      <Panel title="Device" icon="device" hint="The server talks to the emulator itself — no setup needed.">
         <div className="gs-actions">
           <Button size="sm" variant="outline" onClick={() => void pullFromDevice()} disabled={c.busy}>
             <GsIcon name="refresh" className="size-4" /> Pull from device
@@ -703,7 +670,7 @@ export function GsBackups() {
         </div>
       </Panel>
 
-      <Panel title="Load a file" icon="save" hint="Plain-browser path: drop any GameData.db / AUDB file straight in.">
+      <Panel title="Load a file" icon="save" hint="Drop a GameData.db / save file straight in.">
         <input
           ref={fileRef}
           type="file"

@@ -40,6 +40,8 @@ export const GS_BADGES: GsCatalogEntry[] = [
   { id: "CardsCollection1_Badge_Grand", label: "Cards Collection 1 (Grand)", labelRu: "Коллекция карточек 1 (гранд)", grand: true, art: "Gardenscapes/Badges/Seasonal2_flower_grand.png", emoji: "🎴", color: "#d63031" },
   { id: "Fair_Badge", label: "Fair Token", labelRu: "Ярмарочный жетон", grand: false, emoji: "🎡", color: "#f39c12" },
   { id: "Fair_Badge_Grand", label: "Fair Token (Grand)", labelRu: "Ярмарочный жетон (гранд)", grand: true, emoji: "🎡", color: "#f39c12" },
+  { id: "Winter_Badge", label: "Winter", labelRu: "Зима", grand: false, emoji: "❄️", color: "#3498db" },
+  { id: "Winter_Badge_Grand", label: "Winter (Grand)", labelRu: "Зима (гранд)", grand: true, emoji: "❄️", color: "#3498db" },
   { id: "Magic_Badge", label: "Magic", labelRu: "Магия", grand: false, emoji: "🔮", color: "#8e44ad" },
   { id: "Magic_Badge_Grand", label: "Magic (Grand)", labelRu: "Магия (гранд)", grand: true, emoji: "🔮", color: "#8e44ad" },
 ];
@@ -66,6 +68,8 @@ export const GS_TITLES: GsCatalogEntry[] = [
   { id: "Exp39_Post", label: "Inheritance Hunt (Grand)", labelRu: "Охота за наследством (гранд)", grand: true, art: "Gardenscapes/Titles/Expedition_39_post.png" },
   { id: "Exp40", label: "Polar Station", labelRu: "Полярная станция", grand: false, art: "Gardenscapes/Titles/Expedition_40.png" },
   { id: "Exp40_Post", label: "Polar Station (Grand)", labelRu: "Полярная станция (гранд)", grand: true, art: "Gardenscapes/Titles/Expedition_40_post.png" },
+  { id: "Exp41", label: "Season 41", labelRu: "Сезон 41", grand: false, art: "Gardenscapes/Titles/Expedition_41.png" },
+  { id: "Exp41_Post", label: "Season 41 (Grand)", labelRu: "Сезон 41 (гранд)", grand: true, art: "Gardenscapes/Titles/Expedition_41_post.png" },
 ];
 
 /** Player avatars (`AvatarStyle` / `AvatarStyleHistory`). */
@@ -142,6 +146,19 @@ export const GS_STYLES: GsCatalogEntry[] = [
   { id: "NameStyle_Neon", label: "Neon", grand: false, art: "Gardenscapes/Styles/NameStyle_Neon.png" },
   { id: "NameStyle_Dragon", label: "Dragon", grand: false, art: "Gardenscapes/Styles/NameStyle_Dragon.png" },
   { id: "NameStyle_Test", label: "Test", grand: false, art: "Gardenscapes/Styles/NameStyle_Test.png" },
+];
+
+/** Avatar style ids measured in real saves (`AvatarStyle` / ShownIds CSV). */
+export const GS_AVATAR_STYLES: GsCatalogEntry[] = [
+  { id: "Pink", label: "Pink", grand: false, color: "#e84393", emoji: "🌸" },
+  { id: "Orange", label: "Orange", grand: false, color: "#e67e22", emoji: "🍊" },
+  { id: "Marine", label: "Marine", grand: false, color: "#0984e3", emoji: "🌊" },
+  { id: "Wood", label: "Wood", grand: false, color: "#8d6e63", emoji: "🪵" },
+  { id: "gold", label: "Gold", grand: false, color: "#d4a017", emoji: "✨" },
+  { id: "Blue", label: "Blue", grand: false, color: "#2d6cdf", emoji: "💙" },
+  { id: "Purple", label: "Purple", grand: false, color: "#8e44ad", emoji: "💜" },
+  { id: "Red", label: "Red", grand: false, color: "#d63031", emoji: "❤️" },
+  { id: "Violet", label: "Violet", grand: false, color: "#9b59b6", emoji: "🔮" },
 ];
 
 export const GS_BADGE_ART: Record<string, string> = {

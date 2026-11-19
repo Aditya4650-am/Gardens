@@ -587,7 +587,7 @@ export function OwnerHub({
                   <span className="kicker">{tr("updateDownloadUrl")}</span>
                   <input
                     className="field mt-1.5 font-mono"
-                    placeholder="https://.../IGG-VIP-TOOL-v1.16.1.exe"
+                    placeholder="https://.../GARDEN-STUDIO-v1.16.1.exe"
                     value={nextDownloadUrl}
                     onChange={(e) => setNextDownloadUrl(e.target.value)}
                   />

@@ -3818,11 +3818,15 @@ button.premium-button:active:not(:disabled) {
 }
 
 /* Page canvas. `#app` is an id rule with `!important`, so it needs its own
-   `:has` match to be displaced; `.gs-theme` then covers the viewport anyway. */
+   `:has` match to be displaced; `.gs-theme` then covers the viewport anyway.
+   The value must be a literal light color: `var(--color-bg)` is declared on
+   `html` by the dark base rule above, so it resolves to the dark token at
+   exactly this scope and paints the whole page behind `.gs-theme` near-black. */
 body:has(.gs-theme),
 #app:has(.gs-theme),
 html:has(.gs-theme) {
-  background: var(--color-bg) !important;
+  background: #f4f6fa !important;
+  color: #0f172a;
 }
 
 .gs-theme {
@@ -3889,9 +3893,20 @@ html:has(.gs-theme) {
 }
 
 /* --- feature tabs -------------------------------------------------------- */
+/* `!important` is required: the base rule at `.feature-tabs` carries it, so a
+   plain declaration here loses the cascade and the dark bar comes back. */
 .gs-theme .feature-tabs {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: var(--color-border);
+  background: rgba(255, 255, 255, 0.7) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* The log panel's own container (not its `> div` child) is painted by
+   `.app-root .sidebar-log` further down with a dark gradient + `!important`. */
+.gs-theme .sidebar-log,
+.gs-theme.app-root .sidebar-log {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: var(--color-border) !important;
 }
 
 .gs-theme.app-root .feature-tab {
@@ -4494,7 +4509,7 @@ html:has(.gs-theme) {
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: 18px;
-  background: #0b1220;
+  background: #eef3e7;
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16);
 }
 
@@ -4586,7 +4601,7 @@ html:has(.gs-theme) {
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: 20px;
-  background: #0b1220;
+  background: #eef3e7;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
 }
 
@@ -5184,6 +5199,169 @@ html:has(.gs-theme) {
   background: transparent;
 }
 
+/* --- ENABLE hero (cosmetic tabs) -----------------------------------------
+   One card, one button, per tab: icon + title + caption + progress bar on the
+   left, a large gold-on-green ENABLE button on the right. The gallery tiles
+   below it are read-only, so this card is the only control in the tab. */
+.gs-theme .gs-enable {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  padding: 1.35rem 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(47, 158, 111, 0.09), transparent 55%),
+    radial-gradient(90% 140% at 100% 100%, rgba(245, 158, 11, 0.1), transparent 60%),
+    #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 12px 30px rgba(15, 23, 42, 0.07);
+}
+
+.gs-theme .gs-enable-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 16px;
+  background: linear-gradient(145deg, var(--gs-accent), var(--gs-accent-strong));
+  color: #ffffff;
+  box-shadow: 0 8px 18px var(--gs-ring);
+}
+
+.gs-theme .gs-enable-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.gs-theme .gs-enable-title {
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-fg);
+}
+
+.gs-theme .gs-enable-caption {
+  margin: 0;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.gs-theme .gs-enable-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+}
+
+.gs-theme .gs-enable-bar {
+  display: block;
+  flex: 1 1 auto;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--gs-tint-2);
+}
+
+.gs-theme .gs-enable-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--gs-accent), var(--gs-accent-strong) 60%, #f59e0b);
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gs-theme .gs-enable-count {
+  flex: none;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--gs-accent-strong);
+}
+
+.gs-theme .gs-enable-count-total {
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.gs-theme .gs-enable-action {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.gs-theme .gs-enable-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 11.5rem;
+  padding: 0.85rem 1.6rem;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f59e0b, #d97706 55%, #b45309);
+  color: #ffffff;
+  font-family: var(--font-display, inherit);
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(217, 119, 6, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.gs-theme .gs-enable-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: 0 14px 28px rgba(217, 119, 6, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.gs-theme .gs-enable-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 6px 14px rgba(217, 119, 6, 0.32), inset 0 2px 4px rgba(0, 0, 0, 0.16);
+}
+
+.gs-theme .gs-enable-btn:disabled {
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  box-shadow: none;
+  cursor: default;
+  opacity: 0.85;
+}
+
+.gs-theme .gs-enable-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.gs-theme .gs-enable-hint::before {
+  content: "↳ ";
+  color: var(--gs-accent-strong);
+}
+
+/* --- update banner (EXE auto-update, light restyle) ---------------------- */
+.gs-theme .update-banner,
+.gs-theme .gs-update-banner {
+  border: 1px solid color-mix(in srgb, var(--gs-accent) 35%, transparent);
+  border-radius: 10px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gs-accent) 10%, #fffdf6), #fffdf6);
+  color: var(--gs-ink, #23301f);
+}
+
+.gs-theme .gs-update-banner .text-muted {
+  color: #6b7a63;
+}
+
 /* --- responsive ---------------------------------------------------------- */
 @media (max-width: 767px) {
   .gs-theme .gs-hero-body,
@@ -5198,5 +5376,343 @@ html:has(.gs-theme) {
   .gs-theme .gs-cards {
     grid-template-columns: repeat(auto-fill, minmax(3.7rem, 1fr));
   }
+
+  .gs-theme .gs-enable {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+    padding: 1.1rem;
+  }
+
+  .gs-theme .gs-enable-action {
+    align-items: stretch;
+  }
+
+  .gs-theme .gs-enable-btn {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* --- sidebar log: colour-coded activity feed ----------------------------
+   The server ships the log as plain strings; `gsLogKind()` in gs-app.tsx
+   sorts each line into ok / bad / warn / info and these rules paint it. One
+   dot + bold text per row reads like a build console rather than a dump of
+   grey monospace. Green/red/yellow are the three states the user asked to be
+   able to tell apart at a glance; "info" stays quiet so it never competes. */
+.gs-theme .sidebar-log .gs-log-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.4rem;
+  transition: background 0.15s ease;
+}
+
+.gs-theme .sidebar-log .gs-log-line:hover {
+  background: rgba(100, 116, 139, 0.1);
+}
+
+.gs-theme .sidebar-log .gs-log-dot {
+  flex: none;
+  width: 0.46rem;
+  height: 0.46rem;
+  margin-top: 0.44rem;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.gs-theme .sidebar-log .gs-log-line--ok {
+  color: #16a34a;
+  font-weight: 700;
+}
+.gs-theme .sidebar-log .gs-log-line--bad {
+  color: #dc2626;
+  font-weight: 800;
+}
+.gs-theme .sidebar-log .gs-log-line--warn {
+  color: #d97706;
+  font-weight: 800;
+}
+.gs-theme .sidebar-log .gs-log-line--info {
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* --- light / dark switch (premium header control) ----------------------
+   Two-state pill with a sliding gold-on-green thumb: the same treatment the
+   ENABLE button uses, so the header control and the tab CTA read as one
+   family. `aria-checked` drives both the thumb position and the track. */
+.gs-theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.26rem 0.62rem 0.26rem 0.32rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+}
+
+.gs-theme-switch:hover {
+  border-color: var(--gs-accent);
+  color: var(--color-fg);
+  box-shadow: 0 0 0 3px var(--gs-ring);
+}
+
+.gs-theme-switch:focus-visible {
+  outline: none;
+  border-color: var(--gs-accent);
+  box-shadow: 0 0 0 3px var(--gs-ring);
+}
+
+.gs-theme-switch-track {
+  position: relative;
+  display: inline-flex;
+  width: 2.6rem;
+  height: 1.35rem;
+  padding: 0.16rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--gs-tint), var(--gs-tint-2));
+  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.16);
+}
+
+.gs-theme-switch-thumb {
+  display: grid;
+  place-items: center;
+  width: 1.03rem;
+  height: 1.03rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--gs-accent), var(--gs-accent-strong));
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transform: translateX(0);
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.gs-theme-switch[aria-checked="true"] .gs-theme-switch-thumb {
+  transform: translateX(1.25rem);
+  background: linear-gradient(135deg, #7c5cd6, #4c3aa8);
+  box-shadow: 0 2px 8px rgba(124, 92, 214, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.gs-theme-switch[aria-checked="true"] .gs-theme-switch-track {
+  background: linear-gradient(135deg, #1b2536, #101828);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+.gs-theme-switch-label {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* --- dark mode ----------------------------------------------------------
+   `.gs-theme` alone is the light theme and paints literal light values with
+   `!important`, so every rule that hardcoded a light colour needs a `.gs-dark`
+   twin here — re-declaring the tokens is not enough, because `#ffffff` does
+   not read a variable. `.gs-theme.gs-dark` is one class more specific than
+   `.gs-theme`, which is what lets these win; where the light rule carries
+   `!important` so does its twin. Text-on-image colours (hero titles, the
+   ENABLE and unlock buttons) are deliberately absent: they sit on art or on a
+   coloured gradient and are correct in both modes. */
+.gs-theme.gs-dark {
+  color-scheme: dark;
+  --color-bg: #070a13;
+  --color-surface: #0f172a;
+  --color-card: #111a2c;
+  --color-input: #0d1524;
+  --color-fg: #e6edf7;
+  --color-muted: #94a3b8;
+  --color-border: #1e2a3f;
+  --color-secondary: #1b2536;
+  --color-secondary-fg: #cbd5e1;
+  /* Derived from whatever palette is active, so all five keep their accent in
+     dark mode instead of collapsing to the garden tint. */
+  --gs-tint: color-mix(in srgb, var(--gs-accent) 22%, transparent);
+  --gs-tint-2: color-mix(in srgb, var(--gs-accent) 34%, transparent);
+  --gs-ring: color-mix(in srgb, var(--gs-accent) 55%, transparent);
+}
+
+body:has(.gs-theme.gs-dark),
+#app:has(.gs-theme.gs-dark),
+html:has(.gs-theme.gs-dark) {
+  background: #070a13 !important;
+  color: #e6edf7;
+}
+
+.gs-theme.gs-dark.app-root .app-header {
+  background: rgba(9, 13, 24, 0.92) !important;
+}
+
+.gs-theme.gs-dark.app-root .app-sidebar,
+.gs-theme.gs-dark.app-root .app-main,
+.gs-theme.gs-dark.app-root .panel,
+.gs-theme.gs-dark .device-selector-card,
+.gs-theme.gs-dark .sidebar-log > div {
+  background-color: #0f172a !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+.gs-theme.gs-dark.app-root .app-sidebar {
+  background-color: #0b1120 !important;
+}
+
+.gs-theme.gs-dark.app-root .app-main {
+  background-color: #0f172a !important;
+}
+
+.gs-theme.gs-dark.app-root .app-sidebar:hover,
+.gs-theme.gs-dark.app-root .app-main:hover,
+.gs-theme.gs-dark.app-root .panel:hover,
+.gs-theme.gs-dark .device-selector-card:hover {
+  box-shadow: 0 0 0 1px var(--gs-ring), 0 10px 30px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* The RGB comet ring is switched off by the light theme; dark mode is where it
+   belongs, so it comes back. */
+.gs-theme.gs-dark.app-root .app-sidebar::after,
+.gs-theme.gs-dark.app-root .app-main::after {
+  content: "" !important;
+}
+
+.gs-theme.gs-dark .feature-tabs {
+  background: rgba(13, 19, 32, 0.78) !important;
+}
+
+.gs-theme.gs-dark .sidebar-log,
+.gs-theme.gs-dark.app-root .sidebar-log {
+  background: #101828 !important;
+  background-image: none !important;
+}
+
+.gs-theme.gs-dark .sidebar-log > div {
+  background: #080d18 !important;
+  color: #cbd5e1;
+}
+
+.gs-theme.gs-dark .field {
+  background: #0d1524 !important;
+}
+
+.gs-theme.gs-dark .field::placeholder {
+  color: #64748b;
+}
+
+.gs-theme.gs-dark .gs-mini,
+.gs-theme.gs-dark .gs-chip,
+.gs-theme.gs-dark .gs-stat,
+.gs-theme.gs-dark .gs-row,
+.gs-theme.gs-dark .gs-settab,
+.gs-theme.gs-dark .gs-stage,
+.gs-theme.gs-dark .gs-tile,
+.gs-theme.gs-dark .status-chip,
+.gs-theme.gs-dark .device-id-card,
+.gs-theme.gs-dark .device-selector-select option {
+  background: #131c2e;
+}
+
+.gs-theme.gs-dark .gs-toggle,
+.gs-theme.gs-dark .gs-item,
+.gs-theme.gs-dark .gs-log,
+.gs-theme.gs-dark .gs-file,
+.gs-theme.gs-dark .gs-card,
+.gs-theme.gs-dark .gs-tile-sub-action,
+.gs-theme.gs-dark .gs-chip--neutral {
+  background: #1a2334;
+}
+
+.gs-theme.gs-dark .gs-log {
+  color: #cbd5e1;
+}
+
+.gs-theme.gs-dark .gs-chip--neutral {
+  color: #94a3b8;
+}
+
+.gs-theme.gs-dark .gs-toggle-dot {
+  background: #475569;
+}
+
+.gs-theme.gs-dark .gs-hero,
+.gs-theme.gs-dark .gs-login-hero {
+  background: #0b1120;
+}
+
+.gs-theme.gs-dark .gs-enable {
+  background: radial-gradient(120% 160% at 0% 0%, rgba(47, 158, 111, 0.16), transparent 55%),
+    radial-gradient(90% 140% at 100% 100%, rgba(245, 158, 11, 0.14), transparent 60%), #111a2c;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.gs-theme.gs-dark .premium-button.button-tool,
+.gs-theme.gs-dark .premium-button.button-ghost,
+.gs-theme.gs-dark .premium-button.button-secondary {
+  background: #1b2536 !important;
+}
+
+.gs-theme.gs-dark .premium-button.button-ghost,
+.gs-theme.gs-dark .premium-button.button-secondary {
+  color: #cbd5e1 !important;
+}
+
+.gs-theme.gs-dark.login-scene .login-card {
+  background: #111a2c !important;
+}
+
+.gs-theme.gs-dark.login-scene .field-shell {
+  background: #0d1524;
+}
+
+.gs-theme.gs-dark.login-scene .login-error {
+  background: rgba(220, 38, 38, 0.16);
+}
+
+.gs-theme.gs-dark .update-banner,
+.gs-theme.gs-dark .gs-update-banner {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gs-accent) 22%, #101828), #101828);
+  color: #dbe6f5;
+}
+
+.gs-theme.gs-dark .gs-update-banner .text-muted {
+  color: #93a3b8;
+}
+
+.gs-theme.gs-dark *::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.42);
+  background-clip: padding-box;
+}
+
+.gs-theme.gs-dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.68);
+  background-clip: padding-box;
+}
+
+.gs-theme.gs-dark .gs-palette-switch {
+  background: #131c2e;
+}
+
+/* Dark variants of the log palette: the light-mode greens/yellows sit too dark
+   on `#080d18`, so each state gets its readable twin. */
+.gs-theme.gs-dark .sidebar-log .gs-log-line--ok {
+  color: #34d399;
+}
+.gs-theme.gs-dark .sidebar-log .gs-log-line--bad {
+  color: #f87171;
+}
+.gs-theme.gs-dark .sidebar-log .gs-log-line--warn {
+  color: #fbbf24;
+}
+.gs-theme.gs-dark .sidebar-log .gs-log-line--info {
+  color: #94a3b8;
+}
+
+.gs-theme.gs-dark .sidebar-log .gs-log-line:hover {
+  background: rgba(148, 163, 184, 0.12);
 }
 

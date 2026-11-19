@@ -48,9 +48,10 @@ import {
   type ObjChild,
 } from "@/lib/gardenscapes/save-engine";
 import { type AUDBDocument, type AUDBEntry } from "@/lib/gardenscapes/codec";
+import { decodeBadgeCipher, encodeBadgeCipher } from "@/lib/gardenscapes/badge-cipher";
 import { applyOps, entry as entryOf, readAt, strAt, type EditOp, type EditResult } from "./common.server";
 import { type GardenscapesSession } from "./session.server";
-import { GS_AVATARS, GS_FRAMES, GS_FRAMES_ACTIVATABLE, GS_STYLES, GS_TITLES } from "./catalogs.ts";
+import { GS_AVATARS, GS_BADGES, GS_FRAMES, GS_FRAMES_ACTIVATABLE, GS_STYLES, GS_TITLES } from "./catalogs.ts";
 
 const PROPS_TABLE = "TableName";
 const PROPS_ENTRY = "Properties";
@@ -71,6 +72,8 @@ const MEASURED_NAME_STYLES = new Set(["gold", "Default", ...GS_STYLES.map((s) =>
 export interface GsOwnedBadge {
   /** Opaque ciphertext exactly as stored — never a catalog id. */
   cipher: string;
+  /** Catalog id decoded from the cipher ("" when the row is unreadable). */
+  id: string;
   isNew: boolean;
 }
 
@@ -79,11 +82,15 @@ export interface GsProfileInfo {
   wornNameStyle: string;
   wornTitleId: string;
   wornBadgeCipher: string;
+  /** Catalog id of the worn badge, decoded. */
+  wornBadgeId: string;
   currentAvatarId: string;
   avatarsShown: string[];
   avatarStylesShown: string[];
   nameStylesShown: string[];
   framesShown: string[];
+  /** `PlayerTitleIdsEarned`, decoded and split. */
+  titlesEarned: string[];
   boughtAvatars: number;
   boughtFrames: number;
   ownedBadges: GsOwnedBadge[];
@@ -159,6 +166,15 @@ function requireToken(id: string, what: string): string {
   return id;
 }
 
+/** Decode a stored badge ciphertext to its catalog id ("" when unreadable). */
+function safeDecode(cipher: string): string {
+  try {
+    return decodeBadgeCipher(cipher);
+  } catch {
+    return "";
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Read
 // ---------------------------------------------------------------------------
@@ -179,8 +195,8 @@ export function readProfile(s: GardenscapesSession): GsProfileInfo {
     return hit && typeof hit[1][1] === "string" ? (hit[1][1] as string) : "";
   };
 
-  const badges = entryOf(d, BADGES_TABLE, BADGES_ENTRY);
-  const badgeRef = badges ? getRef(badges, BADGES_PATH) : null;
+  const badgesEntry = entryOf(d, BADGES_TABLE, BADGES_ENTRY);
+  const badgeRef = badgesEntry ? getRef(badgesEntry, BADGES_PATH) : null;
   const rows: GsOwnedBadge[] = [];
   if (badgeRef && badgeRef.type === "a") {
     for (const item of badgeRef.value as ArrItem[]) {
@@ -188,7 +204,7 @@ export function readProfile(s: GardenscapesSession): GsProfileInfo {
       const fields = item[1] as ObjChild[];
       const id = fields.find(([k]) => k === "badgeId")?.[1][1];
       const nw = fields.find(([k]) => k === "isNew")?.[1][1];
-      if (typeof id === "string") rows.push({ cipher: id, isNew: nw === true });
+      if (typeof id === "string") rows.push({ cipher: id, id: safeDecode(id), isNew: nw === true });
     }
   }
 
@@ -200,11 +216,14 @@ export function readProfile(s: GardenscapesSession): GsProfileInfo {
     else if (k.startsWith("BoughtFrame_")) boughtFrames++;
   }
 
+  const titlesEarnedCsv = worn("PlayerTitleIdsEarned");
+
   return {
     wornAvatarStyle: worn("AvatarStyle"),
     wornNameStyle: worn("PlayerNameStyle"),
     wornTitleId: worn("PlayerTitleId"),
     wornBadgeCipher: worn("ProfileBadgeId"),
+    wornBadgeId: safeDecode(worn("ProfileBadgeId")),
     currentAvatarId: typeof flat("UserAvatar_CurrentAvatarId") === "string"
       ? (flat("UserAvatar_CurrentAvatarId") as string)
       : "",
@@ -212,6 +231,7 @@ export function readProfile(s: GardenscapesSession): GsProfileInfo {
     avatarStylesShown: csv(flat("UserAvatar_AvatarStylesShownIds")),
     nameStylesShown: csv(flat("UserNameStyle_StylesShownIds")),
     framesShown: csv(flat("UserAvatar_FramesShownIds")),
+    titlesEarned: csv(titlesEarnedCsv),
     boughtAvatars,
     boughtFrames,
     ownedBadges: rows,
@@ -432,6 +452,100 @@ export function clearBadgeNew(s: GardenscapesSession): EditResult {
     changed: n ? [`${BADGES_TABLE}.${BADGES_ENTRY}.${BADGES_PATH}.isNew`] : [],
     missing: [],
   };
+}
+
+/** Every badge id the catalog offers. */
+export function allBadgeIds(): string[] {
+  return GS_BADGES.map((b) => b.id);
+}
+
+/** Every title id the catalog offers. */
+export function allTitleIds(): string[] {
+  return GS_TITLES.map((t) => t.id);
+}
+
+/**
+ * Mint badge rows the save does not hold yet. Each catalog id is encoded to
+ * the game's own ciphertext with the solved key, appended to `OwnedBadges`
+ * as a fresh `{badgeId, isNew:true}` row — the exact shape the game writes
+ * when a badge is earned. Rows are deduped by decoded id so pressing twice
+ * never duplicates a badge.
+ */
+export function unlockBadges(s: GardenscapesSession, ids: string[]): EditResult {
+  const rows = badgeRows(s);
+  if (!rows) throw new Error("profile: save has no OwnedBadges array");
+  const have = new Set(rows.map((r) => rowCipher(r)).filter((x): x is string => !!x).map(safeDecode));
+  const changed: string[] = [];
+  const missing: string[] = [];
+  let added = 0;
+  for (const id of ids) {
+    if (!GS_BADGES.some((b) => b.id === id)) {
+      missing.push(id);
+      continue;
+    }
+    if (have.has(id)) continue;
+    have.add(id);
+    const cipher = encodeBadgeCipher(id);
+    rows.push(["o", [["badgeId", ["s", cipher]], ["isNew", ["t", true]]]]);
+    added++;
+  }
+  if (added) {
+    s.log.push(`Profile: unlocked ${added} badge(s)`);
+    changed.push(`${BADGES_TABLE}.${BADGES_ENTRY}.${BADGES_PATH}`);
+  }
+  return { changed, missing };
+}
+
+/** Unlock every catalog badge the save does not hold. */
+export function unlockAllBadges(s: GardenscapesSession): EditResult {
+  return unlockBadges(s, allBadgeIds());
+}
+
+/**
+ * Earn titles: union `ids` into `PlayerTitleIdsEarned` (a comma CSV with a
+ * trailing newline, the format measured on a real save) and keep the ones
+ * already there.
+ */
+export function unlockTitles(s: GardenscapesSession, ids: string[]): EditResult {
+  const changed: string[] = [];
+  const missing: string[] = [];
+  const held = new Set(csv(strAt(s.decoded.doc, `${OWN_TABLE}.${OWN_ENTRY}.${OWN_PATH}.PlayerTitleIdsEarned`)));
+  let added = 0;
+  const clean: string[] = [];
+  for (const id of ids) {
+    if (!GS_TITLES.some((t) => t.id === id)) {
+      missing.push(id);
+      continue;
+    }
+    if (held.has(id)) continue;
+    held.add(id);
+    clean.push(id);
+    added++;
+  }
+  if (added === 0) return { changed, missing };
+  const before = csv(strAt(s.decoded.doc, `${OWN_TABLE}.${OWN_ENTRY}.${OWN_PATH}.PlayerTitleIdsEarned`));
+  const next = [...before, ...clean].join(",") + "\n";
+  const res = applyOps(s.decoded.doc, [
+    { path: `${OWN_TABLE}.${OWN_ENTRY}.${OWN_PATH}.PlayerTitleIdsEarned`, value: next },
+  ]);
+  if (res.changed.length) {
+    changed.push(...res.changed);
+  } else if (res.missing.length) {
+    // applyOps never creates — create the key through the own-profile object.
+    const own = entryOf(s.decoded.doc, OWN_TABLE, OWN_ENTRY);
+    const ref = own ? getRef(own, OWN_PATH) : null;
+    if (ref && ref.type === "o") {
+      objPut({ key: OWN_PATH, type: "o", value: ref.value }, "PlayerTitleIdsEarned", "s", next);
+      changed.push(`${OWN_TABLE}.${OWN_ENTRY}.${OWN_PATH}.PlayerTitleIdsEarned`);
+    }
+  }
+  if (changed.length) s.log.push(`Profile: earned ${added} title(s)`);
+  return { changed, missing };
+}
+
+/** Earn every catalog title the save does not hold. */
+export function unlockAllTitles(s: GardenscapesSession): EditResult {
+  return unlockTitles(s, allTitleIds());
 }
 
 // ---------------------------------------------------------------------------
