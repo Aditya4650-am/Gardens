@@ -117,6 +117,8 @@ export interface GsCtxValue {
   snap: GsSnapshot | null;
   license: GsLicense | null;
   busy: boolean;
+  /** Serial of the attached emulator ("" when none has been found yet). */
+  serial: string;
   /** Run a server call under the shared busy state; errors become a toast. */
   act<T>(fn: () => Promise<T>): Promise<T | undefined>;
   /** Toast an EditResult's changed/missing counts. */

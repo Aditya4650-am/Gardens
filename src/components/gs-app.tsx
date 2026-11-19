@@ -6,14 +6,18 @@ import { isDeviceId, mintDeviceId, normalizeDeviceId } from "@/lib/device-id";
 import {
   gsConnect,
   gsGetRelease,
-  gsPullDevice,
   gsPush,
-  gsPushDevice,
   gsRestore,
-  gsSavePath,
   gsSnapshot,
   verifyLicense,
 } from "@/lib/gs-api";
+import {
+  gsDeviceSavePath,
+  gsListDevices,
+  gsPullFromDevice,
+  gsPushToDevice,
+  gsResolveSerial,
+} from "@/lib/gardenscapes/transport";
 import {
   GsCtx,
   GS_OVERFLOW_TABS,
@@ -43,7 +47,10 @@ const LS_KEY = "gs-garden-key";
 const LS_HWID = "gs-garden-hwid";
 const LS_PALETTE = "gs-garden-palette";
 const LS_MODE = "gs-garden-mode";
-const DEFAULT_SERIAL = "127.0.0.1:21503";
+// No hardcoded serial: emulators hand out a different loopback port on every
+// restart (MEmu has been seen on 21503 *and* 21513), so the real target is
+// discovered through the ADB bridge and this stays empty until it is known.
+const DEFAULT_SERIAL = "";
 
 // --- sidebar log colouring --------------------------------------------------
 // The server ships the log as plain strings, so the *meaning* is decided here
@@ -201,7 +208,51 @@ export function GsApp() {
 
   // --- device transport --------------------------------------------------
   const [serial, setSerial] = useState(DEFAULT_SERIAL);
+  const [devicePath, setDevicePath] = useState("");
   const [saveName, setSaveName] = useState("");
+
+  // Discover the live emulator on boot. Serials move between restarts (MEmu
+  // has answered on 21503 and on 21513), so a fixed target is what made
+  // "Pull from device" fail while the game was running in front of the user.
+  useEffect(() => {
+    let stop = false;
+    void (async () => {
+      const found = await gsListDevices();
+      if (stop || found.length === 0) return;
+      const ids = found.map((d) => d.id);
+      setSerial((cur) => (cur && ids.includes(cur) ? cur : ids[0]));
+    })();
+    return () => {
+      stop = true;
+    };
+  }, []);
+
+  // The path readout follows whichever serial is selected.
+  useEffect(() => {
+    let stop = false;
+    if (!serial) {
+      setDevicePath("");
+      return;
+    }
+    void (async () => {
+      const p = await gsDeviceSavePath(serial);
+      if (!stop) setDevicePath(p);
+    })();
+    return () => {
+      stop = true;
+    };
+  }, [serial]);
+
+  // Refresh button: re-list the devices and re-read the on-device save path.
+  const refreshDevice = useCallback(async () => {
+    const found = await gsListDevices();
+    const ids = found.map((d) => d.id);
+    const next = (serial && ids.includes(serial) ? serial : ids[0]) || "";
+    setSerial(next);
+    setDevicePath(await gsDeviceSavePath(next || undefined));
+    return found;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serial]);
 
   // --- palette (one of five light-theme color combinations) --------------
   const [palette, setPalette] = useState<string>(() => {
@@ -278,8 +329,8 @@ export function GsApp() {
   const go = useCallback((t: GsTab) => setTab(t), []);
 
   const ctx = useMemo<GsCtxValue>(
-    () => ({ token, sessionId: snap?.id ?? null, snap, license, busy, act, note, reload, go }),
-    [token, snap, license, busy, act, note, reload, go],
+    () => ({ token, sessionId: snap?.id ?? null, snap, license, busy, serial, act, note, reload, go }),
+    [token, snap, license, busy, serial, act, note, reload, go],
   );
 
   // --- boot: device id, saved key ---------------------------------------
@@ -486,13 +537,13 @@ export function GsApp() {
 
   const pullAndConnect = async () => {
     if (!token) return;
-    const got = await act(() => gsPullDevice({ data: { serial: serial || undefined } }));
+    const got = await act(() => gsPullFromDevice(serial || undefined));
     if (!got) return;
-    const file = (got as { file?: string }).file || serial || "device";
-    const ok = await connectWith((got as { b64: string }).b64, file);
+    if (got.serial && got.serial !== serial) setSerial(got.serial);
+    const ok = await connectWith(got.b64, got.file);
     if (ok) {
-      setSaveName(file);
-      toast.success(`Save pulled · ${(got as { size?: number }).size ?? "?"} bytes`);
+      setSaveName(got.file);
+      toast.success(`Save pulled · ${got.size} bytes`);
     }
   };
 
@@ -502,9 +553,11 @@ export function GsApp() {
     if (!r) return;
     const b64 = (r as { b64: string }).b64;
     downloadB64("GameData.db", b64);
-    const pushed = await act(() => gsPushDevice({ data: { b64, serial: serial || undefined } }));
-    if (pushed) toast.success(`Pushed ${(pushed as { size: number }).size} bytes to the device`);
-    else toast.info("Downloaded — device push skipped");
+    const pushed = await act(() => gsPushToDevice(b64, serial || undefined));
+    if (pushed) {
+      if (pushed.serial && pushed.serial !== serial) setSerial(pushed.serial);
+      toast.success(`Pushed ${pushed.size} bytes to the device`);
+    } else toast.info("Downloaded — device push skipped");
     await reload();
   };
 
@@ -565,15 +618,15 @@ export function GsApp() {
       toast.success("License verified");
 
       // Pull the device save straight away so the dashboard has data.
-      const got = await act(() => gsPullDevice({ data: { serial: serial || undefined } }));
+      const got = await act(() => gsPullFromDevice(serial || undefined));
       if (got) {
-        const file = (got as { file?: string }).file || serial;
+        if (got.serial && got.serial !== serial) setSerial(got.serial);
         const s = await act(() =>
-          gsConnect({ data: { token: r.token, device: file, saveB64: (got as { b64: string }).b64 } }),
+          gsConnect({ data: { token: r.token, device: got.file, saveB64: got.b64 } }),
         );
         if (s) {
           setSnap(s as GsSnapshot);
-          setSaveName(file);
+          setSaveName(got.file);
           toast.success("Save loaded from device");
         }
       } else {
@@ -809,11 +862,12 @@ export function GsApp() {
               <div className="device-selector-card">
                 <span className="device-selector-icon"><GsIcon name="device" /></span>
                 <div className="min-w-0 flex-1">
-                  <span className="device-selector-caption">ADB serial</span>
+                  <span className="device-selector-caption">Emulator</span>
                   <input
                     className="device-selector-select font-mono"
                     value={serial}
                     onChange={(e) => setSerial(e.target.value)}
+                    placeholder="auto-detect"
                     aria-label="ADB serial"
                   />
                   <span className={cn("device-selector-state", serial ? "device-selector-state--ready" : "")}>
@@ -824,12 +878,18 @@ export function GsApp() {
                   variant="ghost"
                   size="icon"
                   className="icon-refresh device-refresh"
-                  aria-label="Refresh save path"
-                  onClick={() => void act(() => gsSavePath({ data: { token } }))}
+                  aria-label="Refresh device"
+                  onClick={() => void refreshDevice()}
                 >
                   <GsIcon name="refresh" className="size-4" />
                 </Button>
               </div>
+
+              {devicePath ? (
+                <p className="gs-hint-line">
+                  Save: <code>{devicePath}</code>
+                </p>
+              ) : null}
 
               <div className="sidebar-actions mt-3 flex flex-col gap-2">
                 <Button className="primary-action w-full" disabled={busy || !token} onClick={() => void pullAndConnect()}>

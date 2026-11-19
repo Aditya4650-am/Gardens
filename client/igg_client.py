@@ -74,6 +74,17 @@ GAME_PACKAGES = ["com.playrix.township", "com.playrix.township.vn"]
 
 SAVE_FILE = "mGameInfo.xml"
 LOCAL_INFO_FILE = "mLocalInfo.xml"
+
+# --- Gardenscapes ---------------------------------------------------------
+# Gardenscapes keeps a *binary AUDB container* (never plain XML) as
+# Documents/GameData.db inside the package's private storage. It needs root to
+# read and write, and the running game rewrites that file on exit — so a push
+# has to stop the game first or the game overwrites the new bytes with its own
+# in-memory state the moment it closes.
+GARDEN_PACKAGE = "com.playrix.gardenscapes"
+GARDEN_SAVE_FILE = "GameData.db"
+GARDEN_SAVE_DIR = "Documents"
+GARDEN_SAVE_PATH = f"/data/data/{GARDEN_PACKAGE}/{GARDEN_SAVE_DIR}/{GARDEN_SAVE_FILE}"
 # Bundled fresh-city profile (extracted from the proven TS-Lite asset): a
 # complete LocalInfo + mGameInfo pair for a brand-new city, in the game's
 # own container encoding.
@@ -786,6 +797,149 @@ class NativeBridge:
                     return {"ok": True, "package": pkg, "paths": {"xml": xml_path, "bak": bak_path}, "size": len(data), "plaintext": True, "relaunched": options.get("restart", True)}
                 errs.append(f"{pkg}: {combined or 'su cp failed'}")
             raise RuntimeError("Push failed — " + " | ".join(errs))
+
+    # --- Gardenscapes -----------------------------------------------------
+    # The Gardenscapes save is a *binary AUDB container* (Documents/GameData.db)
+    # inside private storage, so it needs root in both directions and must never
+    # go through the plain-XML check above.
+    def _garden_pkg_ok(self, adb: str, serial: str) -> bool:
+        return self._is_pkg_installed(adb, serial, GARDEN_PACKAGE)
+
+    def _garden_path(self, adb: str, serial: str) -> str:
+        """Where GameData.db really lives on this device (cached per serial)."""
+        cached = _PATH_CACHE.get((serial, GARDEN_PACKAGE, GARDEN_SAVE_FILE))
+        ordered: list[str] = []
+        for path in (
+            _find_on_device(adb, serial, GARDEN_PACKAGE, GARDEN_SAVE_FILE),
+            cached,
+            GARDEN_SAVE_PATH,
+            GARDEN_SAVE_PATH.replace("/data/data/", "/data/user/0/"),
+            f"/data/user/0/{GARDEN_PACKAGE}/{GARDEN_SAVE_DIR}/{GARDEN_SAVE_FILE}",
+            *[p for p in candidate_paths_for_package(GARDEN_PACKAGE, GARDEN_SAVE_FILE)],
+        ):
+            if path and path not in ordered:
+                ordered.append(path)
+        for path in ordered:
+            code, out, _ = _run_adb(
+                adb, ["-s", serial, "shell", f"su -c 'ls \"{path}\"'"], timeout=25
+            )
+            text = (out or b"").decode("utf-8", "replace").strip()
+            if code == 0 and text and not re.search(r"no such file|permission denied", text, re.I):
+                _PATH_CACHE[(serial, GARDEN_PACKAGE, GARDEN_SAVE_FILE)] = path
+                return path
+        raise RuntimeError(
+            "Gardenscapes save not found on this device. Open Gardenscapes once "
+            "and make sure the emulator is rooted (Superuser / su enabled)."
+        )
+
+    def gardenPull(self, serial: str) -> dict:
+        """Read the binary GameData.db AUDB container off the device."""
+        adb = _find_adb()
+        if not adb:
+            raise RuntimeError(
+                "ADB not found. Install Android platform-tools, or run the tool "
+                "from the EXE while the emulator is running."
+            )
+        if not serial:
+            raise RuntimeError("No emulator connected — start your emulator and press Refresh.")
+        if not self._garden_pkg_ok(adb, serial):
+            raise RuntimeError("Gardenscapes is not installed on " + serial)
+        path = self._garden_path(adb, serial)
+        diag: list[str] = []
+        buf = self._pull_privileged(adb, serial, path, diag)
+        if not buf or len(buf) < 64:
+            detail = diag[0] if diag else "no data"
+            raise RuntimeError(
+                "Could not read GameData.db (" + detail + "). Enable root on the emulator "
+                "and make sure Gardenscapes has been opened at least once."
+            )
+        _active_package[serial] = GARDEN_PACKAGE
+        return {
+            "b64": base64.b64encode(buf).decode("ascii"),
+            "file": path,
+            "package": GARDEN_PACKAGE,
+            "size": len(buf),
+            "plain": False,
+        }
+
+    def gardenPush(self, serial: str, b64: str, options: dict | None = None) -> dict:
+        """Write the AUDB GameData.db back to the device and relaunch the game.
+
+        The running game rewrites that file from memory as it closes, so the
+        game is always force-stopped first — otherwise the new bytes are
+        replaced by the old state before the file is ever read again.
+        """
+        options = options or {}
+        adb = _find_adb()
+        if not adb:
+            raise RuntimeError(
+                "ADB not found. Install Android platform-tools, or run the tool "
+                "from the EXE while the emulator is running."
+            )
+        if not serial:
+            raise RuntimeError("No emulator connected — start your emulator and press Refresh.")
+        data = base64.b64decode(b64)
+        if len(data) > 24 * 1024 * 1024:
+            raise RuntimeError("Save output exceeds the 24 MB safety limit.")
+        if len(data) < 16:
+            raise RuntimeError("Save output too short to push.")
+        if not self._garden_pkg_ok(adb, serial):
+            raise RuntimeError("Gardenscapes is not installed on " + serial)
+
+        # Stop the game before touching its save, or it overwrites the push.
+        if not options.get("alreadyStopped"):
+            _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", GARDEN_PACKAGE], timeout=15)
+            time.sleep(0.6)
+        _active_package[serial] = GARDEN_PACKAGE
+
+        remote = self._garden_path(adb, serial)
+        with tempfile.TemporaryDirectory() as td:
+            local = Path(td) / GARDEN_SAVE_FILE
+            local.write_bytes(data)
+            tmp = "/data/local/tmp/gs_push_GameData.db"
+            code, _, err = _run_adb(adb, ["-s", serial, "push", str(local), tmp], timeout=90)
+            if code != 0:
+                raise RuntimeError("adb push failed: " + err.decode("utf-8", "replace").strip())
+            # Write through a shell redirect rather than `cp`: `>` truncates the
+            # existing inode in place, so the file keeps its uid/gid, mode and
+            # SELinux context — a fresh root-owned inode would be mode 600 and
+            # unreadable by the game. `cp` on some toybox builds recreates it.
+            shell = f"su -c 'cat \"{tmp}\" > \"{remote}\"; chmod 600 \"{remote}\"; ls -la \"{remote}\"'"
+            code2, out2, err2 = _run_adb(adb, ["-s", serial, "shell", shell], timeout=40)
+            combined = (out2 + err2).decode("utf-8", "replace").strip()
+            _run_adb(adb, ["-s", serial, "shell", f"rm -f {tmp}"], timeout=15)
+            if code2 != 0 or re.search(
+                r"permission denied|not found|no such file|failed|error:", combined, re.I
+            ):
+                raise RuntimeError("Push failed: " + (combined or "su cp failed"))
+            _PATH_CACHE[(serial, GARDEN_PACKAGE, GARDEN_SAVE_FILE)] = remote
+            relaunched = bool(options.get("restart", True))
+            if relaunched:
+                _run_adb(
+                    adb,
+                    ["-s", serial, "shell", "monkey", "-p", GARDEN_PACKAGE, "-c",
+                     "android.intent.category.LAUNCHER", "1"],
+                    timeout=15,
+                )
+            return {
+                "ok": True,
+                "package": GARDEN_PACKAGE,
+                "paths": {"save": remote},
+                "file": remote,
+                "size": len(data),
+                "plaintext": False,
+                "relaunched": relaunched,
+            }
+
+    def gardenPath(self, serial: str) -> dict:
+        """The save path the UI shows next to the device selector."""
+        adb = _find_adb()
+        if not adb or not serial:
+            return {"path": "", "package": GARDEN_PACKAGE}
+        try:
+            return {"path": self._garden_path(adb, serial), "package": GARDEN_PACKAGE}
+        except Exception:  # noqa: BLE001
+            return {"path": GARDEN_SAVE_PATH, "package": GARDEN_PACKAGE}
 
     def wipeFiles(self, serial: str, paths: list[str] | tuple[str, ...]) -> dict:
         """Delete exact device files (fresh-start wipe), then force-stop.

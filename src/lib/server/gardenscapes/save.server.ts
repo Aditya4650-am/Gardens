@@ -5,42 +5,64 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { Buffer } from "node:buffer";
 import { writeSaveXml, decodeSave, type DecodedGardenscapesSave } from "@/lib/gardenscapes/save-engine";
-import { adbRun, ADB_PATH, ADB_DEVICE, GAME_PACKAGE, SAVE_REMOTE_PATH } from "@/lib/gardenscapes/adb";
+import { resolveAdb, GAME_PACKAGE, SAVE_REMOTE_PATH } from "@/lib/gardenscapes/adb";
 
 const execFileP = promisify(execFile);
 const PULL_TMP = "/tmp/opencode/gs_pull_GameData.db";
 const PUSH_TMP = "/tmp/opencode/gs_push_GameData.db";
+const STAGE_TMP = "/data/local/tmp/gs_push_GameData.db";
 
 export const GAME_SAVE_RELATIVE_PATH = `data/data/${GAME_PACKAGE}/Documents/GameData.db`;
 
-export async function pullGameSaveRaw(serial: string = ADB_DEVICE): Promise<{ b64: string; file: string; size: number }> {
-  const res = await execFileP(ADB_PATH, ["-s", serial, "pull", SAVE_REMOTE_PATH, PULL_TMP], {
-    maxBuffer: 64 * 1024 * 1024,
+/**
+ * Read a root-only file through `su -c cat`. `adb pull` cannot be used here:
+ * the save lives in the package's private storage, which the shell user (what
+ * `adb pull` runs as) cannot read.
+ */
+async function suCat(adb: string, serial: string, remote: string): Promise<Buffer> {
+  const res = await execFileP(adb, ["-s", serial, "exec-out", "su", "-c", `cat '${remote}'`], {
+    maxBuffer: 256 * 1024 * 1024,
     timeout: 120000,
+    encoding: "buffer",
   });
-  const fs = await import("node:fs");
-  const buf = fs.readFileSync(PULL_TMP);
-  try {
-    fs.unlinkSync(PULL_TMP);
-  } catch {
-    /* noop */
+  const buf = res.stdout;
+  if (!buf || buf.length < 64) {
+    throw new Error("Could not read GameData.db — enable root and open Gardenscapes once.");
   }
+  return buf;
+}
+
+export async function pullGameSaveRaw(serial?: string): Promise<{ b64: string; file: string; size: number }> {
+  const { adb, serial: target } = await resolveAdb(serial);
+  const buf = await suCat(adb, target, SAVE_REMOTE_PATH);
   return { b64: buf.toString("base64"), file: SAVE_REMOTE_PATH, size: buf.length };
 }
 
-export async function pushGameSaveRaw(b64: string, serial: string = ADB_DEVICE): Promise<{ ok: boolean; size: number }> {
+export async function pushGameSaveRaw(b64: string, serial?: string): Promise<{ ok: boolean; size: number; file: string }> {
+  const { adb, serial: target } = await resolveAdb(serial);
   const fs = await import("node:fs");
   fs.writeFileSync(PUSH_TMP, Buffer.from(b64, "base64"));
-  await execFileP(ADB_PATH, ["-s", serial, "push", PUSH_TMP, SAVE_REMOTE_PATH], {
-    maxBuffer: 64 * 1024 * 1024,
-    timeout: 120000,
-  });
   try {
-    fs.unlinkSync(PUSH_TMP);
-  } catch {
-    /* noop */
+    await execFileP(adb, ["-s", target, "push", PUSH_TMP, STAGE_TMP], {
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: 120000,
+    });
+    // The game rewrites this file as it closes, so it must be stopped first or
+    // the new bytes are replaced by the old in-memory state.
+    await execFileP(adb, ["-s", target, "shell", `am force-stop ${GAME_PACKAGE}`], { timeout: 30000 });
+    // Write through a redirect so the existing inode keeps its uid/gid and
+    // SELinux context — a fresh root-owned file is unreadable by the game.
+    const shell = `cat '${STAGE_TMP}' > '${SAVE_REMOTE_PATH}'; chmod 600 '${SAVE_REMOTE_PATH}'`;
+    await execFileP(adb, ["-s", target, "shell", `su -c "${shell}"`], { timeout: 60000 });
+    await execFileP(adb, ["-s", target, "shell", `rm -f ${STAGE_TMP}`], { timeout: 30000 });
+    return { ok: true, size: Buffer.from(b64, "base64").length, file: SAVE_REMOTE_PATH };
+  } finally {
+    try {
+      fs.unlinkSync(PUSH_TMP);
+    } catch {
+      /* noop */
+    }
   }
-  return { ok: true, size: b64.length };
 }
 
 export async function decodeGameSave(b64: string): Promise<{ ok: true; data: DecodedGardenscapesSave } | { ok: false; error: string }> {

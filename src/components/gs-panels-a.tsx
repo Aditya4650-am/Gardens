@@ -12,19 +12,17 @@ import {
   gsMinItems,
   gsProfileSummary,
   gsPush,
-  gsPushDevice,
-  gsPullDevice,
   gsReadItems,
   gsReadPair,
   gsReadProfile,
   gsReadStats,
   gsRestore,
-  gsSavePath,
   gsWriteItems,
   gsWritePair,
   gsWriteStats,
 } from "@/lib/gs-api";
 import { useGs, sessOf, type GsEditResult, type GsTab } from "./gs-ctx";
+import { gsDeviceSavePath, gsPullFromDevice, gsPushToDevice } from "@/lib/gardenscapes/transport";
 import {
   Bar,
   Field,
@@ -573,12 +571,11 @@ export function GsBackups() {
   useEffect(() => {
     if (!c.token) return;
     void c.act(async () => {
-      const r = await gsSavePath({ data: { token: c.token } });
-      setPath(r.path);
-      return r;
+      setPath(await gsDeviceSavePath(c.serial));
+      return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c.token]);
+  }, [c.token, c.serial]);
 
   const run = async (label: string, fn: () => Promise<unknown>) => {
     const r = await fn();
@@ -610,21 +607,21 @@ export function GsBackups() {
     if (!c.sessionId) return;
     const r = await c.act(() => gsPush({ data: sessOf(c) }));
     if (!r) return;
-    const ok = await c.act(() => gsPushDevice({ data: { b64: (r as { b64: string }).b64 } }));
+    const ok = await c.act(() => gsPushToDevice((r as { b64: string }).b64, c.serial || undefined));
     if (ok) {
-      setMsg(`Pushed ${(ok as { size: number }).size} bytes to the device`);
+      setMsg(`Pushed ${ok.size} bytes to the device`);
       toast.success("Pushed to device");
     }
   };
 
   const pullFromDevice = async () => {
-    const got = await c.act(() => gsPullDevice({ data: {} }));
+    const got = await c.act(() => gsPullFromDevice(c.serial || undefined));
     if (!got) return;
     const s = await c.act(() =>
-      gsConnect({ data: { token: c.token, device: (got as { file: string }).file || "device", saveB64: (got as { b64: string }).b64 } }),
+      gsConnect({ data: { token: c.token, device: got.file || "device", saveB64: got.b64 } }),
     );
     if (s) {
-      setMsg(`Pulled ${(got as { size: number }).size} bytes from the device`);
+      setMsg(`Pulled ${got.size} bytes from the device`);
       await c.reload();
       toast.success("Pulled from device");
     }
@@ -659,7 +656,7 @@ export function GsBackups() {
         {path ? <p className="gs-hint-line">Device path: <code>{path}</code></p> : null}
       </Panel>
 
-      <Panel title="Device" icon="device" hint="The server talks to the emulator itself — no setup needed.">
+      <Panel title="Device" icon="device" hint="Talks straight to your emulator through this app — just keep it running.">
         <div className="gs-actions">
           <Button size="sm" variant="outline" onClick={() => void pullFromDevice()} disabled={c.busy}>
             <GsIcon name="refresh" className="size-4" /> Pull from device
