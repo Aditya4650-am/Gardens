@@ -190,6 +190,15 @@ export default defineConfig(({ command, isPreview }) => ({
             // scripts/township/fetch_city.py). A serverless preset would drop that
             // runtime, so default to node-server rather than a serverless preset.
             preset: process.env.NITRO_PRESET || "node-server",
+            // `false` here does NOT mean "no SSR". Nitro reads it as "no template
+            // override", which is exactly what we want: with no template it falls
+            // through to TanStack Start's own SSR renderer instead of Nitro's
+            // generic fallback. That fallback embeds the RAW `index.html`
+            // (`<script src="/src/main.tsx">`) into every response, so production
+            // served the unbuilt dev shell — an empty `#root` and a black screen in
+            // the EXE and on the deployed site. Dev keeps index.html untouched;
+            // only this build path opts out.
+            renderer: false,
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
