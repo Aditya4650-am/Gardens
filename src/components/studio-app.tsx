@@ -127,11 +127,15 @@ function downloadText(name: string, text: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-// "regatta" sits at index 8, the first overflow slot, so the eight primary
-// tabs keep their exact positions and only the second row gains a member.
-// "events" is appended last for the same reason: it adds a slot to the second
-// row without moving any tab that already exists.
-const TABS: Tab[] = ["data", "profile", "avatars", "skins", "unban", "decor", "sticker", "items", "regatta", "barn", "museum", "zoo", "upgrades", "cards", "newgame", "events"];
+// Regatta is a **Township** feature — it belongs to the IGG VIP TOOL build, not
+// to a Gardenscapes editor, so it is deliberately absent from this list: the
+// tab never renders here. `"regatta"` stays in the `Tab` union (and in
+// `TAB_KEY`) purely so the dead markup below still type-checks rather than
+// forcing a deletion that would ripple through the save payload; nothing can
+// navigate to it, because `tab` only ever takes a value from `TABS`.
+// "events" is appended last so it adds a slot to the second row without moving
+// any tab that already exists.
+const TABS: Tab[] = ["data", "profile", "avatars", "skins", "unban", "decor", "sticker", "items", "barn", "museum", "zoo", "upgrades", "cards", "newgame", "events"];
 // Premium tab bar: 8 primary slots + a "More" overflow for the rest, so
 // labels never compress or wrap. Derived from TABS — one source of truth.
 const PRIMARY_TABS: Tab[] = TABS.slice(0, 8);
