@@ -7556,3 +7556,73 @@ html:has(.gs-theme.gs-dark) {
     max-height: 44px;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Login — "save key on this device" toggle                            */
+/* ------------------------------------------------------------------ */
+
+.gs-theme .login-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(160, 205, 235, 0.6);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(240, 248, 255, 0.9));
+  color: #1f4d3a;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.gs-theme .login-remember:hover {
+  border-color: rgba(198, 156, 62, 0.7);
+  box-shadow: 0 0 18px rgba(198, 156, 62, 0.22);
+}
+
+.gs-theme .login-remember input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.gs-theme .login-remember-box {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 6px;
+  border: 1.5px solid rgba(31, 77, 58, 0.28);
+  background: #ffffff;
+  color: #1f4d3a;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.gs-theme .login-remember input:checked + .login-remember-box {
+  border-color: rgba(198, 156, 62, 0.9);
+  background: linear-gradient(145deg, #ffe9a8 0%, #e7c367 60%, #c69c3e 100%);
+  box-shadow: 0 0 12px rgba(198, 156, 62, 0.5);
+}
+
+.gs-theme .login-remember input:focus-visible + .login-remember-box {
+  outline: 2px solid rgba(198, 156, 62, 0.8);
+  outline-offset: 2px;
+}
+
+.gs-theme.gs-dark .login-remember {
+  border-color: rgba(96, 165, 250, 0.28);
+  background: linear-gradient(180deg, rgba(20, 32, 50, 0.9), rgba(14, 24, 38, 0.92));
+  color: #dbe9f5;
+}
+
+.gs-theme.gs-dark .login-remember-box {
+  background: #0f1828;
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #dbe9f5;
+}

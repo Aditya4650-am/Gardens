@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -136,6 +136,7 @@ function ThemeSwitch({ dark, onPick }: { dark: boolean; onPick: (d: boolean) => 
 interface NativeBridge {
   deviceId?: () => Promise<string>;
   saveKey?: (k: string) => Promise<void>;
+  loadSavedKey?: () => Promise<string>;
   clearSavedKey?: () => Promise<void>;
   version?: () => Promise<string>;
   installUpdate?: (release: {
@@ -247,6 +248,7 @@ export function GsApp() {
   // --- license / session -------------------------------------------------
   const [view, setView] = useState<View>("login");
   const [key, setKey] = useState("");
+  const [remember, setRemember] = useState(true);
   const [token, setToken] = useState("");
   const [license, setLicense] = useState<GsLicense | null>(null);
   const [deviceId, setDeviceId] = useState("");
@@ -498,6 +500,23 @@ export function GsApp() {
       /* ignore */
     }
 
+    // Inside the EXE localStorage is wiped on every launch (private mode), so
+    // the file-backed key the shell keeps is the real "remember me" store.
+    void (async () => {
+      try {
+        const bridge = nativeBridge();
+        const fn = bridge?.loadSavedKey;
+        if (typeof fn !== "function") return;
+        const saved = await fn();
+        if (!stop && typeof saved === "string" && saved.trim().length >= 4) {
+          setKey(saved.trim());
+          setRemember(true);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+
     setTabReady(true);
     return () => {
       stop = true;
@@ -662,8 +681,13 @@ export function GsApp() {
       setLicense(r.license as GsLicense);
       try {
         const native = nativeBridge();
-        if (native?.saveKey) await native.saveKey(candidate);
-        else localStorage.setItem(LS_KEY, candidate);
+        if (remember) {
+          if (native?.saveKey) await native.saveKey(candidate);
+          else localStorage.setItem(LS_KEY, candidate);
+        } else {
+          if (native?.clearSavedKey) await native.clearSavedKey();
+          else localStorage.removeItem(LS_KEY);
+        }
       } catch {
         /* ignore */
       }
@@ -703,6 +727,17 @@ export function GsApp() {
   };
 
   const sessionCount = snap ? 1 : 0;
+
+  // Sign straight in when the shell handed over a saved key.
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (autoTried.current) return;
+    if (view !== "login" || license || busy) return;
+    if (key.trim().length < 4 || !isDeviceId(deviceId)) return;
+    autoTried.current = true;
+    void unlock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, license, busy, key, deviceId]);
 
   // --- login scene -------------------------------------------------------
 
@@ -859,6 +894,17 @@ export function GsApp() {
                   <span>{loginErr}</span>
                 </p>
               ) : null}
+              <label className="login-remember">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                />
+                <span className="login-remember-box" aria-hidden="true">
+                  {remember ? <GsIcon name="check" className="size-3.5" /> : null}
+                </span>
+                <span>Save key on this device</span>
+              </label>
               <Button
                 className="login-unlock mt-5 w-full"
                 size="lg"
@@ -919,6 +965,15 @@ export function GsApp() {
                 } catch {
                   /* ignore */
                 }
+                void (async () => {
+                  try {
+                    const native = nativeBridge();
+                    if (native?.clearSavedKey) await native.clearSavedKey();
+                  } catch {
+                    /* ignore */
+                  }
+                })();
+                setKey("");
                 setToken("");
                 setLicense(null);
                 setSnap(null);
