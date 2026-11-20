@@ -2,14 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import {
   gsProfileCatalogs,
   gsReadProfile,
-  gsUnlockAvatarStyles,
   gsUnlockBadges,
   gsUnlockFrames,
   gsUnlockNameStyles,
   gsUnlockTitles,
   gsUnlockAvatars,
   gsWearAvatar,
-  gsWearAvatarStyle,
   gsWearBadgeById,
   gsWearFrame,
   gsWearNameStyle,
@@ -17,7 +15,6 @@ import {
 } from "@/lib/gs-api";
 import {
   GS_AVATARS,
-  GS_AVATAR_STYLES,
   GS_BADGES,
   GS_FRAMES,
   GS_FRAMES_ACTIVATABLE,
@@ -102,7 +99,7 @@ function useProfile() {
 
 // --- shared three-across picker ------------------------------------------
 
-type Kind = "frames" | "styles" | "badges" | "titles" | "avatar-styles";
+type Kind = "frames" | "styles" | "badges" | "titles";
 
 /** Every cosmetic icon lives at `/icons/<kind>/<id>.png` once supplied. */
 function artFor(kind: Kind, id: string): string {
@@ -341,10 +338,8 @@ export function GsFrames() {
 export function GsStyles() {
   const { c, p, runSeq } = useProfile();
   const [nameSel, setNameSel] = useState<Set<string>>(new Set());
-  const [avSel, setAvSel] = useState<Set<string>>(new Set());
 
   const nameOwned = useMemo(() => new Set(p?.nameStylesShown ?? []), [p]);
-  const avatarOwned = useMemo(() => new Set(p?.avatarStylesShown ?? []), [p]);
 
   const toggle = (set: Set<string>, id: string) => {
     const n = new Set(set);
@@ -362,17 +357,6 @@ export function GsStyles() {
     if (ids.length === 1) fns.push(() => gsWearNameStyle({ data: { ...sessOf(c), style: ids[0] } }));
     void runSeq(fns, ids.length === 1 ? ids[0] : `${ids.length} name styles`);
     setNameSel(new Set());
-  };
-
-  const applyAvatar = () => {
-    const ids = [...avSel];
-    if (!ids.length) return;
-    const fns: Array<() => Promise<unknown>> = [
-      () => gsUnlockAvatarStyles({ data: { ...sessOf(c), styles: ids } }),
-    ];
-    if (ids.length === 1) fns.push(() => gsWearAvatarStyle({ data: { ...sessOf(c), style: ids[0] } }));
-    void runSeq(fns, ids.length === 1 ? ids[0] : `${ids.length} avatar styles`);
-    setAvSel(new Set());
   };
 
   return (
@@ -402,34 +386,6 @@ export function GsStyles() {
           worn={(id) => p?.wornNameStyle === id}
           busy={c.busy}
           onToggle={(id) => setNameSel((s) => toggle(s, id))}
-        />
-      </Panel>
-
-      <Panel title="Avatar styles" icon="user">
-        <div className="gs-chips">
-          <Chip tone="ok" icon="check">
-            {avatarOwned.size} / {GS_AVATAR_STYLES.length}
-          </Chip>
-          <Chip tone="gold" icon="user">
-            {p?.wornAvatarStyle || "—"}
-          </Chip>
-        </div>
-        <PickBar
-          count={avSel.size}
-          total={GS_AVATAR_STYLES.length}
-          busy={c.busy}
-          onAll={() => setAvSel(new Set(GS_AVATAR_STYLES.map((s) => s.id)))}
-          onClear={() => setAvSel(new Set())}
-          onApply={applyAvatar}
-        />
-        <PickGrid
-          kind="avatar-styles"
-          items={GS_AVATAR_STYLES}
-          sel={avSel}
-          owned={(id) => avatarOwned.has(id)}
-          worn={(id) => p?.wornAvatarStyle === id}
-          busy={c.busy}
-          onToggle={(id) => setAvSel((s) => toggle(s, id))}
         />
       </Panel>
     </div>

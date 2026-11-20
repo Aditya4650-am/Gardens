@@ -39,20 +39,6 @@ NameStyle_Dragon.png
 NameStyle_Test.png
 ```
 
-## avatar-styles/ (9)
-
-```
-Pink.png
-Orange.png
-Marine.png
-Wood.png
-gold.png
-Blue.png
-Purple.png
-Red.png
-Violet.png
-```
-
 ## badges/ (18)
 
 ```
