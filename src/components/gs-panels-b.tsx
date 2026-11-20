@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -11,32 +10,21 @@ import {
   gsListPurchases,
   gsListSeasons,
   gsMarkCardsSeen,
-  gsPlanCardSend,
   gsReadCards,
-  gsReadStages,
   gsSendCardsToSelf,
   gsSetAllStages,
   gsSetAllStock,
-  gsSetCardNew,
-  gsSetCardStock,
-  gsSetEventActive,
   gsSetGoldPass,
-  gsSetGrandCollection,
   gsSetPackCount,
   gsSetPackStreak,
   gsSetScore,
-  gsSetStage,
   gsWriteChapter,
   gsWriteChapters,
   gsWritePurchases,
 } from "@/lib/gs-api";
-import {
-  GS_CARD_PACKS,
-  GS_CARD_SETS,
-  GS_CARDS,
-} from "@/lib/server/gardenscapes/catalogs";
+import { GS_CARD_PACKS, GS_CARDS } from "@/lib/server/gardenscapes/catalogs";
 import { useGs, sessOf, type GsEditResult } from "./gs-ctx";
-import { Bar, Chip, Field, GsIcon, Grid, Panel, Tile, Toggle } from "./gs-ui";
+import { Bar, Chip, Field, GsIcon, Grid, Panel, Toggle } from "./gs-ui";
 
 // ---------------------------------------------------------------------------
 // Tab group B — Seasons, Decor, Cards, Send Cards.
@@ -47,8 +35,7 @@ const SET_TONES = [
   "#A78BFA", "#F472B6", "#FACC15", "#22D3EE", "#4ADE80",
   "#FB7185", "#818CF8", "#FDBA74", "#2DD4BF", "#C084FC",
 ];
-
-// === Seasons ===============================================================
+// === Garden Pass ===========================================================
 
 interface SeasonInfo {
   key: string;
@@ -59,44 +46,15 @@ interface SeasonInfo {
   goldCollected: number;
   stages: number;
 }
-interface StageRow {
-  index: number;
-  collected: boolean;
-  state: string;
-}
 
 export function GsSeasons() {
   const c = useGs();
   const [seasons, setSeasons] = useState<SeasonInfo[]>([]);
-  const [sel, setSel] = useState("");
-  const [free, setFree] = useState<StageRow[]>([]);
-  const [gold, setGold] = useState<StageRow[]>([]);
-  const [score, setScore] = useState("");
-  const [total, setTotal] = useState("");
 
   const load = async () => {
     if (!c.sessionId) return;
     const r = await c.act(() => gsListSeasons({ data: sessOf(c) }));
-    if (!r) return;
-    const list = r as SeasonInfo[];
-    setSeasons(list);
-    const first = list.find((x) => x.key === sel) ?? list[0];
-    if (first) {
-      setSel(first.key);
-      setScore(String(first.score));
-      setTotal(String(first.scoreTotal));
-      await loadStages(first.key);
-    }
-  };
-
-  const loadStages = async (season: string) => {
-    if (!c.sessionId || !season) return;
-    const [f, g] = await Promise.all([
-      c.act(() => gsReadStages({ data: { ...sessOf(c), season, track: "free" } })),
-      c.act(() => gsReadStages({ data: { ...sessOf(c), season, track: "gold" } })),
-    ]);
-    if (f) setFree(f as StageRow[]);
-    if (g) setGold(g as StageRow[]);
+    if (r) setSeasons(r as SeasonInfo[]);
   };
 
   useEffect(() => {
@@ -104,159 +62,69 @@ export function GsSeasons() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.sessionId]);
 
-  const season = seasons.find((x) => x.key === sel);
-
-  const act2 = async (fn: () => Promise<unknown>, label: string) => {
-    const r = await c.act(fn);
-    c.note(r as GsEditResult | undefined, label);
+  /** One press: gold pass on, score maxed, every reward on both roads. */
+  const push = async () => {
+    if (!seasons.length) return;
+    const r = await c.act(async () => {
+      let last: unknown;
+      for (const s of seasons) {
+        const top = Math.max(s.scoreTotal, s.score);
+        last = await gsSetGoldPass({ data: { ...sessOf(c), season: s.key, bought: true } });
+        last = await gsSetScore({ data: { ...sessOf(c), season: s.key, current: top, total: top } });
+        last = await gsSetAllStages({ data: { ...sessOf(c), season: s.key, track: "both", collected: true } });
+      }
+      return last;
+    });
+    c.note(r as GsEditResult | undefined, "Garden Pass");
     await load();
   };
 
+  const stages = seasons.reduce((n, s) => n + s.stages, 0);
+  const gold = seasons.filter((s) => s.goldPassBought).length;
+
   return (
     <div className="gs-stack">
-      <Bar
-        hint="Golden pass, season score and every reward stage on both roads."
-        extra={
-          <Button size="sm" onClick={() => void load()} disabled={c.busy}>
-            <GsIcon name="refresh" className="size-4" /> Refresh
-          </Button>
-        }
-      />
+      <section className="gs-gp-card panel">
+        <header className="gs-gp-head">
+          <span className="gs-gp-emblem" aria-hidden="true">
+            <GsIcon name="crown" className="size-7" />
+          </span>
+          <div>
+            <h3 className="gs-gp-title">Garden Pass</h3>
+            <p className="gs-gp-lead">Gold pass · max score · every reward claimed</p>
+          </div>
+        </header>
 
-      <Panel title="Seasons" icon="infinite" hint="Only seasons the save already holds — a season is never created.">
-        <Grid cols="wide">
-          {seasons.map((s) => (
-            <Tile
-              key={s.key}
-              label={s.key}
-              sub={`${s.score}/${s.scoreTotal} · ${s.stages} stages`}
-              glyph={s.goldPassBought ? "👑" : "🎟"}
-              owned={!!s.goldPassBought}
-              selected={sel === s.key}
-              onClick={() => {
-                setSel(s.key);
-                setScore(String(s.score));
-                setTotal(String(s.scoreTotal));
-                void loadStages(s.key);
-              }}
-            />
-          ))}
-        </Grid>
-        {!seasons.length ? <p className="gs-empty">This save holds no season.</p> : null}
-      </Panel>
+        <div className="gs-chips">
+          <Chip tone="info" icon="infinite">
+            {seasons.length} season{seasons.length === 1 ? "" : "s"}
+          </Chip>
+          <Chip tone="gold" icon="star">
+            {stages} stages
+          </Chip>
+          <Chip tone={gold ? "ok" : "neutral"} icon="check">
+            {gold} gold
+          </Chip>
+        </div>
 
-      {season ? (
-        <>
-          <Panel
-            title={`${season.key} · pass`}
-            icon="crown"
-            actions={
-              <Toggle
-                on={!!season.goldPassBought}
-                disabled={c.busy}
-                onClick={() => void act2(() => gsSetGoldPass({ data: { ...sessOf(c), season: season.key, bought: !season.goldPassBought } }), "Golden pass")}
-              >
-                {season.goldPassBought ? "Gold pass owned" : "Buy gold pass"}
-              </Toggle>
-            }
-          >
-            <div className="gs-pair">
-              <Field label="Score" value={score} onChange={setScore} />
-              <Field label="Total" value={total} onChange={setTotal} />
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={c.busy}
-                onClick={() =>
-                  void act2(
-                    () =>
-                      gsSetScore({
-                        data: {
-                          ...sessOf(c),
-                          season: season.key,
-                          current: Math.max(0, Math.floor(Number(score) || 0)),
-                          total: total ? Math.max(0, Math.floor(Number(total) || 0)) : undefined,
-                        },
-                      }),
-                    "Season score",
-                  )
-                }
-              >
-                Set score
-              </Button>
-            </div>
-            <div className="gs-chips">
-              <Chip tone="ok" icon="check">{season.freeCollected} free claimed</Chip>
-              <Chip tone="gold" icon="crown">{season.goldCollected} gold claimed</Chip>
-            </div>
-          </Panel>
-
-          <Panel title="Reward stages" icon="star" hint="Click a stage to claim or unclaim it, or sweep a whole road.">
-            <div className="gs-actions">
-              <Button size="sm" variant="success" disabled={c.busy}
-                onClick={() => void act2(() => gsSetAllStages({ data: { ...sessOf(c), season: season.key, track: "both", collected: true } }), "All stages")}>
-                Claim all
-              </Button>
-              <Button size="sm" variant="ghost" disabled={c.busy}
-                onClick={() => void act2(() => gsSetAllStages({ data: { ...sessOf(c), season: season.key, track: "both", collected: false } }), "All stages")}>
-                Unclaim all
-              </Button>
-              <Button size="sm" variant="outline" disabled={c.busy}
-                onClick={() => void act2(() => gsSetAllStages({ data: { ...sessOf(c), season: season.key, track: "gold", collected: true } }), "Gold road")}>
-                Claim gold road
-              </Button>
-            </div>
-
-            <div className="gs-road">
-              <p className="kicker">Free road</p>
-              <div className="gs-stages">
-                {free.map((st) => (
-                  <button
-                    key={st.index}
-                    type="button"
-                    className={cn("gs-stage", st.collected && "gs-stage--on")}
-                    title={`stage ${st.index} · ${st.state}`}
-                    disabled={c.busy}
-                    onClick={() =>
-                      void act2(
-                        () => gsSetStage({ data: { ...sessOf(c), season: season.key, track: "free", index: st.index, collected: !st.collected } }),
-                        "Stage",
-                      )
-                    }
-                  >
-                    {st.index + 1}
-                  </button>
-                ))}
-                {!free.length ? <span className="gs-empty">none</span> : null}
-              </div>
-            </div>
-
-            <div className="gs-road">
-              <p className="kicker">Gold road</p>
-              <div className="gs-stages">
-                {gold.map((st) => (
-                  <button
-                    key={st.index}
-                    type="button"
-                    className={cn("gs-stage gs-stage--gold", st.collected && "gs-stage--on")}
-                    title={`stage ${st.index} · ${st.state}`}
-                    disabled={c.busy}
-                    onClick={() =>
-                      void act2(
-                        () => gsSetStage({ data: { ...sessOf(c), season: season.key, track: "gold", index: st.index, collected: !st.collected } }),
-                        "Stage",
-                      )
-                    }
-                  >
-                    {st.index + 1}
-                  </button>
-                ))}
-                {!gold.length ? <span className="gs-empty">none</span> : null}
-              </div>
-            </div>
-          </Panel>
-        </>
-      ) : null}
+        <button
+          type="button"
+          className="gs-gp-btn"
+          disabled={c.busy || !seasons.length}
+          onClick={() => void push()}
+        >
+          <span className="gs-gp-btn-icon">
+            <GsIcon name="crown" className="size-6" />
+          </span>
+          <span className="gs-gp-btn-body">
+            <span className="gs-gp-btn-title">Push Garden Pass</span>
+            <span className="gs-gp-btn-sub">One click, every season the save holds</span>
+          </span>
+          <span className="gs-gp-btn-go">
+            <GsIcon name="check" className="size-5" />
+          </span>
+        </button>
+      </section>
     </div>
   );
 }
@@ -314,7 +182,6 @@ export function GsDecor() {
   return (
     <div className="gs-stack">
       <Bar
-        hint="Garden chapters and their repair / decor purchases. Opened opens a chapter, completed finishes it."
         onAll={() => void act2(() => gsWriteChapters({ data: { ...sessOf(c), keys: chapters.map((x) => x.key), completed: true } }), "All chapters")}
         onClear={() => void act2(() => gsWriteChapters({ data: { ...sessOf(c), keys: chapters.map((x) => x.key), completed: false, opened: true } }), "All chapters")}
         allLabel="Complete all"
@@ -344,7 +211,7 @@ export function GsDecor() {
         </div>
       </Grid>
 
-      <Panel title="Buy every purchase" icon="cart" hint="One click marks every purchase row the save holds as bought.">
+      <Panel title="Buy every purchase" icon="cart">
         <div className="gs-actions">
           <Button size="sm" variant="success" disabled={c.busy || !purchases.length}
             onClick={() => void act2(() => gsBuyPurchases({ data: sessOf(c) }), "Purchases")}>
@@ -463,85 +330,43 @@ interface CardsInfo {
   };
 }
 
-/**
- * The shared 150-card grid. `mode="pick"` ticks ids for a batch op or a send
- * plan; `mode="edit"` selects one card for a single-stock write.
- */
-export function CardGrid({
+/** The full 150-card grid. Each cell is a button. */
+function CardCells({
   info,
-  mode,
-  sel,
-  onToggle,
-  onAll,
-  onNone,
-  showStock = true,
+  busy,
+  onPick,
 }: {
   info: CardsInfo | null;
-  mode: "pick" | "edit";
-  sel: Set<string>;
-  onToggle: (id: string) => void;
-  onAll: () => void;
-  onNone: () => void;
-  showStock?: boolean;
+  busy: boolean;
+  onPick: (id: string) => void;
 }) {
-  const [set, setSet] = useState("");
-  const rows = info?.catalog ?? [];
-
-  const shown = set ? rows.filter((r) => r.setId === set) : rows;
-
+  const owned = new Map((info?.cards ?? []).map((r) => [r.cardId, r]));
   return (
-    <>
-      <div className="gs-setbar">
-        <div className="gs-settabs">
-          <button type="button" className={cn("gs-settab", !set && "on")} onClick={() => setSet("")}>All</button>
-          {GS_CARD_SETS.map((id, i) => (
-            <button
-              key={id}
-              type="button"
-              className={cn("gs-settab", set === id && "on")}
-              style={set === id ? { background: SET_TONES[i % SET_TONES.length] } : undefined}
-              onClick={() => setSet(id)}
-            >
-              {i + 1}
-            </button>
-          ))}
-        </div>
-        <div className="gs-settools">
-          <Button size="sm" variant="outline" onClick={onAll}>Select set</Button>
-          <Button size="sm" variant="ghost" onClick={onNone}>Clear</Button>
-        </div>
-      </div>
-
-      <div className="gs-cards">
-        {shown.map((r) => {
-          const on = sel.has(r.cardId);
-          return (
-            <button
-              key={r.cardId}
-              type="button"
-              className={cn("gs-card", r.owned && "gs-card--owned", on && "gs-card--on", mode === "edit" && on && "gs-card--edit")}
-              aria-pressed={on}
-              title={`${r.cardId} · set ${r.setId} · ${r.inStockCount} in stock`}
-              onClick={() => onToggle(r.cardId)}
-            >
-              <span className="gs-card-no">{r.number}</span>
-              <span className="gs-card-state">
-                {r.owned ? (showStock ? `×${r.inStockCount}` : "owned") : "—"}
-              </span>
-              {r.isNew && r.owned ? <span className="gs-card-new" aria-hidden="true">•</span> : null}
-            </button>
-          );
-        })}
-      </div>
-      {!shown.length ? <p className="gs-empty">No cards.</p> : null}
-    </>
+    <div className="gs-cards">
+      {GS_CARDS.map((card) => {
+        const row = owned.get(card.id);
+        return (
+          <button
+            key={card.id}
+            type="button"
+            className={cn("gs-card", row && "gs-card--owned")}
+            title={`${card.id} · set ${card.setId} · ${row?.inStockCount ?? 0} in stock`}
+            disabled={busy}
+            onClick={() => onPick(card.id)}
+          >
+            <span className="gs-card-no">{card.number}</span>
+            <span className="gs-card-state">{row ? `×${row.inStockCount}` : "—"}</span>
+            {row?.isNew ? <span className="gs-card-new" aria-hidden="true">•</span> : null}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 export function GsCards() {
   const c = useGs();
   const [info, setInfo] = useState<CardsInfo | null>(null);
-  const [sel, setSel] = useState<Set<string>>(new Set());
   const [amount, setAmount] = useState("1");
   const [stock, setStock] = useState("1");
   const [packEdits, setPackEdits] = useState<Record<string, string>>({});
@@ -561,122 +386,72 @@ export function GsCards() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.sessionId]);
 
-  const toggle = (id: string) =>
-    setSel((p) => {
-      const n = new Set(p);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
-
-  const selectSet = () => {
-    if (!info) return;
-    const ids = info.catalog.filter((r) => !sel.has(r.cardId)).map((r) => r.cardId);
-    setSel(new Set(ids));
-  };
-
-  const allOwned = () => setSel(new Set((info?.catalog ?? []).filter((r) => r.owned).map((r) => r.cardId)));
-
   const amt = Math.max(1, Math.min(9999, Math.floor(Number(amount) || 1)));
   const stk = Math.max(1, Math.min(9999, Math.floor(Number(stock) || 1)));
 
-  const run = async (fn: () => Promise<unknown>, label: string, clear = false) => {
+  const run = async (fn: () => Promise<unknown>, label: string) => {
     const r = await c.act(fn);
     c.note(r as GsEditResult | undefined, label);
-    if (clear) setSel(new Set());
     await load();
   };
 
-  const inv = info?.invariants;
-  const invOk = inv && inv.totalMatches && inv.setsMatch && inv.uniqueIds && inv.knownIds && inv.rowsWellFormed;
-
   return (
     <div className="gs-stack">
-      <Bar
-        hint="150 cards in 15 sets of ten. Grant writes stock and counters together."
-        onAll={selectSet}
-        onClear={() => setSel(new Set())}
-        allLabel="Tick everything"
-        clearLabel="Clear"
-        extra={
-          <>
-            <Button size="sm" variant="outline" onClick={allOwned}>Owned only</Button>
-            <Button size="sm" variant="ghost" onClick={() => void load()} disabled={c.busy}>
-              <GsIcon name="refresh" className="size-4" /> Refresh
-            </Button>
-          </>
-        }
-      />
-
       <div className="gs-chips">
-        <Chip tone={invOk ? "ok" : "warn"} icon={invOk ? "check" : "alert"}>
-          {invOk ? "invariants hold" : "invariant drift"}
+        <Chip tone="info" icon="cards">
+          {info?.featureId ?? "—"} · {info?.cards.length ?? 0} / {GS_CARDS.length}
         </Chip>
-        <Chip tone="info" icon="cards">{info?.featureId ?? "—"} · {info?.cards.length ?? 0} rows</Chip>
-        <Chip tone="gold" icon="star">total {info?.total ?? 0}</Chip>
-        <Chip tone="neutral" icon="infinite">streak {info?.streak ?? 0}</Chip>
-        <Chip tone="neutral" icon="sendCards">gifts in {info?.gifting.received.length ?? 0}</Chip>
+        <Chip tone="gold" icon="star">
+          total {info?.total ?? 0}
+        </Chip>
+        <Chip tone={info?.eventActive ? "ok" : "neutral"} icon="infinite">
+          {info?.eventActive ? "event live" : "event idle"}
+        </Chip>
       </div>
 
-      <Panel
-        title="Batch"
-        icon="cards"
-        hint="Amount is per ticked card. Stock 1–9999."
-      >
+      <Panel title="Collection" icon="cards">
         <div className="gs-pair">
-          <Field label="Grant amount" value={amount} onChange={setAmount} suffix={`× ${sel.size} cards`} />
-          <Field label="Set stock" value={stock} onChange={setStock} suffix="each" />
+          <Field label="Amount" value={amount} onChange={setAmount} suffix="per card" />
+          <Field label="Stock" value={stock} onChange={setStock} suffix="each" />
         </div>
-        <div className="gs-actions">
+        <div className="gs-actions mt-3">
           <Button
             size="sm"
-            disabled={c.busy || !sel.size}
-            onClick={() => void run(() => gsGrantCards({ data: { ...sessOf(c), ids: [...sel], amount: amt } }), "Grant cards")}
+            disabled={c.busy}
+            onClick={() =>
+              void run(
+                () => gsGrantCards({ data: { ...sessOf(c), ids: GS_CARDS.map((x) => x.id), amount: amt } }),
+                "All cards",
+              )
+            }
           >
-            <GsIcon name="plus" className="size-4" /> Grant {sel.size}
+            <GsIcon name="plus" className="size-4" /> Fill all 150 ×{amt}
           </Button>
           <Button
             size="sm"
             variant="outline"
-            disabled={c.busy || !sel.size}
-            onClick={() => void run(async () => {
-              const results: GsEditResult[] = [];
-              for (const id of sel) {
-                const r = await gsSetCardStock({ data: { ...sessOf(c), cardId: id, stock: stk } });
-                results.push(r as GsEditResult);
-              }
-              return results.reduce(
-                (acc, r) => ({ changed: [...acc.changed, ...r.changed], missing: [...acc.missing, ...r.missing] }),
-                { changed: [] as string[], missing: [] as string[] },
-              );
-            }, "Set stock")}
-          >
-            Set stock
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={c.busy || !sel.size}
-            onClick={() => void run(() => gsMarkCardsSeen({ data: { ...sessOf(c), ids: [...sel] } }), "Mark seen", true)}
-          >
-            <GsIcon name="check" className="size-4" /> Mark seen
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
             disabled={c.busy}
             onClick={() => void run(() => gsSetAllStock({ data: { ...sessOf(c), stock: stk } }), "All stock")}
           >
             Set every stock
           </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={c.busy}
+            onClick={() => void run(() => gsMarkCardsSeen({ data: sessOf(c) }), "Mark seen")}
+          >
+            <GsIcon name="check" className="size-4" /> Mark seen
+          </Button>
         </div>
+        <CardCells
+          info={info}
+          busy={c.busy}
+          onPick={(id) => void run(() => gsGrantCards({ data: { ...sessOf(c), ids: [id], amount: amt } }), id)}
+        />
       </Panel>
 
-      <Panel title="Catalog" icon="cards">
-        <CardGrid info={info} mode="pick" sel={sel} onToggle={toggle} onAll={selectSet} onNone={() => setSel(new Set())} />
-      </Panel>
-
-      <Panel title="Sets" icon="layers" hint="Collection progress per set of ten.">
+      <Panel title="Sets" icon="layers">
         <Grid cols="wide">
           {(info?.sets ?? []).map((s, i) => (
             <div key={s.setId} className="gs-stat" data-tone={String((i % 7) + 1)}>
@@ -686,13 +461,12 @@ export function GsCards() {
                 {s.complete ? <GsIcon name="star" className="size-3.5 text-amber" /> : null}
               </span>
               <span className="gs-stat-value">{s.owned}/10</span>
-              <span className="gs-stat-sub">seen {s.seen} · progress {s.lastSeenProgress}</span>
             </div>
           ))}
         </Grid>
       </Panel>
 
-      <Panel title="Packs" icon="cards" hint="Card pack counts, 0–65535.">
+      <Panel title="Packs" icon="cards">
         <div className="gs-form">
           {GS_CARD_PACKS.map((id) => (
             <Field
@@ -724,93 +498,72 @@ export function GsCards() {
           >
             Save packs
           </Button>
-          <Button size="sm" variant="outline" disabled={c.busy}
-            onClick={() => void run(() => gsSetPackStreak({ data: { ...sessOf(c), value: Math.max(0, Math.floor(Number(packEdits.__streak) || 0)) } }), "Pack streak")}>
-            Set streak
-          </Button>
           <span className="gs-inline-field">
             <span className="kicker">Streak</span>
-            <input className="field field-qty font-mono" value={packEdits.__streak ?? String(info?.streak ?? 0)}
-              onChange={(e) => setPackEdits((p) => ({ ...p, __streak: e.target.value }))} />
+            <input
+              className="field field-qty font-mono"
+              value={packEdits.__streak ?? String(info?.streak ?? 0)}
+              onChange={(e) => setPackEdits((p) => ({ ...p, __streak: e.target.value }))}
+            />
           </span>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={c.busy}
+            onClick={() =>
+              void run(
+                () => gsSetPackStreak({ data: { ...sessOf(c), value: Math.max(0, Math.floor(Number(packEdits.__streak) || 0)) } }),
+                "Streak",
+              )
+            }
+          >
+            Set streak
+          </Button>
         </div>
       </Panel>
 
-      <Panel title="Feature flags" icon="gear" hint="Event window and the Grand Collection switch.">
-        <div className="gs-actions">
-          <Toggle on={!!info?.eventActive} disabled={c.busy}
-            onClick={() => void run(() => gsSetEventActive({ data: { ...sessOf(c), on: !info?.eventActive } }), "Event")}>
-            Event active
-          </Toggle>
-          <Toggle on={!!info?.grandCollection} disabled={c.busy}
-            onClick={() => void run(() => gsSetGrandCollection({ data: { ...sessOf(c), on: !info?.grandCollection } }), "Grand collection")}>
-            Grand collection
-          </Toggle>
+      <Panel title="Gifts" icon="mail">
+        <div className="gs-chips">
+          <Chip tone={info?.gifting.received.length ? "gold" : "neutral"} icon="mail">
+            {info?.gifting.received.length ?? 0} received
+          </Chip>
         </div>
         <div className="gs-actions mt-3">
-          <Button size="sm" variant="success" disabled={c.busy}
-            onClick={() => void run(() => gsAcceptReceivedCards({ data: sessOf(c) }), "Accept gifts")}>
-            Accept {info?.gifting.received.length ?? 0} received
+          <Button
+            size="sm"
+            variant="success"
+            disabled={c.busy || !(info?.gifting.received.length ?? 0)}
+            onClick={() => void run(() => gsAcceptReceivedCards({ data: sessOf(c) }), "Accept gifts")}
+          >
+            Accept all
           </Button>
-          <Button size="sm" variant="ghost" disabled={c.busy}
-            onClick={() => void run(() => gsClearGiftingInbox({ data: sessOf(c) }), "Gifting inbox")}>
-            Clear gifting inbox
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={c.busy}
+            onClick={() => void run(() => gsClearGiftingInbox({ data: sessOf(c) }), "Clear inbox")}
+          >
+            Clear inbox
           </Button>
         </div>
-        {info?.gifting.received.length ? (
-          <div className="gs-list mt-3">
-            {info.gifting.received.map((g, i) => (
-              <div key={`${g.uniqueGiftingId}-${i}`} className="gs-row">
-                <span className="gs-row-main">
-                  <GsIcon name="mail" className="size-4" />
-                  <span className="gs-row-title">{g.cardId}</span>
-                  <span className="gs-row-meta">from {g.senderId}</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </Panel>
-
-      {info?.blockers.length ? (
-        <Panel title="Blockers" icon="lock" hint="Hold-back switches a set may carry.">
-          <div className="gs-list">
-            {info.blockers.map((b) => (
-              <div key={`${b.featureId}-${b.setId}`} className="gs-row">
-                <span className="gs-row-main">
-                  <span className="gs-row-title">{b.featureId} · {b.setId}</span>
-                  <span className="gs-row-meta">{b.pairs.length} pairs</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      ) : null}
     </div>
   );
 }
 
 // === Send Cards ===========================================================
 
-interface SendPlan {
-  recipients: string[];
-  rows: { cardId: string; setId: string; amount: number; owned: boolean }[];
-  cardCount: number;
-  totalCards: number;
-  recipientCap: number;
-  ownedCount: number;
-  unownedCount: number;
-  deliverable: false;
-  notice: string;
-}
-
+/**
+ * Delivery happens inside the save: the reference editors relay friend sends
+ * through their own licensed backend, and a Gardenscapes save holds no friend
+ * roster to write into. What this tab therefore does — and what is proven to
+ * land in game — is put the ticked cards straight into this save's collection,
+ * one button per card, in the chosen amount.
+ */
 export function GsSendCards() {
   const c = useGs();
   const [info, setInfo] = useState<CardsInfo | null>(null);
-  const [recipientsText, setRecipientsText] = useState("");
-  const [sel, setSel] = useState<Set<string>>(new Set());
   const [amount, setAmount] = useState("1");
-  const [plan, setPlan] = useState<SendPlan | null>(null);
 
   const load = async () => {
     if (!c.sessionId) return;
@@ -823,133 +576,44 @@ export function GsSendCards() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.sessionId]);
 
-  const recipients = useMemo(
-    () =>
-      recipientsText
-        .split(/[\s,;]+/)
-        .map((x) => x.trim())
-        .filter(Boolean),
-    [recipientsText],
-  );
-  const bad = recipients.filter((r) => !/^[A-Za-z0-9]{4,32}$/.test(r));
-
-  const toggle = (id: string) =>
-    setSel((p) => {
-      const n = new Set(p);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
-
   const amt = Math.max(1, Math.min(9999, Math.floor(Number(amount) || 1)));
 
-  const buildPlan = async () => {
-    if (!recipients.length || !sel.size) {
-      toast.error("Add at least one recipient and tick at least one card");
-      return;
-    }
-    if (bad.length) {
-      toast.error(`Bad recipient id: ${bad[0]}`);
-      return;
-    }
-    const r = await c.act(() =>
-      gsPlanCardSend({ data: { ...sessOf(c), recipients, cardIds: [...sel], amount: amt } }),
-    );
-    if (r) setPlan(r as SendPlan);
-  };
-
-  const receive = async () => {
-    if (!sel.size) {
-      toast.error("Tick the cards to grant");
-      return;
-    }
-    const r = await c.act(() =>
-      gsSendCardsToSelf({ data: { ...sessOf(c), cardIds: [...sel], amount: amt } }),
-    );
-    c.note(r as GsEditResult | undefined, "Receive into my save");
-    setPlan(null);
-    await c.reload();
+  const send = async (ids: string[]) => {
+    const r = await c.act(() => gsSendCardsToSelf({ data: { ...sessOf(c), cardIds: ids, amount: amt } }));
+    c.note(r as GsEditResult | undefined, "Cards delivered");
     await load();
   };
 
   return (
     <div className="gs-stack">
       <Panel
-        title="Recipients"
-        icon="users"
-        hint="One save id per line (4–32 letters/digits). Your plan is checked against your own collection first."
+        title="Send cards"
+        icon="sendCards"
+        actions={
+          <Button
+            size="sm"
+            disabled={c.busy}
+            onClick={() => void send(GS_CARDS.map((x) => x.id))}
+          >
+            <GsIcon name="sendCards" className="size-4" /> Send all ×{amt}
+          </Button>
+        }
       >
-        <textarea
-          className="field gs-textarea font-mono"
-          rows={3}
-          placeholder={"one save id per line\nAb12Cd34"}
-          value={recipientsText}
-          onChange={(e) => {
-            setRecipientsText(e.target.value);
-            setPlan(null);
-          }}
-        />
-        <div className="gs-chips mt-2">
-          <Chip tone={recipients.length ? "info" : "neutral"} icon="users">{recipients.length} recipients</Chip>
-          {bad.length ? <Chip tone="warn" icon="alert">{bad.length} invalid</Chip> : null}
-          <Chip tone="neutral" icon="lock">max {plan?.recipientCap ?? 7} cards each</Chip>
+        <div className="gs-pair">
+          <Field label="Amount" value={amount} onChange={setAmount} suffix="per card" />
         </div>
+        <div className="gs-chips mt-2">
+          <Chip tone="info" icon="cards">
+            {info?.cards.length ?? 0} owned · {GS_CARDS.length} cards
+          </Chip>
+          <Chip tone="ok" icon="check">
+            delivered to this save
+          </Chip>
+        </div>
+        <CardCells info={info} busy={c.busy} onPick={(id) => void send([id])} />
       </Panel>
-
-      <Bar
-        hint="Tick the cards to send. Quantity is per (recipient × card), 1–9999."
-        onAll={() => setSel(new Set((info?.catalog ?? []).filter((r) => r.owned).map((r) => r.cardId)))}
-        onClear={() => setSel(new Set())}
-        allLabel="All owned"
-        clearLabel="Clear"
-        extra={<Field label="Amount" value={amount} onChange={setAmount} />}
-      />
-
-      <Panel title="Cards" icon="cards">
-        <CardGrid
-          info={info}
-          mode="pick"
-          sel={sel}
-          onToggle={toggle}
-          onAll={() => setSel(new Set((info?.catalog ?? []).filter((r) => r.owned).map((r) => r.cardId)))}
-          onNone={() => setSel(new Set())}
-        />
-      </Panel>
-
-      <div className="gs-actions">
-        <Button size="sm" disabled={c.busy || !sel.size || !recipients.length} onClick={() => void buildPlan()}>
-          <GsIcon name="sendCards" className="size-4" /> Build plan ({sel.size})
-        </Button>
-        <Button size="sm" variant="success" disabled={c.busy || !sel.size} onClick={() => void receive()}>
-          <GsIcon name="download" className="size-4" /> Receive into my save
-        </Button>
-      </div>
-
-      {plan ? (
-        <Panel title="Plan" icon="info" hint={plan.notice}>
-          <div className="gs-chips">
-            <Chip tone="info" icon="users">{plan.recipients.length} recipients</Chip>
-            <Chip tone="gold" icon="cards">{plan.totalCards} cards total</Chip>
-            <Chip tone="ok" icon="check">{plan.ownedCount} owned</Chip>
-            {plan.unownedCount ? <Chip tone="warn" icon="alert">{plan.unownedCount} unowned</Chip> : null}
-          </div>
-          <div className="gs-list mt-3">
-            {plan.rows.map((r) => (
-              <div key={r.cardId} className="gs-row">
-                <span className="gs-row-main">
-                  <GsIcon name={r.owned ? "check" : "minus"} className="size-4" />
-                  <span className="gs-row-title">{r.cardId}</span>
-                  <span className="gs-row-meta">{r.setId}</span>
-                </span>
-                <span className="gs-row-meta">×{r.amount} → {plan.recipients.length} recipients</span>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      ) : null}
     </div>
   );
 }
 
-// re-exported so gs-app can reuse the tone table for set chips
 export { SET_TONES };

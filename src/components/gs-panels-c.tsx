@@ -1,13 +1,20 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import {
   gsProfileCatalogs,
   gsReadProfile,
-  gsUnlockAllBadges,
-  gsUnlockAllTitles,
   gsUnlockAvatarStyles,
-  gsUnlockAvatars,
+  gsUnlockBadges,
   gsUnlockFrames,
   gsUnlockNameStyles,
+  gsUnlockTitles,
+  gsUnlockAvatars,
+  gsWearAvatar,
+  gsWearAvatarStyle,
+  gsWearBadgeById,
+  gsWearFrame,
+  gsWearNameStyle,
+  gsWearTitle,
 } from "@/lib/gs-api";
 import {
   GS_AVATARS,
@@ -20,16 +27,14 @@ import {
   type GsCatalogEntry,
 } from "@/lib/server/gardenscapes/catalogs";
 import { useGs, sessOf, type GsEditResult } from "./gs-ctx";
-import { Chip, GsIcon, Grid, Panel, Tile } from "./gs-ui";
+import { Chip, Grid, Panel, Tile } from "./gs-ui";
 
 // ---------------------------------------------------------------------------
 // Tab group C — Avatars, Frames, Styles, Badges, Titles.
 //
-// Each tab is one professional ENABLE button over a read-only gallery. The
-// button mints every unlock the save is missing; pressing *Save & push* in the
-// sidebar is what sends it to the device, after which the items show unlocked
-// in game. Galleries carry no controls of their own — they only report what
-// the save currently holds.
+// Every item is its own button, exactly like the reference editor: pressing a
+// cell unlocks it (when needed) and puts it on, and the cell then reads "worn".
+// A single "All" action in each panel header unlocks the whole set.
 // ---------------------------------------------------------------------------
 
 interface OwnedBadge {
@@ -48,19 +53,15 @@ interface ProfileInfo {
   avatarsShown: string[];
   avatarStylesShown: string[];
   nameStylesShown: string[];
-  framesShown: string[];
+  framesOwned: string[];
   titlesEarned: string[];
   boughtAvatars: number;
-  boughtFrames: number;
   ownedBadges: OwnedBadge[];
 }
 
-/** Load the profile + the static id lists every cosmetic tab needs. */
 function useProfile() {
   const c = useGs();
   const [p, setP] = useState<ProfileInfo | null>(null);
-  const [frames, setFrames] = useState<string[]>([]);
-  const [avatars, setAvatars] = useState<string[]>([]);
 
   const load = async () => {
     if (!c.sessionId) return;
@@ -75,132 +76,79 @@ function useProfile() {
 
   useEffect(() => {
     if (!c.token) return;
-    void c.act(async () => {
-      const r = await gsProfileCatalogs({ data: { token: c.token } });
-      setFrames(r.frames);
-      setAvatars(r.avatars);
-      return r;
-    });
+    void c.act(() => gsProfileCatalogs({ data: { token: c.token } }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.token]);
 
-  /** Run an edit, toast its result, then re-read the save. */
+  /** Run one edit, toast it, then re-read the save. */
   const run = async (fn: () => Promise<unknown>, label: string) => {
     const r = await c.act(fn);
     c.note(r as GsEditResult | undefined, label);
     await load();
   };
 
-  return { c, p, frames, avatars, load, run };
+  /** Run two edits in order (unlock → wear) as one gesture. */
+  const runSeq = async (fns: Array<() => Promise<unknown>>, label: string) => {
+    let last: unknown;
+    await c.act(async () => {
+      for (const fn of fns) last = await fn();
+      return last;
+    });
+    c.note(last as GsEditResult | undefined, label);
+    await load();
+  };
+
+  return { c, p, load, run, runSeq };
 }
 
-// ---------------------------------------------------------------------------
-// The ENABLE hero — one button, one purpose, per tab.
-// ---------------------------------------------------------------------------
-
-function EnableHero({
-  icon,
-  title,
-  caption,
-  count,
-  total,
-  ready,
-  busy,
-  onEnable,
-}: {
-  icon: string;
-  title: string;
-  caption: string;
-  /** How many the save already holds. */
-  count: number;
-  /** How many exist in the catalog. */
-  total: number;
-  /** False when the save already holds everything. */
-  ready: boolean;
-  busy: boolean;
-  onEnable: () => void;
-}) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+/** A compact count strip — numbers only, no prose. */
+function Counts({ owned, total, extra }: { owned: number; total: number; extra?: ReactNode }) {
   return (
-    <section className="gs-enable panel">
-      <div className="gs-enable-icon" aria-hidden="true">
-        <GsIcon name={icon} className="size-7" />
-      </div>
-
-      <div className="gs-enable-body">
-        <h3 className="gs-enable-title">{title}</h3>
-        <p className="gs-enable-caption">{caption}</p>
-
-        <div className="gs-enable-progress">
-          <span className="gs-enable-bar">
-            <span className="gs-enable-bar-fill" style={{ width: `${pct}%` }} />
-          </span>
-          <span className="gs-enable-count tabular-nums">
-            {count} <span className="gs-enable-count-total">/ {total}</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="gs-enable-action">
-        <button
-          type="button"
-          className="gs-enable-btn"
-          disabled={busy || !ready}
-          onClick={onEnable}
-        >
-          <GsIcon name={ready ? "lock" : "check"} className="size-5" />
-          <span>{ready ? "ENABLE" : "UNLOCKED"}</span>
-        </button>
-        <p className="gs-enable-hint">
-          {ready ? "Then press Save & push" : "Everything is unlocked"}
-        </p>
-      </div>
-    </section>
+    <div className="gs-chips">
+      <Chip tone="ok" icon="check">
+        {owned} / {total}
+      </Chip>
+      {extra}
+    </div>
   );
 }
 
-/** A read-only gallery section. Tiles never take clicks. */
-function Gallery({
-  title,
-  icon,
-  right,
-  entries,
-  isOwned,
-  isWorn,
+/** One clickable catalog cell. */
+function PickTile({
+  entry,
+  owned,
+  worn,
+  busy,
+  onClick,
+  sub,
 }: {
-  title: string;
-  icon: string;
-  right?: ReactNode;
-  entries: GsCatalogEntry[];
-  isOwned: (id: string) => boolean;
-  isWorn?: (id: string) => boolean;
+  entry: GsCatalogEntry;
+  owned: boolean;
+  worn?: boolean;
+  busy: boolean;
+  onClick: () => void;
+  sub?: string;
 }) {
   return (
-    <Panel title={title} icon={icon} actions={right}>
-      <Grid cols="narrow">
-        {entries.map((e) => (
-          <Tile
-            key={e.id}
-            label={e.label}
-            sub={e.grand ? "Grand" : undefined}
-            glyph={e.emoji}
-            art={e.art}
-            color={e.color}
-            owned={isOwned(e.id)}
-            worn={isWorn ? isWorn(e.id) : undefined}
-            disabled
-            title={e.label}
-          />
-        ))}
-      </Grid>
-    </Panel>
+    <Tile
+      label={entry.label}
+      sub={sub ?? (worn ? "Worn" : owned ? "Owned" : "Unlock")}
+      glyph={entry.emoji ?? entry.label.slice(0, 1).toUpperCase()}
+      art={entry.art}
+      color={entry.color}
+      owned={owned}
+      worn={worn}
+      disabled={busy}
+      onClick={onClick}
+      title={`${entry.label} — ${worn ? "worn" : owned ? "click to wear" : "click to unlock"}`}
+    />
   );
 }
 
 // === Avatars ==============================================================
 
 export function GsAvatars() {
-  const { c, p, avatars, run } = useProfile();
+  const { c, p, run } = useProfile();
 
   const owned = useMemo(() => {
     const s = new Set(p?.avatarsShown ?? []);
@@ -208,46 +156,45 @@ export function GsAvatars() {
     return s;
   }, [p]);
 
-  const catalog = useMemo(
-    () =>
-      GS_AVATARS.map<GsCatalogEntry>((a) => ({
-        ...a,
-        grand: false,
-        emoji: a.emoji ?? a.label.slice(0, 1).toUpperCase(),
-      })),
-    [],
-  );
-
   return (
     <div className="gs-stack">
-      <EnableHero
-        icon="avatars"
-        title="Unlock every avatar"
-        caption="All profile pictures are added to your save in one click."
-        count={owned.size}
-        total={catalog.length}
-        ready={owned.size < catalog.length}
-        busy={c.busy}
-        onEnable={() =>
-          void run(
-            () => gsUnlockAvatars({ data: { ...sessOf(c), ids: [...(avatars.length ? avatars : catalog.map((a) => a.id))] } }),
-            "All avatars",
-          )
-        }
-      />
-
-      <div className="gs-chips">
-        <Chip tone="gold" icon="user">wearing {p?.currentAvatarId || "—"}</Chip>
-        <Chip tone="ok" icon="check">{owned.size} unlocked</Chip>
-      </div>
-
-      <Gallery
+      <Panel
         title="Avatars"
         icon="avatars"
-        entries={catalog}
-        isOwned={(id) => owned.has(id)}
-        isWorn={(id) => p?.currentAvatarId === id}
-      />
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={c.busy}
+            onClick={() =>
+              void run(
+                () => gsUnlockAvatars({ data: { ...sessOf(c), ids: GS_AVATARS.map((a) => a.id) } }),
+                "All avatars",
+              )
+            }
+          >
+            Unlock all
+          </Button>
+        }
+      >
+        <Counts
+          owned={owned.size}
+          total={GS_AVATARS.length}
+          extra={<Chip tone="gold" icon="user">{p?.currentAvatarId || "—"}</Chip>}
+        />
+        <Grid cols="narrow">
+          {GS_AVATARS.map((a) => (
+            <PickTile
+              key={a.id}
+              entry={a}
+              owned={owned.has(a.id)}
+              worn={p?.currentAvatarId === a.id}
+              busy={c.busy}
+              onClick={() => void run(() => gsWearAvatar({ data: { ...sessOf(c), id: a.id } }), a.label)}
+            />
+          ))}
+        </Grid>
+      </Panel>
     </div>
   );
 }
@@ -255,43 +202,50 @@ export function GsAvatars() {
 // === Frames ===============================================================
 
 export function GsFrames() {
-  const { c, p, frames, run } = useProfile();
+  const { c, p, run } = useProfile();
 
-  const all = useMemo(
-    () => [...GS_FRAMES, ...GS_FRAMES_ACTIVATABLE],
-    [],
-  );
-  const owned = useMemo(() => new Set(p?.framesShown ?? []), [p]);
+  const all = useMemo(() => [...GS_FRAMES, ...GS_FRAMES_ACTIVATABLE], []);
+  const owned = useMemo(() => new Set(p?.framesOwned ?? []), [p]);
 
   return (
     <div className="gs-stack">
-      <EnableHero
-        icon="frames"
-        title="Unlock every frame"
-        caption="Every profile frame is unlocked on your save in one click."
-        count={owned.size}
-        total={all.length}
-        ready={owned.size < all.length}
-        busy={c.busy}
-        onEnable={() =>
-          void run(
-            () => gsUnlockFrames({ data: { ...sessOf(c), ids: frames.length ? frames : all.map((f) => f.id) } }),
-            "All frames",
-          )
-        }
-      />
-
-      <div className="gs-chips">
-        <Chip tone="ok" icon="check">{owned.size} unlocked</Chip>
-        <Chip tone="gold" icon="frames">{all.length} available</Chip>
-      </div>
-
-      <Gallery
+      <Panel
         title="Frames"
         icon="frames"
-        entries={all}
-        isOwned={(id) => owned.has(id)}
-      />
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={c.busy}
+            onClick={() =>
+              void run(
+                () => gsUnlockFrames({ data: { ...sessOf(c), ids: all.map((f) => f.id) } }),
+                "All frames",
+              )
+            }
+          >
+            Unlock all
+          </Button>
+        }
+      >
+        <Counts
+          owned={owned.size}
+          total={all.length}
+          extra={<Chip tone="gold" icon="frames">{p?.wornAvatarStyle || "—"}</Chip>}
+        />
+        <Grid cols="narrow">
+          {all.map((f) => (
+            <PickTile
+              key={f.id}
+              entry={f}
+              owned={owned.has(f.id)}
+              worn={p?.wornAvatarStyle === f.id}
+              busy={c.busy}
+              onClick={() => void run(() => gsWearFrame({ data: { ...sessOf(c), id: f.id } }), f.label)}
+            />
+          ))}
+        </Grid>
+      </Panel>
     </div>
   );
 }
@@ -303,54 +257,84 @@ export function GsStyles() {
 
   const nameOwned = useMemo(() => new Set(p?.nameStylesShown ?? []), [p]);
   const avatarOwned = useMemo(() => new Set(p?.avatarStylesShown ?? []), [p]);
-  const total = GS_STYLES.length + GS_AVATAR_STYLES.length;
-  const count = nameOwned.size + avatarOwned.size;
-
-  const enable = async () => {
-    await run(
-      () => gsUnlockNameStyles({ data: { ...sessOf(c), styles: GS_STYLES.map((s) => s.id) } }),
-      "All name styles",
-    );
-    await run(
-      () => gsUnlockAvatarStyles({ data: { ...sessOf(c), styles: GS_AVATAR_STYLES.map((s) => s.id) } }),
-      "All avatar styles",
-    );
-  };
 
   return (
     <div className="gs-stack">
-      <EnableHero
-        icon="styles"
-        title="Unlock every style"
-        caption="Name styles and avatar styles are added to your save in one click."
-        count={count}
-        total={total}
-        ready={count < total}
-        busy={c.busy}
-        onEnable={() => void enable()}
-      />
-
-      <div className="gs-chips">
-        <Chip tone="gold" icon="styles">name {p?.wornNameStyle || "default"}</Chip>
-        <Chip tone="gold" icon="user">avatar {p?.wornAvatarStyle || "default"}</Chip>
-        <Chip tone="ok" icon="check">{count} unlocked</Chip>
-      </div>
-
-      <Gallery
+      <Panel
         title="Name styles"
         icon="styles"
-        entries={GS_STYLES}
-        isOwned={(id) => nameOwned.has(id)}
-        isWorn={(id) => p?.wornNameStyle === id}
-      />
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={c.busy}
+            onClick={() =>
+              void run(
+                () => gsUnlockNameStyles({ data: { ...sessOf(c), styles: GS_STYLES.map((s) => s.id) } }),
+                "All name styles",
+              )
+            }
+          >
+            Unlock all
+          </Button>
+        }
+      >
+        <Counts
+          owned={nameOwned.size}
+          total={GS_STYLES.length}
+          extra={<Chip tone="gold" icon="styles">{p?.wornNameStyle || "—"}</Chip>}
+        />
+        <Grid cols="narrow">
+          {GS_STYLES.map((s) => (
+            <PickTile
+              key={s.id}
+              entry={s}
+              owned={nameOwned.has(s.id)}
+              worn={p?.wornNameStyle === s.id}
+              busy={c.busy}
+              onClick={() => void run(() => gsWearNameStyle({ data: { ...sessOf(c), style: s.id } }), s.label)}
+            />
+          ))}
+        </Grid>
+      </Panel>
 
-      <Gallery
+      <Panel
         title="Avatar styles"
         icon="user"
-        entries={GS_AVATAR_STYLES}
-        isOwned={(id) => avatarOwned.has(id)}
-        isWorn={(id) => p?.wornAvatarStyle === id}
-      />
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={c.busy}
+            onClick={() =>
+              void run(
+                () => gsUnlockAvatarStyles({ data: { ...sessOf(c), styles: GS_AVATAR_STYLES.map((s) => s.id) } }),
+                "All avatar styles",
+              )
+            }
+          >
+            Unlock all
+          </Button>
+        }
+      >
+        <Counts
+          owned={avatarOwned.size}
+          total={GS_AVATAR_STYLES.length}
+          extra={<Chip tone="gold" icon="user">{p?.wornAvatarStyle || "—"}</Chip>}
+        />
+        <Grid cols="narrow">
+          {GS_AVATAR_STYLES.map((s) => (
+            <PickTile
+              key={s.id}
+              entry={s}
+              owned={avatarOwned.has(s.id)}
+              worn={p?.wornAvatarStyle === s.id}
+              busy={c.busy}
+              onClick={() => void run(() => gsWearAvatarStyle({ data: { ...sessOf(c), style: s.id } }), s.label)}
+            />
+          ))}
+        </Grid>
+      </Panel>
     </div>
   );
 }
@@ -358,7 +342,7 @@ export function GsStyles() {
 // === Badges ==============================================================
 
 export function GsBadges() {
-  const { c, p, run } = useProfile();
+  const { c, p, run, runSeq } = useProfile();
 
   const ownedIds = useMemo(() => {
     const s = new Set<string>();
@@ -366,31 +350,60 @@ export function GsBadges() {
     return s;
   }, [p]);
 
+  const pick = (id: string) => {
+    if (ownedIds.has(id)) {
+      void run(() => gsWearBadgeById({ data: { ...sessOf(c), id } }), "Badge");
+      return;
+    }
+    void runSeq(
+      [
+        () => gsUnlockBadges({ data: { ...sessOf(c), ids: [id] } }),
+        () => gsWearBadgeById({ data: { ...sessOf(c), id } }),
+      ],
+      "Badge",
+    );
+  };
+
   return (
     <div className="gs-stack">
-      <EnableHero
-        icon="badges"
-        title="Unlock every badge"
-        caption="Every badge in the game is minted onto your save in one click."
-        count={ownedIds.size}
-        total={GS_BADGES.length}
-        ready={ownedIds.size < GS_BADGES.length}
-        busy={c.busy}
-        onEnable={() => void run(() => gsUnlockAllBadges({ data: sessOf(c) }), "All badges")}
-      />
-
-      <div className="gs-chips">
-        <Chip tone="gold" icon="crown">{p?.wornBadgeId || "no badge worn"}</Chip>
-        <Chip tone="ok" icon="check">{ownedIds.size} unlocked</Chip>
-      </div>
-
-      <Gallery
+      <Panel
         title="Badges"
         icon="badges"
-        entries={GS_BADGES}
-        isOwned={(id) => ownedIds.has(id)}
-        isWorn={(id) => p?.wornBadgeId === id}
-      />
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={c.busy}
+            onClick={() =>
+              void run(
+                () => gsUnlockBadges({ data: { ...sessOf(c), ids: GS_BADGES.map((b) => b.id) } }),
+                "All badges",
+              )
+            }
+          >
+            Unlock all
+          </Button>
+        }
+      >
+        <Counts
+          owned={ownedIds.size}
+          total={GS_BADGES.length}
+          extra={<Chip tone="gold" icon="crown">{p?.wornBadgeId || "—"}</Chip>}
+        />
+        <Grid cols="narrow">
+          {GS_BADGES.map((b) => (
+            <PickTile
+              key={b.id}
+              entry={b}
+              sub={b.grand ? "Grand" : undefined}
+              owned={ownedIds.has(b.id)}
+              worn={p?.wornBadgeId === b.id}
+              busy={c.busy}
+              onClick={() => pick(b.id)}
+            />
+          ))}
+        </Grid>
+      </Panel>
     </div>
   );
 }
@@ -404,29 +417,44 @@ export function GsTitles() {
 
   return (
     <div className="gs-stack">
-      <EnableHero
-        icon="titles"
-        title="Unlock every title"
-        caption="Every player title is earned on your save in one click."
-        count={earned.size}
-        total={GS_TITLES.length}
-        ready={earned.size < GS_TITLES.length}
-        busy={c.busy}
-        onEnable={() => void run(() => gsUnlockAllTitles({ data: sessOf(c) }), "All titles")}
-      />
-
-      <div className="gs-chips">
-        <Chip tone="gold" icon="titles">wearing {p?.wornTitleId || "—"}</Chip>
-        <Chip tone="ok" icon="check">{earned.size} unlocked</Chip>
-      </div>
-
-      <Gallery
+      <Panel
         title="Titles"
         icon="titles"
-        entries={GS_TITLES}
-        isOwned={(id) => earned.has(id)}
-        isWorn={(id) => p?.wornTitleId === id}
-      />
+        actions={
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={c.busy}
+            onClick={() =>
+              void run(
+                () => gsUnlockTitles({ data: { ...sessOf(c), ids: GS_TITLES.map((t) => t.id) } }),
+                "All titles",
+              )
+            }
+          >
+            Unlock all
+          </Button>
+        }
+      >
+        <Counts
+          owned={earned.size}
+          total={GS_TITLES.length}
+          extra={<Chip tone="gold" icon="titles">{p?.wornTitleId || "—"}</Chip>}
+        />
+        <Grid cols="narrow">
+          {GS_TITLES.map((t) => (
+            <PickTile
+              key={t.id}
+              entry={t}
+              sub={t.grand ? "Grand" : undefined}
+              owned={earned.has(t.id)}
+              worn={p?.wornTitleId === t.id}
+              busy={c.busy}
+              onClick={() => void run(() => gsWearTitle({ data: { ...sessOf(c), titleId: t.id } }), t.label)}
+            />
+          ))}
+        </Grid>
+      </Panel>
     </div>
   );
 }

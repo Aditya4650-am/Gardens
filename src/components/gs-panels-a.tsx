@@ -81,13 +81,14 @@ interface ProfileInfo {
   wornNameStyle: string;
   wornTitleId: string;
   wornBadgeCipher: string;
+  wornBadgeId: string;
   currentAvatarId: string;
   avatarsShown: string[];
   avatarStylesShown: string[];
   nameStylesShown: string[];
-  framesShown: string[];
+  framesOwned: string[];
+  titlesEarned: string[];
   boughtAvatars: number;
-  boughtFrames: number;
   ownedBadges: OwnedBadge[];
 }
 interface Booster {
@@ -226,7 +227,7 @@ export function GsDashboard() {
         />
       </Grid>
 
-      <Panel title="Quick actions" icon="spark" hint="Jump straight to a section, or refresh the session from the device.">
+      <Panel title="Quick actions" icon="spark">
         <div className="gs-actions">
           {(["cards", "send", "seasons", "decor", "statistics", "backups"] as GsTab[]).map((t) => (
             <Button key={t} variant="tool" size="sm" onClick={() => c.go(t)}>
@@ -237,7 +238,7 @@ export function GsDashboard() {
         </div>
       </Panel>
 
-      <Panel title="Session log" icon="terminal" hint="Every edit this session has applied, newest last.">
+      <Panel title="Session log" icon="terminal">
         <div className="gs-log">
           {(c.snap?.log?.length ? c.snap.log : ["connected — no edits yet"]).map((l, i) => (
             <p key={i}>› {l}</p>
@@ -291,7 +292,7 @@ export function GsPlayer() {
       <Panel
         title="Identity"
         icon="player"
-        hint="Name, pet names and headline numbers — updated in place, never created."
+       
         actions={
           <Button size="sm" onClick={() => void apply()} disabled={c.busy}>
             <GsIcon name="save" className="size-4" /> Apply
@@ -311,12 +312,12 @@ export function GsPlayer() {
         </div>
       </Panel>
 
-      <Panel title="Worn appearance" icon="user" hint="What your profile shows in game right now.">
+      <Panel title="Worn appearance" icon="user">
         <Grid cols="wide">
           <Stat icon="avatars" tone={1} label="Avatar" value={info?.currentAvatarId || "—"} sub={info?.wornAvatarStyle || "default"} onClick={() => c.go("avatars")} />
           <Stat icon="titles" tone={2} label="Title" value={info?.wornTitleId || "—"} sub="tap to change" onClick={() => c.go("titles")} />
           <Stat icon="badges" tone={3} label="Badge" value={info?.wornBadgeCipher ? "worn" : "—"} sub={info ? `${info.ownedBadges.length} owned` : ""} onClick={() => c.go("badges")} />
-          <Stat icon="frames" tone={4} label="Avatar frame" value={info?.framesShown.length ? `${info.framesShown.length} shown` : "—"} sub="tap to unlock" onClick={() => c.go("frames")} />
+          <Stat icon="frames" tone={4} label="Avatar frame" value={info?.framesOwned.length ? `${info.framesOwned.length} owned` : "—"} sub="tap to unlock" onClick={() => c.go("frames")} />
         </Grid>
         <div className="gs-actions">
           <Button variant="tool" size="sm" onClick={() => c.go("styles")}>
@@ -386,7 +387,7 @@ export function GsStatistics() {
   return (
     <div className="gs-stack">
       <Bar
-        hint="Every counter the save holds. What you type is what is written."
+       
         onClear={() => setEdits(Object.fromEntries(fields.map((f) => [f.key, String(f.value ?? "")])))}
         clearLabel="Reset edits"
         extra={
@@ -515,7 +516,7 @@ export function GsBoosters() {
   return (
     <div className="gs-stack">
       <Bar
-        hint="Every entry the save holds. Fill sets them all; Top-up only raises anything below the number."
+       
         onAll={() => setEdits(Object.fromEntries(items.map((x) => [x.key, String(x.value)])))}
         onClear={() => setEdits(Object.fromEntries(items.map((x) => [x.key, String(x.value)])))}
         allLabel="Reset"
@@ -641,7 +642,7 @@ export function GsBackups() {
 
   return (
     <div className="gs-stack">
-      <Panel title="This session" icon="backups" hint="The session always keeps the exact bytes it loaded, so one click rolls everything back.">
+      <Panel title="This session" icon="backups">
         <div className="gs-actions">
           <Button size="sm" onClick={() => void downloadCurrent()} disabled={c.busy || !c.sessionId}>
             <GsIcon name="download" className="size-4" /> Download save
@@ -656,7 +657,7 @@ export function GsBackups() {
         {path ? <p className="gs-hint-line">Device path: <code>{path}</code></p> : null}
       </Panel>
 
-      <Panel title="Device" icon="device" hint="Talks straight to your emulator through this app — just keep it running.">
+      <Panel title="Device" icon="device">
         <div className="gs-actions">
           <Button size="sm" variant="outline" onClick={() => void pullFromDevice()} disabled={c.busy}>
             <GsIcon name="refresh" className="size-4" /> Pull from device
@@ -667,7 +668,7 @@ export function GsBackups() {
         </div>
       </Panel>
 
-      <Panel title="Load a file" icon="save" hint="Drop a GameData.db / save file straight in.">
+      <Panel title="Load a file" icon="save">
         <input
           ref={fileRef}
           type="file"

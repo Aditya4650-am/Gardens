@@ -542,11 +542,12 @@ export const gsWearBadge = createServerFn({ method: "POST" })
     return m.wearBadge(await sessionOf(data.token, data.sessionId), data.cipher);
   });
 
-export const gsReorderBadges = createServerFn({ method: "POST" })
-  .validator(sess.extend({ order: z.array(z.string()).max(64) }))
+/** Wear a badge by catalog id — the cipher is encoded server-side. */
+export const gsWearBadgeById = createServerFn({ method: "POST" })
+  .validator(sess.extend({ id: z.string() }))
   .handler(async ({ data }) => {
     const m = await import("./server/gardenscapes/profile.server");
-    return m.reorderBadges(await sessionOf(data.token, data.sessionId), data.order);
+    return m.wearBadge(await sessionOf(data.token, data.sessionId), data.id);
   });
 
 export const gsSetBadgeNew = createServerFn({ method: "POST" })
@@ -568,6 +569,14 @@ export const gsUnlockFrames = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const m = await import("./server/gardenscapes/profile.server");
     return m.unlockFrames(await sessionOf(data.token, data.sessionId), data.ids);
+  });
+
+/** Unlock and wear a frame (frames are shown through `AvatarStyle`). */
+export const gsWearFrame = createServerFn({ method: "POST" })
+  .validator(sess.extend({ id: z.string() }))
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/profile.server");
+    return m.wearFrame(await sessionOf(data.token, data.sessionId), data.id);
   });
 
 export const gsUnlockBadges = createServerFn({ method: "POST" })

@@ -118,17 +118,19 @@ export const GS_AVATARS: GsCatalogEntry[] = [
   { id: "LSR_DogPirate", label: "LSR DogPirate", grand: false, labelRu: "Пёс-пират" },
 ];
 
-/** Profile frames — owned set (`framesowned`). */
+/** Profile frames — owned set, mined from the reference save's GFF map. */
 export const GS_FRAMES: GsCatalogEntry[] = [
   { id: "Frame_Birdhouse", label: "Birdhouse", grand: false, art: "Gardenscapes/Frames/bird_house.png" },
-  { id: "Frame_Cinema", label: "Cinema", grand: false },
+  { id: "Frame_Cinema", label: "Cinema", grand: false, art: "Gardenscapes/Frames/Frame_Cinema.png" },
+  { id: "Frame_Christmas", label: "Christmas", grand: false },
   { id: "Frame_Feather", label: "Feather", grand: false, art: "Gardenscapes/Frames/feather.png" },
-  { id: "Frame_Festival", label: "Festival", grand: false },
+  { id: "Frame_Festival", label: "Festival", grand: false, art: "Gardenscapes/Frames/Frame_Festival.png" },
+  { id: "Frame_Firefly", label: "Firefly", grand: false },
   { id: "Frame_Music", label: "Music", grand: false, art: "Gardenscapes/Frames/music.png" },
-  { id: "Frame_Neon", label: "Neon", grand: false },
+  { id: "Frame_Neon", label: "Neon", grand: false, art: "Gardenscapes/Frames/Frame_Neon.png" },
   { id: "Frame_Plane", label: "Plane", grand: false, art: "Gardenscapes/Frames/plane.png" },
   { id: "Frame_PolarLights", label: "PolarLights", grand: false, art: "Gardenscapes/Frames/polar_lights.png" },
-  { id: "Frame_Dragon", label: "Dragon", grand: false },
+  { id: "Frame_Dragon", label: "Dragon", grand: false, art: "Gardenscapes/Frames/Frame_Dragon.png" },
 ];
 
 /** Frames that are activated by an effect rather than owned permanently. */
