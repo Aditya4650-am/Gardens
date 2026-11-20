@@ -126,7 +126,7 @@ function PickGrid({
   worn: (id: string) => boolean;
   busy: boolean;
   onToggle: (id: string) => void;
-  subFor?: (owned: boolean, worn: boolean) => string;
+  subFor?: (id: string, owned: boolean, worn: boolean) => string;
 }) {
   return (
     <div className="gs-pick3">
@@ -134,7 +134,7 @@ function PickGrid({
         const on = sel.has(e.id);
         const isWorn = worn(e.id);
         const isOwned = owned(e.id);
-        const sub = subFor ? subFor(isOwned, isWorn) : isWorn ? "Worn" : isOwned ? "Owned" : "Locked";
+        const sub = subFor ? subFor(e.id, isOwned, isWorn) : isWorn ? "Worn" : isOwned ? "Owned" : "Locked";
         return (
           <button
             key={e.id}
@@ -527,8 +527,8 @@ interface PetInfo {
   label: string;
   emoji?: string;
   clusters: number;
-  toggleable: number;
   active: boolean;
+  missing: boolean;
 }
 
 export function GsPets() {
@@ -622,7 +622,7 @@ export function GsPets() {
           sel={sel}
           owned={(id) => activeIds.has(id)}
           worn={() => false}
-          subFor={(on) => (on ? "Active" : "Idle")}
+          subFor={(id, on) => (pets.find((p) => p.id === id)?.missing ? "Not spawned" : on ? "Active" : "Idle")}
           busy={c.busy}
           onToggle={toggle}
         />
