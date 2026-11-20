@@ -5,7 +5,6 @@ import {
   gsListPets,
   gsProfileCatalogs,
   gsReadProfile,
-  gsReadStats,
   gsSetPet,
   gsUnlockAllPets,
   gsUnlockBadges,
@@ -338,20 +337,8 @@ export function GsFrames() {
 export function GsStyles() {
   const { c, p, runSeq } = useProfile();
   const [nameSel, setNameSel] = useState<Set<string>>(new Set());
-  const [playerName, setPlayerName] = useState("Player");
 
   const nameOwned = useMemo(() => new Set(p?.nameStylesShown ?? []), [p]);
-
-  useEffect(() => {
-    if (!c.sessionId) return;
-    void c.act(async () => {
-      const st = await gsReadStats({ data: sessOf(c) });
-      const hit = (st as Array<{ key: string; value: unknown }> | undefined)?.find((x) => x.key === "name");
-      if (hit && typeof hit.value === "string" && hit.value.trim()) setPlayerName(hit.value.trim());
-      return st;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c.sessionId]);
 
   const toggle = (set: Set<string>, id: string) => {
     const n = new Set(set);
@@ -402,7 +389,17 @@ export function GsStyles() {
                 onClick={() => setNameSel((prev) => toggle(prev, s.id))}
                 title={`${s.label} — ${isWorn ? "worn" : isOwned ? "owned" : "locked"}`}
               >
-                <span className={`gs-namefx sfx-${s.id}`}>{playerName}</span>
+                <span className="gs-styleimg">
+                  <img
+                    src={`/icons/styles/${s.id}.png`}
+                    alt={s.label}
+                    loading="lazy"
+                    draggable={false}
+                    onError={(ev) => {
+                      ev.currentTarget.style.display = "none";
+                    }}
+                  />
+                </span>
                 <span className={cn("gs-pick3-tick", on && "on")} aria-hidden="true">
                   {on ? <GsIcon name="check" className="size-3.5" /> : null}
                 </span>
