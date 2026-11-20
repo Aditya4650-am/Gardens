@@ -622,7 +622,7 @@ export function GsPets() {
           sel={sel}
           owned={(id) => activeIds.has(id)}
           worn={() => false}
-          subFor={(id, on) => (pets.find((p) => p.id === id)?.missing ? "Not spawned" : on ? "Active" : "Idle")}
+          subFor={(id, on) => (pets.find((p) => p.id === id)?.missing ? "Scene only" : on ? "Active" : "Idle")}
           busy={c.busy}
           onToggle={toggle}
         />
