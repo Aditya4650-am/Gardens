@@ -52,7 +52,9 @@ export function connectLoad(
  * and one that cannot open at all.
  */
 function normaliseRegionBuild(s: GardenscapesSession): void {
-  const props = findEntry(findTable(s.decoded.doc, "TableName"), "Properties");
+  const table = findTable(s.decoded.doc, "TableName");
+  if (!table) return;
+  const props = findEntry(table, "Properties");
   if (!props || props.type !== "o") return;
   const hit = objEntries(props).find(([k]) => k === "vietnamBuild");
   if (!hit || hit[1][1] !== true) return;
