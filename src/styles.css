@@ -7226,3 +7226,108 @@ html:has(.gs-theme.gs-dark) {
 .gs-theme.gs-login .login-visual::before {
   display: none;
 }
+
+/* ------------------------------------------------------------------ */
+/* Login wordmark — GARDENSCAPES TOOL in four garden tones             */
+/* ------------------------------------------------------------------ */
+
+.gs-theme.gs-login .login-visual {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+
+.gs-theme.gs-login .gs-login-wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  user-select: none;
+}
+
+.gs-theme.gs-login .gs-lw-top {
+  display: flex;
+  flex-wrap: nowrap;
+  font-family: var(--font-display, "Baloo 2", ui-rounded, system-ui, sans-serif);
+  font-weight: 900;
+  font-size: clamp(1.9rem, 4.6vw, 3.4rem);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.55));
+}
+
+.gs-theme.gs-login .gs-lw-ch {
+  display: inline-block;
+  animation: gs-lw-bob 6s ease-in-out infinite;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.45),
+    0 0 22px currentColor;
+}
+
+.gs-theme.gs-login .gs-lw-ch--0 {
+  color: #7ef0a8;
+}
+
+.gs-theme.gs-login .gs-lw-ch--1 {
+  color: #3fc97c;
+}
+
+.gs-theme.gs-login .gs-lw-ch--2 {
+  color: #d4f56a;
+}
+
+.gs-theme.gs-login .gs-lw-ch--3 {
+  color: #f2c94c;
+}
+
+@keyframes gs-lw-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.gs-theme.gs-login .gs-lw-tool {
+  position: relative;
+  padding-left: 0.35em;
+  font-family: var(--font-display, ui-rounded, system-ui, sans-serif);
+  font-size: clamp(0.78rem, 1.5vw, 1.05rem);
+  font-weight: 800;
+  letter-spacing: 0.62em;
+  text-transform: uppercase;
+  color: #e7c367;
+  text-shadow: 0 0 18px rgba(231, 195, 103, 0.5);
+}
+
+.gs-theme.gs-login .gs-lw-tool::after {
+  content: "";
+  position: absolute;
+  left: 0.35em;
+  right: 0.62em;
+  bottom: -8px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f2c94c, rgba(126, 240, 168, 0.65), transparent);
+  opacity: 0.85;
+}
+
+@media (max-width: 720px) {
+  .gs-theme.gs-login .login-visual {
+    align-items: center;
+    gap: 14px;
+  }
+
+  .gs-theme.gs-login .gs-login-wordmark {
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs-theme.gs-login .gs-lw-ch {
+    animation: none !important;
+  }
+}

@@ -745,6 +745,23 @@ export function GsApp() {
         </div>
         <div className="login-grid mx-auto min-h-[calc(100dvh-8.5rem)] w-full max-w-6xl items-center gap-8">
           <section className="login-visual gate-in" aria-label="Garden Studio">
+            <div className="gs-login-wordmark">
+              <span className="gs-lw-top" role="img" aria-label="Gardenscapes">
+                {"GARDENSCAPES".split("").map((ch, i) => (
+                  <span
+                    key={i}
+                    className={`gs-lw-ch gs-lw-ch--${i % 4}`}
+                    style={{ animationDelay: `${i * 0.07}s` }}
+                    aria-hidden="true"
+                  >
+                    {ch}
+                  </span>
+                ))}
+              </span>
+              <span className="gs-lw-tool" aria-hidden="true">
+                Tool
+              </span>
+            </div>
             <div className="gs-login-hero">
               <img src="/gs-hero.jpg" alt="" className="gs-login-hero-img" draggable={false} />
             </div>
