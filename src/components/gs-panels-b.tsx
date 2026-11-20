@@ -122,7 +122,7 @@ export function GsDecor() {
   const c = useGs();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [open, setOpen] = useState<string | null>(null);
+  const [sel, setSel] = useState<Set<string>>(new Set());
 
   const load = async () => {
     if (!c.sessionId) return;
@@ -140,7 +140,9 @@ export function GsDecor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.sessionId]);
 
-  const shown = chapters;
+  const done = chapters.filter((x) => x.completed).length;
+  const bought = purchases.filter((p) => p.isBuy).length;
+  const items = chapters.reduce((n, x) => n + x.items.length, 0);
 
   const act2 = async (fn: () => Promise<unknown>, label: string) => {
     const r = await c.act(fn);
@@ -148,75 +150,156 @@ export function GsDecor() {
     await load();
   };
 
+  const toggle = (key: string) =>
+    setSel((prev) => {
+      const n = new Set(prev);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
+      return n;
+    });
+
+  const apply = () => {
+    const keys = [...sel];
+    if (!keys.length) return;
+    void act2(
+      () => gsWriteChapters({ data: { ...sessOf(c), keys, completed: true } }),
+      `${keys.length} chapter(s)`,
+    );
+    setSel(new Set());
+  };
+
+  const name = (key: string) => key.replace(/_/g, " ").replace(/^chapter/i, "Chapter ");
+
   return (
     <div className="gs-stack">
-      <Bar
-        onAll={() => void act2(() => gsWriteChapters({ data: { ...sessOf(c), keys: chapters.map((x) => x.key), completed: true } }), "All chapters")}
-        onClear={() => void act2(() => gsWriteChapters({ data: { ...sessOf(c), keys: chapters.map((x) => x.key), completed: false, opened: true } }), "All chapters")}
-        allLabel="Complete all"
-        clearLabel="Reopen all"
-        extra={
-          <Button size="sm" onClick={() => void load()} disabled={c.busy}>
-            <GsIcon name="refresh" className="size-4" /> Refresh
-          </Button>
-        }
-      />
+      <section className="gs-cta-card panel">
+        <header className="gs-cta-head">
+          <span className="gs-cta-emblem" aria-hidden="true">
+            <GsIcon name="decosets" className="size-6" />
+          </span>
+          <div>
+            <h3 className="gs-cta-title">Decorations</h3>
+            <p className="gs-cta-lead">Every garden chapter and its decor purchases</p>
+          </div>
+        </header>
 
-      <Panel title="Buy every purchase" icon="cart">
-        <div className="gs-actions">
-          <Button size="sm" variant="success" disabled={c.busy || !purchases.length}
-            onClick={() => void act2(() => gsBuyPurchases({ data: sessOf(c) }), "Purchases")}>
-            Buy all
-          </Button>
-          <Button size="sm" variant="ghost" disabled={c.busy || !purchases.length}
+        <div className="gs-chips">
+          <Chip tone="ok" icon="check">
+            {done} / {chapters.length} chapters
+          </Chip>
+          <Chip tone="gold" icon="cart">
+            {bought} / {purchases.length} bought
+          </Chip>
+          <Chip tone="info" icon="layers">
+            {items} items
+          </Chip>
+        </div>
+
+        <div className="gs-cta-actions">
+          <button
+            type="button"
+            className="gs-cta-btn"
+            disabled={c.busy || !chapters.length}
             onClick={() =>
               void act2(
-                () => gsWritePurchasesSafe(c, purchases.map((p) => p.key)),
-                "Purchases",
+                () => gsWriteChapters({ data: { ...sessOf(c), keys: chapters.map((x) => x.key), completed: true } }),
+                "All chapters",
               )
-            }>
-            Unbuy all
-          </Button>
+            }
+          >
+            <GsIcon name="check" className="size-5" />
+            <span>Complete all</span>
+          </button>
+          <button
+            type="button"
+            className="gs-cta-btn gs-cta-btn--ghost"
+            disabled={c.busy || !purchases.length}
+            onClick={() => void act2(() => gsBuyPurchases({ data: sessOf(c) }), "Purchases")}
+          >
+            <GsIcon name="cart" className="size-5" />
+            <span>Buy all purchases</span>
+          </button>
+          <button
+            type="button"
+            className="gs-cta-btn gs-cta-btn--ghost"
+            disabled={c.busy || !chapters.length}
+            onClick={() =>
+              void act2(
+                () =>
+                  gsWriteChapters({
+                    data: { ...sessOf(c), keys: chapters.map((x) => x.key), completed: false, opened: true },
+                  }),
+                "Reopen all",
+              )
+            }
+          >
+            <GsIcon name="refresh" className="size-5" />
+            <span>Reopen all</span>
+          </button>
         </div>
-      </Panel>
 
-      <Panel title="Chapters" icon="quests">
-        <div className="gs-list">
-          {shown.map((ch) => (
-            <div key={ch.key} className="gs-row">
-              <button type="button" className="gs-row-main" onClick={() => setOpen(open === ch.key ? null : ch.key)}>
-                <GsIcon name={open === ch.key ? "minus" : "plus"} className="size-4" />
-                <span className="gs-row-title">{ch.key}</span>
-                <span className="gs-row-meta">{ch.items.length} items</span>
-                {ch.opened ? <Chip tone="info">opened</Chip> : null}
-                {ch.completed ? <Chip tone="ok" icon="check">done</Chip> : <Chip tone="warn">in progress</Chip>}
-              </button>
-              <div className="gs-row-tools">
-                <Toggle on={ch.completed} disabled={c.busy}
-                  onClick={() => void act2(() => gsWriteChapter({ data: { ...sessOf(c), key: ch.key, completed: !ch.completed } }), ch.key)}>
-                  Completed
-                </Toggle>
-                <Toggle on={ch.opened} disabled={c.busy}
-                  onClick={() => void act2(() => gsWriteChapter({ data: { ...sessOf(c), key: ch.key, opened: !ch.opened } }), ch.key)}>
-                  Opened
-                </Toggle>
-              </div>
-              {open === ch.key ? (
-                <div className="gs-row-body">
-                  {ch.items.map((it) => (
-                    <div key={it.name} className="gs-item">
-                      <span className="gs-item-name">{it.name}</span>
-                      <span className="gs-item-meta">step {it.step}{it.baseStep ? ` Â· base ${it.baseStep}` : ""}</span>
-                    </div>
-                  ))}
-                  {!ch.items.length ? <p className="gs-empty">No items recorded.</p> : null}
-                </div>
-              ) : null}
-            </div>
-          ))}
-          {!shown.length ? <p className="gs-empty">No chapter matches.</p> : null}
+        <div className="gs-pickbar">
+          <button
+            type="button"
+            className="gs-pickbar-btn"
+            disabled={c.busy}
+            onClick={() => setSel(new Set(chapters.map((x) => x.key)))}
+          >
+            <GsIcon name="check" className="size-4" />
+            Select all
+          </button>
+          <button
+            type="button"
+            className="gs-pickbar-btn gs-pickbar-btn--ghost"
+            disabled={c.busy || sel.size === 0}
+            onClick={() => setSel(new Set())}
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            className="gs-pickbar-btn gs-pickbar-btn--go"
+            disabled={c.busy || sel.size === 0}
+            onClick={apply}
+          >
+            <GsIcon name="spark" className="size-4" />
+            {sel.size ? `Apply ${sel.size}` : "Apply"}
+          </button>
+          <span className="gs-pickbar-count tabular-nums">
+            {sel.size} / {chapters.length}
+          </span>
         </div>
-      </Panel>
+
+        <div className="gs-pick3">
+          {chapters.map((ch) => {
+            const on = sel.has(ch.key);
+            return (
+              <button
+                key={ch.key}
+                type="button"
+                className={cn("gs-pick3-btn", on && "is-sel", ch.completed && "is-owned")}
+                aria-pressed={on}
+                disabled={c.busy}
+                onClick={() => toggle(ch.key)}
+                title={`${name(ch.key)} — ${ch.completed ? "done" : ch.opened ? "opened" : "locked"}`}
+              >
+                <span className="gs-pick3-icon">
+                  <GsIcon name="decosets" className="size-5" />
+                </span>
+                <span className="gs-pick3-body">
+                  <span className="gs-pick3-label">{name(ch.key)}</span>
+                  <span className="gs-pick3-sub">
+                    {ch.completed ? "Done" : ch.opened ? "Open" : "Locked"} · {ch.items.length}
+                  </span>
+                </span>
+                <span className={cn("gs-pick3-tick", on && "on")} aria-hidden="true">
+                  {on ? <GsIcon name="check" className="size-3.5" /> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }
