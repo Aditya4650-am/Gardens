@@ -176,7 +176,10 @@ class LoaderCryptRoundTripTests(unittest.TestCase):
         import subprocess
         import tempfile
 
-        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        try:
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        except ImportError:  # the protect test needs the AES extra
+            self.skipTest("cryptography is not installed")
 
         gcc = self._gcc()
         probe_src = Path(__file__).resolve().parent / "protect" / "loader_probe.c"
