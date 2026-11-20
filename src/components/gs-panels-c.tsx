@@ -265,7 +265,7 @@ export function GsAvatars() {
               label={a.label}
               sub={p?.currentAvatarId === a.id ? "Worn" : owned.has(a.id) ? "Owned" : "Unlock"}
               glyph={a.emoji ?? a.label.slice(0, 1).toUpperCase()}
-              art={a.art}
+              art={`/icons/avatars/${a.id}.png`}
               owned={owned.has(a.id)}
               worn={p?.currentAvatarId === a.id}
               disabled={c.busy}

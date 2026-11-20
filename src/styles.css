@@ -7331,3 +7331,20 @@ html:has(.gs-theme.gs-dark) {
     animation: none !important;
   }
 }
+
+/* Icons must never be cropped: square wells with contain on every art slot. */
+.gs-theme .gs-tile-art img {
+  object-fit: contain !important;
+}
+
+.gs-theme .gs-pick3-icon img {
+  object-fit: contain !important;
+}
+
+.gs-theme .gs-tile-art {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(246, 241, 228, 0.9));
+}
+
+.gs-theme.gs-dark .gs-tile-art {
+  background-image: linear-gradient(180deg, rgba(26, 36, 56, 0.95), rgba(18, 26, 42, 0.95));
+}
