@@ -29,9 +29,32 @@ import { type AUDBDocument, type AUDBEntry } from "@/lib/gardenscapes/codec";
 import { type EditResult } from "./common.server";
 import { type GardenscapesSession } from "./session.server";
 
-const CONTENT_TABLES = ["repairs", "repairs_purchases_info", "CharacterProperties"] as const;
-const CONTENT_FEATURE_ENTRIES = ["ProfileBadgesGFF"] as const;
+const CONTENT_TABLES = ["repairs", "repairs_purchases_info", "CharacterProperties", "Redesign"] as const;
+const CONTENT_FEATURE_ENTRIES = [
+  "ProfileBadgesGFF",
+  "LocationsRedesign",
+  "RedesignCascade",
+  "GardeningDuties",
+] as const;
 const PROP_PREFIXES = ["BoughtAvatar_", "ObtainedStyle_", "UserAvatar_", "UserNameStyle_"] as const;
+/** Decoration economy — the redesign shop, not level/coins/stars. */
+const DECOR_PROPS = [
+  "boughtRoomTokens",
+  "earnedRoomTokensCount",
+  "spentRoomTokensCount",
+  "realRoomTokens",
+  "room_design_tokens",
+  "coinsForDesign",
+  "boughtClusterRedesignTokens",
+  "earnedClusterRedesignTokensCount",
+  "spentClusterRedesignTokensCount",
+  "realClusterRedesignTokens",
+  "RedesignManagerFinishingModeAVChapter",
+  "RedesignManagerFinishingModeState",
+  "ShowGardenMapButton",
+  /** Which chapter's decoration set the garden renders. */
+  "GardenCurrentChapterId",
+] as const;
 const OWN_CONTENT = ["AvatarStyle", "PlayerNameStyle", "PlayerTitleId", "PlayerTitleIdsEarned", "ProfileBadgeId"] as const;
 const PROGRESS_LEAVES = ["level", "coins", "earnedStars", "spentStars"] as const;
 const COIN_CEILING = 2_000_000_000;
@@ -150,7 +173,16 @@ export function applyClone(
       else kids.push([k, [t, deepClone(v)]]);
       n++;
     }
-    if (n) cloned.push(`cosmetics (${n})`);
+    // Decoration economy leaves, copied as-is so the redesign shop matches.
+    for (const key of DECOR_PROPS) {
+      const from = objEntries(sp).find(([k]) => k === key);
+      if (!from) continue;
+      const hit = kids.find(([k]) => k === key);
+      if (hit) hit[1] = [from[1][0], deepClone(from[1][1])];
+      else kids.push([key, [from[1][0], deepClone(from[1][1])]]);
+      n++;
+    }
+    if (n) cloned.push(`cosmetics + decor (${n})`);
   }
 
   // 3. Owned badges.
