@@ -81,7 +81,7 @@ export const GS_TAB_LABEL: Record<GsTab, string> = {
   player: "Player",
   statistics: "Statistics",
   boosters: "Boosters",
-  seasons: "Seasons",
+  seasons: "Garden Pass",
   cards: "Cards",
   send: "Send Cards",
   decor: "Decor",

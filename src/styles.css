@@ -5992,3 +5992,229 @@ html:has(.gs-theme.gs-dark) {
     0 1px 0 rgba(255, 255, 255, 0.25) inset,
     0 12px 22px -14px rgba(0, 0, 0, 0.8);
 }
+
+/* ------------------------------------------------------------------ */
+/* Cards / Send — CTA card and set buttons                             */
+/* ------------------------------------------------------------------ */
+
+.gs-theme .gs-cta-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(46, 138, 92, 0.28);
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(214, 240, 224, 0.85) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(135deg, #fdfbf4 0%, #f4f9f0 55%, #eef5e8 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 24px 48px -34px rgba(24, 62, 46, 0.5);
+  padding: 22px;
+}
+
+.gs-theme .gs-cta-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.gs-theme .gs-cta-emblem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
+  color: #eafff2;
+  background: linear-gradient(145deg, #4f9f74 0%, #2f7d54 55%, #1e5c3c 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 12px 22px -14px rgba(24, 62, 46, 0.85);
+}
+
+.gs-theme .gs-cta-emblem--send {
+  color: #fff6df;
+  background: linear-gradient(145deg, #d9a94b 0%, #b8862f 55%, #8d651f 100%);
+}
+
+.gs-theme .gs-cta-title {
+  margin: 0;
+  font-size: 1.16rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #1f4d3a;
+}
+
+.gs-theme .gs-cta-lead {
+  margin: 2px 0 0;
+  font-size: 0.84rem;
+  color: #5c7266;
+}
+
+.gs-theme .gs-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 18px;
+}
+
+.gs-theme .gs-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(24, 62, 46, 0.45);
+  color: #f6fff8;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: linear-gradient(180deg, #35815c 0%, #256849 55%, #1d5338 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 14px 26px -18px rgba(24, 62, 46, 0.85);
+  transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease;
+}
+
+.gs-theme .gs-cta-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.gs-theme .gs-cta-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.gs-theme .gs-cta-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.gs-theme .gs-cta-btn--ghost {
+  color: #1f4d3a;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f7ef 100%);
+  border-color: rgba(31, 77, 58, 0.18);
+  box-shadow: 0 10px 22px -18px rgba(24, 62, 46, 0.5);
+}
+
+.gs-theme .gs-cta-btn-meta {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.gs-theme .gs-setgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.gs-theme .gs-setbtn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(31, 77, 58, 0.14);
+  background: linear-gradient(180deg, #ffffff 0%, #faf8f1 100%);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.gs-theme .gs-setbtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--tone) 55%, transparent);
+  box-shadow: 0 12px 24px -18px rgba(24, 62, 46, 0.55);
+}
+
+.gs-theme .gs-setbtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gs-theme .gs-setbtn-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.gs-theme .gs-setbtn-no {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1f4d3a;
+}
+
+.gs-theme .gs-setbtn-count {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: #70857a;
+}
+
+.gs-theme .gs-setbtn-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(31, 77, 58, 0.1);
+  overflow: hidden;
+}
+
+.gs-theme .gs-setbtn-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--tone), color-mix(in srgb, var(--tone) 70%, #ffffff));
+  transition: width 220ms ease;
+}
+
+.gs-theme .gs-setbtn--done {
+  border-color: color-mix(in srgb, var(--tone) 65%, transparent);
+  background: linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--tone) 9%, #ffffff) 100%);
+}
+
+/* Dark twins */
+
+.gs-theme.gs-dark .gs-cta-card {
+  border-color: rgba(52, 211, 153, 0.22);
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(52, 211, 153, 0.12) 0%, rgba(0, 0, 0, 0) 55%),
+    linear-gradient(135deg, #16223a 0%, #142033 55%, #12202c 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 24px 48px -32px rgba(0, 0, 0, 0.95);
+}
+
+.gs-theme.gs-dark .gs-cta-title {
+  color: #e6f5ec;
+}
+
+.gs-theme.gs-dark .gs-cta-lead {
+  color: #9db3c8;
+}
+
+.gs-theme.gs-dark .gs-cta-btn--ghost {
+  color: #dbe9f5;
+  background: linear-gradient(180deg, #1b273e 0%, #162034 100%);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.gs-theme.gs-dark .gs-setbtn {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, #1a2438 0%, #151e30 100%);
+}
+
+.gs-theme.gs-dark .gs-setbtn-no {
+  color: #e6f0fa;
+}
+
+.gs-theme.gs-dark .gs-setbtn-count {
+  color: #93a3b8;
+}
+
+.gs-theme.gs-dark .gs-setbtn-bar {
+  background: rgba(148, 163, 184, 0.16);
+}
