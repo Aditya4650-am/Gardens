@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -189,6 +189,27 @@ function Mark({ className }: { className?: string }) {
 }
 
 type View = "login" | "app";
+
+/**
+ * Deterministic snow field. A seeded generator (not `Math.random`) keeps the
+ * server and client render identical, so hydration never mismatches.
+ */
+const SNOW = Array.from({ length: 46 }, (_, i) => {
+  const r = (n: number) => {
+    const x = Math.sin((i + 1) * 127.1 + n * 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  return {
+    left: r(1) * 100,
+    size: 3 + r(2) * 7,
+    dur: 10 + r(3) * 14,
+    delay: -r(4) * 22,
+    drift: (r(5) - 0.5) * 180,
+    opacity: 0.3 + r(6) * 0.6,
+    blur: r(7) > 0.72 ? 1.2 : 0,
+    spin: 140 + r(8) * 260,
+  };
+});
 
 export function GsApp() {
   // --- license / session -------------------------------------------------
@@ -657,11 +678,36 @@ export function GsApp() {
     return (
       <main className={`login-scene gs-login gs-theme ${modeClass} gs-palette-${palette} relative min-h-dvh px-4 py-8 sm:px-8`}>
         <div className="login-bg" aria-hidden="true">
+          <span className="login-aurora login-aurora--1" />
+          <span className="login-aurora login-aurora--2" />
           <span className="login-grid3d" />
           <span className="login-orb login-orb--a" />
           <span className="login-orb login-orb--b" />
           <span className="login-orb login-orb--c" />
           <span className="login-shine" />
+          <span className="login-crystal login-crystal--1" />
+          <span className="login-crystal login-crystal--2" />
+          <span className="login-crystal login-crystal--3" />
+          <span className="login-frost" />
+          <span className="login-snow">
+            {SNOW.map((f, i) => (
+              <i
+                key={i}
+                className="login-flake"
+                style={{
+                  left: `${f.left}%`,
+                  width: f.size,
+                  height: f.size,
+                  opacity: f.opacity,
+                  animationDuration: `${f.dur}s`,
+                  animationDelay: `${f.delay}s`,
+                  filter: f.blur ? `blur(${f.blur}px)` : undefined,
+                  "--drift": `${f.drift}px`,
+                  "--spin": `${f.spin}deg`,
+                } as CSSProperties}
+              />
+            ))}
+          </span>
         </div>
         <div className="login-grid mx-auto min-h-[calc(100dvh-8.5rem)] w-full max-w-6xl items-center gap-8">
           <section className="login-visual gate-in" aria-label="Garden Studio">
