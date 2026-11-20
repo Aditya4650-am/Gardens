@@ -323,6 +323,14 @@ export const gsReadStages = createServerFn({ method: "POST" })
     return m.readStages(await sessionOf(data.token, data.sessionId), data.season, data.track);
   });
 
+/** One press: max score + every reward on both roads, for every season held. */
+export const gsClaimGardenPass = createServerFn({ method: "POST" })
+  .validator(sess)
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/season.server");
+    return m.claimAllSeasons(await sessionOf(data.token, data.sessionId));
+  });
+
 // --- decorations / repairs --------------------------------------------------
 
 export const gsListChapters = createServerFn({ method: "POST" })

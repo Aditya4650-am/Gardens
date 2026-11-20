@@ -22,6 +22,7 @@ import {
   objFind,
   objPut,
   toInt,
+  type ObjChild,
 } from "@/lib/gardenscapes/save-engine";
 import { type AUDBDocument, type AUDBEntry } from "@/lib/gardenscapes/codec";
 import { applyOps, entry as entryOf, type EditOp, type EditResult } from "./common.server";
@@ -189,6 +190,91 @@ export function setAllStages(
     }
   }
   s.log.push(`Season: ${season} ${track} stages -> ${collected ? "collected" : "reset"}`);
+  return { changed, missing };
+}
+
+/** Highest `Stages.Threshold.N` the season declares (0 when it states none). */
+function maxThreshold(e: AUDBEntry): number {
+  const ref = getRef(e, "Stages");
+  if (!ref || ref.type !== "o") return 0;
+  let max = 0;
+  for (const [k, [t, v]] of ref.value as ObjChild[]) {
+    if (t !== "i" || !/^Threshold\.\d+$/.test(k)) continue;
+    max = Math.max(max, toInt(v) ?? 0);
+  }
+  return max;
+}
+
+/**
+ * Unlock the whole pass: raise the score to the last threshold the season
+ * declares, then leave every slot on BOTH roads *claimable*.
+ *
+ * Writing `Collected = true` was the mistake — the game pays a reward out when
+ * it processes the claim, so a save that arrives already marked collected
+ * shows green ticks and hands over nothing. `LastItemState = "Claim"` is the
+ * state a reached-but-unclaimed slot carries, which is what puts every reward
+ * on screen with its claim button.
+ */
+export function claimAllStages(s: GardenscapesSession, season: string): EditResult {
+  const d = s.decoded.doc;
+  const e = requireSeason(d, season);
+  const changed: string[] = [];
+  const missing: string[] = [];
+  const score = Math.max(
+    maxThreshold(e),
+    toInt(getRef(e, "Score.CurrentValue")?.value ?? null) ?? 0,
+    toInt(getRef(e, "Score.TotalValue")?.value ?? null) ?? 0,
+  );
+  if (score > 0) {
+    const r = setScore(s, season, score, score);
+    changed.push(...r.changed);
+    missing.push(...r.missing);
+  }
+  for (const tr of ["free", "gold"] as const) {
+    const tn = trackName(tr);
+    const n = stageCount(e, tn);
+    if (n === 0) continue;
+    const ops: EditOp[] = [];
+    for (let i = 0; i < n; i++) {
+      ops.push({ path: `${TABLE}.${season}.${tn}.${i}.Collected`, value: false });
+      ops.push({ path: `${TABLE}.${season}.${tn}.${i}.LastItemState`, value: "Claim" });
+      ops.push({ path: `${TABLE}.${season}.${tn}.${i}.CollectingTime`, value: 0 });
+    }
+    const res = applyOps(d, ops);
+    changed.push(...res.changed);
+    missing.push(...res.missing);
+    // Cursor keys: open the pass at the start with every slot unlocked.
+    const counters: Array<[string, number]> = [
+      ["CachedFirstLockedStageIndex", -1],
+      ["LastCollectedIndex", -1],
+      ["LastStage", 0],
+      ["LastProgressValue", score],
+      ["ProgressBarIndex", 0],
+      ["LastCounterUncollectedRewards", n],
+      ["SafeCurrentScore", score],
+      ["SafeGlobalScore", score],
+    ];
+    const cOps: EditOp[] = [];
+    for (const [k, v] of counters) {
+      if (getRef(e, k)) cOps.push({ path: `${TABLE}.${season}.${k}`, value: v });
+    }
+    if (cOps.length) changed.push(...applyOps(d, cOps).changed);
+  }
+  if (changed.length) s.log.push(`Season: ${season} garden pass unlocked (score ${score})`);
+  return { changed, missing };
+}
+
+/** Claim every season the save holds in one pass. */
+export function claimAllSeasons(s: GardenscapesSession): EditResult {
+  const changed: string[] = [];
+  const missing: string[] = [];
+  const seasons = listSeasons(s);
+  for (const season of seasons) {
+    if (season.stages === 0) continue;
+    const r = claimAllStages(s, season.key);
+    changed.push(...r.changed);
+    missing.push(...r.missing);
+  }
   return { changed, missing };
 }
 

@@ -337,11 +337,30 @@ export function GsPlayer() {
 
 // === Statistics (data center) =============================================
 
+/** The only counters this tab shows (order is the on-screen order). */
+const STAT_KEEP = [
+  "coins",
+  "level",
+  "earnedStars",
+  "spentStars",
+  "GardenCurrentChapterId",
+  "name",
+  "dogname",
+  "horse_name",
+  "realCoins",
+  "tokens",
+  "lives",
+  "expedition_energy",
+  "LastPlayedLevel",
+  "LastLevelAttempt",
+  "PlayerId",
+  "gameId",
+];
+
 export function GsStatistics() {
   const c = useGs();
   const [fields, setFields] = useState<StatField[]>([]);
   const [edits, setEdits] = useState<Record<string, string>>({});
-  const [pair, setPair] = useState<Record<string, { current: number; max: number }>>({});
 
   const load = async () => {
     if (!c.sessionId) return;
@@ -352,11 +371,6 @@ export function GsStatistics() {
       const next: Record<string, string> = {};
       for (const x of st as StatField[]) next[x.key] = String(x.value ?? "");
       setEdits(next);
-    }
-    for (const key of ["lives", "expedition_energy"] as const) {
-      const p = await c.act(() => gsReadPair({ data: { ...s, key } }));
-      const pair = (p as { pair: { current: number; max: number } | null } | undefined)?.pair;
-      if (pair) setPair((prev) => ({ ...prev, [key]: pair }));
     }
   };
 
@@ -382,7 +396,7 @@ export function GsStatistics() {
     await load();
   };
 
-  const shown = fields;
+  const shown = STAT_KEEP.map((k) => fields.find((f) => f.key === k)).filter((f): f is StatField => !!f);
 
   return (
     <div className="gs-stack">
@@ -397,50 +411,11 @@ export function GsStatistics() {
         }
       />
 
-      <div className="gs-actions">
-        {(["lives", "expedition_energy"] as const).map((k) => {
-          const p = pair[k];
-          return (
-            <Panel key={k} className="gs-inline-panel" title={labelize(k)} icon={k === "lives" ? "boosters" : "speed"}>
-              <div className="gs-pair">
-                <Field
-                  label="Current"
-                  value={String(p?.current ?? "")}
-                  onChange={(v) => setPair((prev) => ({ ...prev, [k]: { current: Number(v) || 0, max: prev[k]?.max ?? 0 } }))}
-                />
-                <Field
-                  label="Max"
-                  value={String(p?.max ?? "")}
-                  onChange={(v) => setPair((prev) => ({ ...prev, [k]: { current: prev[k]?.current ?? 0, max: Number(v) || 0 } }))}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={c.busy || !p}
-                  onClick={async () => {
-                    const cur = pair[k];
-                    if (!cur) return;
-                    const r = await c.act(() =>
-                      gsWritePair({ data: { ...sessOf(c), key: k, current: cur.current, max: cur.max } }),
-                    );
-                    c.note(r as GsEditResult | undefined, labelize(k));
-                    await load();
-                  }}
-                >
-                  Set
-                </Button>
-              </div>
-            </Panel>
-          );
-        })}
-      </div>
-
       <Grid cols="wide">
         {shown.map((f, i) => (
           <label key={f.path} className="gs-stat gs-stat--edit" data-tone={String((i % 7) + 1)}>
             <span className="gs-stat-head">
               <span className="kicker">{f.key}</span>
-              <span className="gs-stat-type">{f.type}</span>
             </span>
             <input
               className="field field-stat mt-1.5 font-mono"

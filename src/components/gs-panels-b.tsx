@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   gsAcceptReceivedCards,
   gsBuyPurchases,
+  gsClaimGardenPass,
   gsClearGiftingInbox,
   gsGrantCards,
   gsListChapters,
@@ -12,12 +13,9 @@ import {
   gsMarkCardsSeen,
   gsReadCards,
   gsSendCardsToSelf,
-  gsSetAllStages,
   gsSetAllStock,
-  gsSetGoldPass,
   gsSetPackCount,
   gsSetPackStreak,
-  gsSetScore,
   gsWriteChapter,
   gsWriteChapters,
   gsWritePurchases,
@@ -62,19 +60,10 @@ export function GsSeasons() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.sessionId]);
 
-  /** One press: gold pass on, score maxed, every reward on both roads. */
+  /** One press: max score + every reward on both roads, for every season. */
   const push = async () => {
     if (!seasons.length) return;
-    const r = await c.act(async () => {
-      let last: unknown;
-      for (const s of seasons) {
-        const top = Math.max(s.scoreTotal, s.score);
-        last = await gsSetGoldPass({ data: { ...sessOf(c), season: s.key, bought: true } });
-        last = await gsSetScore({ data: { ...sessOf(c), season: s.key, current: top, total: top } });
-        last = await gsSetAllStages({ data: { ...sessOf(c), season: s.key, track: "both", collected: true } });
-      }
-      return last;
-    });
+    const r = await c.act(() => gsClaimGardenPass({ data: sessOf(c) }));
     c.note(r as GsEditResult | undefined, "Garden Pass");
     await load();
   };
@@ -91,7 +80,7 @@ export function GsSeasons() {
           </span>
           <div>
             <h3 className="gs-gp-title">Garden Pass</h3>
-            <p className="gs-gp-lead">Gold pass · max score · every reward claimed</p>
+            <p className="gs-gp-lead">Max score · every reward claimable</p>
           </div>
         </header>
 
@@ -118,7 +107,7 @@ export function GsSeasons() {
           </span>
           <span className="gs-gp-btn-body">
             <span className="gs-gp-btn-title">Push Garden Pass</span>
-            <span className="gs-gp-btn-sub">One click, every season the save holds</span>
+            <span className="gs-gp-btn-sub">Unlocks every reward on both roads</span>
           </span>
           <span className="gs-gp-btn-go">
             <GsIcon name="check" className="size-5" />

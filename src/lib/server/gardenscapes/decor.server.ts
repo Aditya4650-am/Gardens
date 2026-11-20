@@ -14,8 +14,8 @@
 // Writes are limited to the two chapter flags and `isBuy` — the fields real
 // saves demonstrably flip.
 
-import { findTable, getRef, toInt } from "@/lib/gardenscapes/save-engine";
-import { type AUDBDocument } from "@/lib/gardenscapes/codec";
+import { findTable, getRef, toInt, type ObjChild } from "@/lib/gardenscapes/save-engine";
+import { type AUDBDocument, type AUDBEntry } from "@/lib/gardenscapes/codec";
 import { applyOps, entry as entryOf, type EditOp, type EditResult } from "./common.server";
 import { type GardenscapesSession } from "./session.server";
 
@@ -81,6 +81,20 @@ export function listChapters(s: GardenscapesSession): GsChapterInfo[] {
   return out;
 }
 
+/** Create or update one `t`/`f` flag on a chapter object. */
+function putFlag(e: AUDBEntry, key: string, value: boolean): boolean {
+  const kids = e.value as ObjChild[];
+  const hit = kids.find(([k]) => k === key);
+  const tag = value ? "t" : "f";
+  if (hit) {
+    if (hit[1][0] === tag && hit[1][1] === value) return false;
+    hit[1] = [tag, value];
+    return true;
+  }
+  kids.push([key, [tag, value]]);
+  return true;
+}
+
 /** Flip a chapter's `@completed` / `@opened` flags. */
 export function writeChapter(
   s: GardenscapesSession,
@@ -89,14 +103,20 @@ export function writeChapter(
 ): EditResult {
   if (!addressable(key)) throw new Error(`decor: bad chapter key "${key}"`);
   const d = s.decoded.doc;
-  if (!entryOf(d, TABLE, key)) throw new Error(`decor: save has no chapter "${key}"`);
-  const ops: EditOp[] = [];
-  if (patch.completed !== undefined) ops.push({ path: `${TABLE}.${key}.@completed`, value: patch.completed });
-  if (patch.opened !== undefined) ops.push({ path: `${TABLE}.${key}.@opened`, value: patch.opened });
-  if (!ops.length) return { changed: [], missing: [] };
-  const res = applyOps(d, ops);
-  if (res.changed.length) s.log.push(`Decor: ${key} ${JSON.stringify(patch)}`);
-  return res;
+  const e = entryOf(d, TABLE, key);
+  if (!e) throw new Error(`decor: save has no chapter "${key}"`);
+  const changed: string[] = [];
+  // The `*_redesign_chapter` entries carry no `@completed` at all, so an
+  // applyOps write reported them "not found" — the flag is created here the
+  // same `t`/`f` shape every other chapter uses.
+  if (patch.completed !== undefined && putFlag(e, "@completed", patch.completed)) {
+    changed.push(`${TABLE}.${key}.@completed`);
+  }
+  if (patch.opened !== undefined && putFlag(e, "@opened", patch.opened)) {
+    changed.push(`${TABLE}.${key}.@opened`);
+  }
+  if (changed.length) s.log.push(`Decor: ${key} ${JSON.stringify(patch)}`);
+  return { changed, missing: [] };
 }
 
 /** Complete (or reset) several chapters in one pass. */
