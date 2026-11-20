@@ -528,7 +528,6 @@ interface PetInfo {
   emoji?: string;
   clusters: number;
   active: boolean;
-  missing: boolean;
 }
 
 export function GsPets() {
@@ -622,7 +621,7 @@ export function GsPets() {
           sel={sel}
           owned={(id) => activeIds.has(id)}
           worn={() => false}
-          subFor={(id, on) => (pets.find((p) => p.id === id)?.missing ? "Scene only" : on ? "Active" : "Idle")}
+          subFor={(_id, on) => (on ? "Active" : "Idle")}
           busy={c.busy}
           onToggle={toggle}
         />
