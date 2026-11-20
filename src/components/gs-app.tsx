@@ -656,6 +656,13 @@ export function GsApp() {
   if (view === "login") {
     return (
       <main className={`login-scene gs-login gs-theme ${modeClass} gs-palette-${palette} relative min-h-dvh px-4 py-8 sm:px-8`}>
+        <div className="login-bg" aria-hidden="true">
+          <span className="login-grid3d" />
+          <span className="login-orb login-orb--a" />
+          <span className="login-orb login-orb--b" />
+          <span className="login-orb login-orb--c" />
+          <span className="login-shine" />
+        </div>
         <div className="login-grid mx-auto min-h-[calc(100dvh-8.5rem)] w-full max-w-6xl items-center gap-8">
           <section className="login-visual gate-in" aria-label="Garden Studio">
             <div className="gs-login-hero">
