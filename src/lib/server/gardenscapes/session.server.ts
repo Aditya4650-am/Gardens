@@ -9,7 +9,7 @@
 
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
-import { decodeSave, encodeSave, type DecodedGardenscapesSave } from "@/lib/gardenscapes/save-engine";
+import { decodeSave, encodeSave, findEntry, findTable, objEntries, type DecodedGardenscapesSave } from "@/lib/gardenscapes/save-engine";
 
 export type GardenscapesSession = {
   id: string;
@@ -40,8 +40,24 @@ export function connectLoad(
     originalCipher: Buffer.from(buf),
     log: ["Save loaded", `Tables: ${decoded.doc.tables.length}`],
   };
+  normaliseRegionBuild(session);
   sessions.set(session.id, session);
   return session;
+}
+
+/**
+ * A save written by the Vietnam build is refused by every other client with
+ * "this version is no longer supported". Turning the regional flag off is a
+ * one-field normalisation, and it is the difference between a save that loads
+ * and one that cannot open at all.
+ */
+function normaliseRegionBuild(s: GardenscapesSession): void {
+  const props = findEntry(findTable(s.decoded.doc, "TableName"), "Properties");
+  if (!props || props.type !== "o") return;
+  const hit = objEntries(props).find(([k]) => k === "vietnamBuild");
+  if (!hit || hit[1][1] !== true) return;
+  hit[1] = ["f", false];
+  s.log.push("Region build flag normalised (VN build off)");
 }
 
 export function getSession(id: string, token: string): GardenscapesSession {
