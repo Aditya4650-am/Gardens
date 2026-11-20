@@ -191,6 +191,38 @@ function Mark({ className }: { className?: string }) {
 type View = "login" | "app";
 
 /**
+ * A six-armed ice crystal. Six rotations of one arm with side branches gives
+ * the faceted star the reference art shows, and it stays crisp at any size.
+ */
+function Snowflake({ size }: { size: number }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.15}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {[0, 60, 120, 180, 240, 300].map((a) => (
+        <g key={a} transform={`rotate(${a} 12 12)`}>
+          <line x1="12" y1="12" x2="12" y2="1.7" />
+          <line x1="12" y1="5.1" x2="9.2" y2="2.9" />
+          <line x1="12" y1="5.1" x2="14.8" y2="2.9" />
+          <line x1="12" y1="8.3" x2="9" y2="6.1" />
+          <line x1="12" y1="8.3" x2="15" y2="6.1" />
+          <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/**
  * Deterministic snow field. A seeded generator (not `Math.random`) keeps the
  * server and client render identical, so hydration never mismatches.
  */
@@ -201,12 +233,12 @@ const SNOW = Array.from({ length: 46 }, (_, i) => {
   };
   return {
     left: r(1) * 100,
-    size: 3 + r(2) * 7,
-    dur: 10 + r(3) * 14,
-    delay: -r(4) * 22,
-    drift: (r(5) - 0.5) * 180,
-    opacity: 0.3 + r(6) * 0.6,
-    blur: r(7) > 0.72 ? 1.2 : 0,
+    size: 9 + r(2) * 13,
+    dur: 12 + r(3) * 16,
+    delay: -r(4) * 24,
+    drift: (r(5) - 0.5) * 190,
+    opacity: 0.35 + r(6) * 0.6,
+    blur: r(7) > 0.78 ? 1.4 : 0,
     spin: 140 + r(8) * 260,
   };
 });
@@ -705,7 +737,9 @@ export function GsApp() {
                   "--drift": `${f.drift}px`,
                   "--spin": `${f.spin}deg`,
                 } as CSSProperties}
-              />
+              >
+                <Snowflake size={f.size} />
+              </i>
             ))}
           </span>
         </div>
