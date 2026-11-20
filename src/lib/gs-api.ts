@@ -309,6 +309,24 @@ export const gsClaimGardenPass = createServerFn({ method: "POST" })
 
 // --- pets ------------------------------------------------------------------
 
+/** The bundled clone account's facts (no session needed, token still gated). */
+export const gsCloneInfo = createServerFn({ method: "POST" })
+  .validator(z.object({ token: z.string() }))
+  .handler(async ({ data }) => {
+    const { requireToken } = await import("./server/license.server");
+    requireToken(data.token);
+    const m = await import("./server/gardenscapes/clone.server");
+    return m.cloneInfo();
+  });
+
+/** Clone the bundled account's content onto this session's save. */
+export const gsApplyClone = createServerFn({ method: "POST" })
+  .validator(sess.extend({ withProgress: z.boolean().optional() }))
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/clone.server");
+    return m.applyClone(await sessionOf(data.token, data.sessionId), { withProgress: data.withProgress });
+  });
+
 export const gsListPets = createServerFn({ method: "POST" })
   .validator(sess)
   .handler(async ({ data }) => {

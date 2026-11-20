@@ -54,6 +54,7 @@ export type GsTab =
   | "badges"
   | "titles"
   | "pets"
+  | "clone"
   | "backups";
 
 /** The eight tabs shown in the first row; the rest live in the overflow row. */
@@ -74,6 +75,7 @@ export const GS_OVERFLOW_TABS: GsTab[] = [
   "badges",
   "titles",
   "pets",
+  "clone",
   "send",
   "backups",
 ];
@@ -93,6 +95,7 @@ export const GS_TAB_LABEL: Record<GsTab, string> = {
   badges: "Badges",
   titles: "Titles",
   pets: "Pets",
+  clone: "Clone",
   backups: "Backups",
 };
 
@@ -112,6 +115,7 @@ export const GS_TAB_ICON: Record<GsTab, string> = {
   badges: "badges",
   titles: "titles",
   pets: "paw",
+  clone: "copy",
   backups: "backups",
 };
 

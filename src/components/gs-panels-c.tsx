@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  gsApplyClone,
+  gsCloneInfo,
   gsListPets,
   gsProfileCatalogs,
   gsReadProfile,
@@ -626,6 +628,98 @@ export function GsPets() {
           onToggle={toggle}
         />
       </Panel>
+    </div>
+  );
+}
+
+// === Clone account ========================================================
+
+interface CloneInfo {
+  donorName: string;
+  donorLevel: number;
+  chapters: number;
+  purchases: number;
+  characters: number;
+  avatars: number;
+}
+
+/**
+ * Put the bundled account's garden onto this save.
+ *
+ * Content only — garden chapters, decor purchases, characters/pets, cosmetics
+ * and the worn look. Level, coins, stars, cards, passes and quests stay the
+ * client's own; the optional tick copies the four progression leaves, clamped.
+ */
+export function GsClone() {
+  const c = useGs();
+  const [info, setInfo] = useState<CloneInfo | null>(null);
+  const [withProgress, setWithProgress] = useState(false);
+  const [warnings, setWarnings] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!c.token) return;
+    void c.act(async () => {
+      const r = await gsCloneInfo({ data: { token: c.token } });
+      setInfo(r as CloneInfo);
+      return r;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.token]);
+
+  const run = async () => {
+    const r = await c.act(() => gsApplyClone({ data: { ...sessOf(c), withProgress } }));
+    c.note(r as GsEditResult | undefined, "Clone");
+    const w = (r as unknown as { warnings?: string[] } | undefined)?.warnings ?? [];
+    setWarnings(w);
+    await c.reload();
+  };
+
+  return (
+    <div className="gs-stack">
+      <section className="gs-cta-card panel">
+        <header className="gs-cta-head">
+          <span className="gs-cta-emblem" aria-hidden="true">
+            <GsIcon name="copy" className="size-6" />
+          </span>
+          <div>
+            <h3 className="gs-cta-title">Clone account</h3>
+            <p className="gs-cta-lead">
+              {info ? `${info.donorName} · level ${info.donorLevel}` : "reading the bundled account…"}
+            </p>
+          </div>
+        </header>
+
+        <div className="gs-chips">
+          <Chip tone="info" icon="decosets">{info?.chapters ?? 0} chapters</Chip>
+          <Chip tone="info" icon="cart">{info?.purchases ?? 0} purchases</Chip>
+          <Chip tone="info" icon="paw">{info?.characters ?? 0} characters</Chip>
+          <Chip tone="gold" icon="avatars">{info?.avatars ?? 0} avatars</Chip>
+        </div>
+
+        <div className="gs-cta-actions">
+          <button type="button" className="gs-cta-btn" disabled={c.busy || !info} onClick={() => void run()}>
+            <GsIcon name="copy" className="size-5" />
+            <span>Clone this account</span>
+          </button>
+          <button
+            type="button"
+            className={cn("gs-pickbar-btn", withProgress && "gs-pickbar-btn--go")}
+            disabled={c.busy}
+            onClick={() => setWithProgress((v) => !v)}
+          >
+            <GsIcon name="check" className="size-4" />
+            {withProgress ? "Also copy level, coins & stars" : "Progress stays mine"}
+          </button>
+        </div>
+
+        {warnings.length ? (
+          <div className="gs-chips mt-2">
+            {warnings.map((w, i) => (
+              <Chip key={i} tone="warn" icon="alert">{w}</Chip>
+            ))}
+          </div>
+        ) : null}
+      </section>
     </div>
   );
 }
