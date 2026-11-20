@@ -140,8 +140,32 @@ export const GS_FRAMES_ACTIVATABLE: GsCatalogEntry[] = [
   { id: "TS_Violet", label: "Violet", grand: false, art: "Gardenscapes/Frames/ts_violet.png" },
 ];
 
-/** Player name styles (`PlayerNameStyle` / `NameStyleHistory`). */
-export const GS_STYLES: GsCatalogEntry[] = [
+/**
+ * Pets — `CharacterProperties.<cluster>.<pet>.Active`.
+ *
+ * Measured on a live save: these are the characters that actually carry an
+ * `Active` flag (14 of them, across the six garden clusters). The ambient
+ * animals (rabbits, ducks, swans, crabs…) have no such flag and are not
+ * listed — toggling a field no save has would be an invented shape.
+ */
+export const GS_PETS: GsCatalogEntry[] = [
+  { id: "MainDog", label: "Austin's Dog", grand: false, emoji: "🐶" },
+  { id: "Cat", label: "Cat", grand: false, emoji: "🐱" },
+  { id: "Horse", label: "Horse", grand: false, emoji: "🐴" },
+  { id: "Koala", label: "Koala", grand: false, emoji: "🐨" },
+  { id: "Dalmatian", label: "Dalmatian", grand: false, emoji: "🐕" },
+  { id: "Goat", label: "Goat", grand: false, emoji: "🐐" },
+  { id: "MiniPig", label: "Mini Pig", grand: false, emoji: "🐷" },
+  { id: "OwlSP", label: "Owl", grand: false, emoji: "🦉" },
+  { id: "RaccoonSP", label: "Raccoon", grand: false, emoji: "🦝" },
+  { id: "LionSP", label: "Lion", grand: false, emoji: "🦁" },
+  { id: "EventDeer", label: "Deer", grand: false, emoji: "🦌" },
+  { id: "EventDeerScarf", label: "Winter Deer", grand: false, emoji: "🦌" },
+  { id: "EventParrot", label: "Parrot", grand: false, emoji: "🦜" },
+  { id: "GerardParrot", label: "Gerard's Parrot", grand: false, emoji: "🦜" },
+];
+
+/** Player name styles (`PlayerNameStyle` / `NameStyleHistory`). */export const GS_STYLES: GsCatalogEntry[] = [
   { id: "NameStyle_Fire", label: "Fire", grand: false, art: "Gardenscapes/Styles/NameStyle_Fire.png" },
   { id: "NameStyle_Glamour", label: "Glamour", grand: false, art: "Gardenscapes/Styles/NameStyle_Glamour.png" },
   { id: "NameStyle_Garland", label: "Garland", grand: false, art: "Gardenscapes/Styles/NameStyle_Garland.png" },

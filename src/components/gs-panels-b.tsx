@@ -25,7 +25,7 @@ import { useGs, sessOf, type GsEditResult } from "./gs-ctx";
 import { Bar, Chip, Field, GsIcon, Panel, Toggle } from "./gs-ui";
 
 // ---------------------------------------------------------------------------
-// Tab group B — Seasons, Decor, Cards, Send Cards.
+// Tab group B â€” Seasons, Decor, Cards, Send Cards.
 // ---------------------------------------------------------------------------
 
 const SET_TONES = [
@@ -60,16 +60,12 @@ export function GsSeasons() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.sessionId]);
 
-  /** One press: max score + every reward on both roads, for every season. */
   const push = async () => {
     if (!seasons.length) return;
     const r = await c.act(() => gsClaimGardenPass({ data: sessOf(c) }));
     c.note(r as GsEditResult | undefined, "Garden Pass");
     await load();
   };
-
-  const stages = seasons.reduce((n, s) => n + s.stages, 0);
-  const gold = seasons.filter((s) => s.goldPassBought).length;
 
   return (
     <div className="gs-stack">
@@ -78,23 +74,8 @@ export function GsSeasons() {
           <span className="gs-gp-emblem" aria-hidden="true">
             <GsIcon name="crown" className="size-7" />
           </span>
-          <div>
-            <h3 className="gs-gp-title">Garden Pass</h3>
-            <p className="gs-gp-lead">Max score · every reward claimable</p>
-          </div>
+          <h3 className="gs-gp-title">Garden Pass</h3>
         </header>
-
-        <div className="gs-chips">
-          <Chip tone="info" icon="infinite">
-            {seasons.length} season{seasons.length === 1 ? "" : "s"}
-          </Chip>
-          <Chip tone="gold" icon="star">
-            {stages} stages
-          </Chip>
-          <Chip tone={gold ? "ok" : "neutral"} icon="check">
-            {gold} gold
-          </Chip>
-        </div>
 
         <button
           type="button"
@@ -107,7 +88,7 @@ export function GsSeasons() {
           </span>
           <span className="gs-gp-btn-body">
             <span className="gs-gp-btn-title">Push Garden Pass</span>
-            <span className="gs-gp-btn-sub">Unlocks every reward on both roads</span>
+            <span className="gs-gp-btn-sub">Every reward on both roads</span>
           </span>
           <span className="gs-gp-btn-go">
             <GsIcon name="check" className="size-5" />
@@ -225,7 +206,7 @@ export function GsDecor() {
                   {ch.items.map((it) => (
                     <div key={it.name} className="gs-item">
                       <span className="gs-item-name">{it.name}</span>
-                      <span className="gs-item-meta">step {it.step}{it.baseStep ? ` · base ${it.baseStep}` : ""}</span>
+                      <span className="gs-item-meta">step {it.step}{it.baseStep ? ` Â· base ${it.baseStep}` : ""}</span>
                     </div>
                   ))}
                   {!ch.items.length ? <p className="gs-empty">No items recorded.</p> : null}
@@ -329,7 +310,7 @@ function SetButton({
       style={{ "--tone": SET_TONES[index % SET_TONES.length] } as CSSProperties}
       disabled={busy}
       onClick={onClick}
-      title={`${label} · ${owned}/${total}`}
+      title={`${label} Â· ${owned}/${total}`}
     >
       <span className="gs-setbtn-top">
         <span className="gs-setbtn-no">{index + 1}</span>
@@ -392,7 +373,7 @@ export function GsCards() {
           <div>
             <h3 className="gs-cta-title">Card collection</h3>
             <p className="gs-cta-lead">
-              {info?.cards.length ?? 0} of {GS_CARDS.length} owned · {info?.featureId ?? "—"}
+              {info?.cards.length ?? 0} of {GS_CARDS.length} owned Â· {info?.featureId ?? "â€”"}
             </p>
           </div>
         </header>
@@ -416,7 +397,7 @@ export function GsCards() {
           >
             <GsIcon name="plus" className="size-5" />
             <span>Fill all {GS_CARDS.length}</span>
-            <span className="gs-cta-btn-meta">×{amt}</span>
+            <span className="gs-cta-btn-meta">Ã—{amt}</span>
           </button>
           <button
             type="button"
@@ -540,15 +521,14 @@ export function GsCards() {
 // === Send Cards ===========================================================
 
 /**
- * Delivery happens inside the save: the reference editors relay friend sends
- * through their own licensed backend, and a Gardenscapes save carries no friend
- * roster to write into. Every button here lands the cards in this save.
+ * Cards land in this save. The game hands friend gifts over server-side, so a
+ * save edit can only mint them for the account doing the editing — every
+ * button here writes real rows into your own collection.
  */
 export function GsSendCards() {
   const c = useGs();
   const [info, setInfo] = useState<CardsInfo | null>(null);
   const [amount, setAmount] = useState("1");
-  const [recipientsText, setRecipientsText] = useState("");
 
   const load = async () => {
     if (!c.sessionId) return;
@@ -563,11 +543,6 @@ export function GsSendCards() {
 
   const amt = Math.max(1, Math.min(9999, Math.floor(Number(amount) || 1)));
   const owned = ownedBySet(info);
-  const recipients = recipientsText
-    .split(/[\s,;]+/)
-    .map((x) => x.trim())
-    .filter(Boolean);
-  const bad = recipients.filter((r) => !/^[A-Za-z0-9]{4,32}$/.test(r));
 
   const send = async (ids: string[], label: string) => {
     const r = await c.act(() => gsSendCardsToSelf({ data: { ...sessOf(c), cardIds: ids, amount: amt } }));
@@ -592,35 +567,12 @@ export function GsSendCards() {
           <Field label="Amount" value={amount} onChange={setAmount} suffix="per card" />
         </div>
 
-        <textarea
-          className="field gs-textarea font-mono"
-          rows={2}
-          placeholder="Friend save IDs — one per line"
-          value={recipientsText}
-          onChange={(e) => setRecipientsText(e.target.value)}
-        />
-        <div className="gs-chips mt-2">
-          <Chip tone={recipients.length ? "info" : "neutral"} icon="users">
-            {recipients.length} friend{recipients.length === 1 ? "" : "s"}
-          </Chip>
-          {bad.length ? (
-            <Chip tone="warn" icon="alert">
-              {bad.length} invalid
-            </Chip>
-          ) : null}
-        </div>
-
         <div className="gs-cta-actions">
           <button
             type="button"
             className="gs-cta-btn"
-            disabled={c.busy || bad.length > 0}
-            onClick={() =>
-              void send(
-                GS_CARDS.map((x) => x.id),
-                recipients.length ? `Sent to ${recipients.length} friend(s)` : "Sent all",
-              )
-            }
+            disabled={c.busy}
+            onClick={() => void send(GS_CARDS.map((x) => x.id), "Sent all")}
           >
             <GsIcon name="sendCards" className="size-5" />
             <span>Send all {GS_CARDS.length}</span>
@@ -645,5 +597,3 @@ export function GsSendCards() {
     </div>
   );
 }
-
-export { SET_TONES };

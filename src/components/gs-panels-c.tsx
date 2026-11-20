@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  gsListPets,
   gsProfileCatalogs,
   gsReadProfile,
+  gsSetPet,
+  gsUnlockAllPets,
   gsUnlockBadges,
   gsUnlockFrames,
   gsUnlockNameStyles,
@@ -99,7 +102,7 @@ function useProfile() {
 
 // --- shared three-across picker ------------------------------------------
 
-type Kind = "frames" | "styles" | "badges" | "titles";
+type Kind = "frames" | "styles" | "badges" | "titles" | "pets";
 
 /** Every cosmetic icon lives at `/icons/<kind>/<id>.png` once supplied. */
 function artFor(kind: Kind, id: string): string {
@@ -114,6 +117,7 @@ function PickGrid({
   worn,
   busy,
   onToggle,
+  subFor,
 }: {
   kind: Kind;
   items: GsCatalogEntry[];
@@ -122,6 +126,7 @@ function PickGrid({
   worn: (id: string) => boolean;
   busy: boolean;
   onToggle: (id: string) => void;
+  subFor?: (owned: boolean, worn: boolean) => string;
 }) {
   return (
     <div className="gs-pick3">
@@ -129,6 +134,7 @@ function PickGrid({
         const on = sel.has(e.id);
         const isWorn = worn(e.id);
         const isOwned = owned(e.id);
+        const sub = subFor ? subFor(isOwned, isWorn) : isWorn ? "Worn" : isOwned ? "Owned" : "Locked";
         return (
           <button
             key={e.id}
@@ -137,7 +143,7 @@ function PickGrid({
             aria-pressed={on}
             disabled={busy}
             onClick={() => onToggle(e.id)}
-            title={`${e.label} — ${isWorn ? "worn" : isOwned ? "owned" : "locked"}`}
+            title={`${e.label} — ${sub.toLowerCase()}`}
           >
             <span className="gs-pick3-icon" style={e.color ? { background: e.color } : undefined}>
               <img
@@ -158,9 +164,7 @@ function PickGrid({
             </span>
             <span className="gs-pick3-body">
               <span className="gs-pick3-label">{e.label}</span>
-              <span className="gs-pick3-sub">
-                {isWorn ? "Worn" : isOwned ? "Owned" : "Locked"}
-              </span>
+              <span className="gs-pick3-sub">{sub}</span>
             </span>
             <span className={cn("gs-pick3-tick", on && "on")} aria-hidden="true">
               {on ? <GsIcon name="check" className="size-3.5" /> : null}
@@ -508,6 +512,117 @@ export function GsTitles() {
           sel={sel}
           owned={(id) => earned.has(id)}
           worn={(id) => p?.wornTitleId === id}
+          busy={c.busy}
+          onToggle={toggle}
+        />
+      </Panel>
+    </div>
+  );
+}
+
+// === Pets =================================================================
+
+interface PetInfo {
+  id: string;
+  label: string;
+  emoji?: string;
+  clusters: number;
+  toggleable: number;
+  active: boolean;
+}
+
+export function GsPets() {
+  const c = useGs();
+  const [pets, setPets] = useState<PetInfo[]>([]);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+
+  const load = async () => {
+    if (!c.sessionId) return;
+    const r = await c.act(() => gsListPets({ data: sessOf(c) }));
+    if (r) setPets(r as PetInfo[]);
+  };
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.sessionId]);
+
+  const activeIds = useMemo(() => new Set(pets.filter((p) => p.active).map((p) => p.id)), [pets]);
+
+  const toggle = (id: string) =>
+    setSel((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+
+  const runSeq = async (fns: Array<() => Promise<unknown>>, label: string) => {
+    let last: unknown;
+    await c.act(async () => {
+      for (const fn of fns) last = await fn();
+      return last;
+    });
+    c.note(last as GsEditResult | undefined, label);
+    await load();
+  };
+
+  const apply = () => {
+    const ids = [...sel];
+    if (!ids.length) return;
+    void runSeq(
+      ids.map((id) => () => gsSetPet({ data: { ...sessOf(c), id, on: true } })),
+      ids.length === 1 ? pets.find((p) => p.id === ids[0])?.label ?? "Pet" : `${ids.length} pets`,
+    );
+    setSel(new Set());
+  };
+
+  const entries = pets.map<GsCatalogEntry>((p) => ({
+    id: p.id,
+    label: p.label,
+    grand: false,
+    emoji: p.emoji,
+  }));
+
+  return (
+    <div className="gs-stack">
+      <Panel
+        title="Pets"
+        icon="paw"
+        actions={
+          <button
+            type="button"
+            className="gs-pickbar-btn"
+            disabled={c.busy || !pets.length}
+            onClick={() => void runSeq([() => gsUnlockAllPets({ data: sessOf(c) })], "All pets")}
+          >
+            Unlock all
+          </button>
+        }
+      >
+        <div className="gs-chips">
+          <Chip tone="ok" icon="check">
+            {activeIds.size} / {pets.length} active
+          </Chip>
+          <Chip tone="info" icon="paw">
+            {pets.reduce((n, p) => n + p.clusters, 0)} garden spots
+          </Chip>
+        </div>
+        <PickBar
+          count={sel.size}
+          total={pets.length}
+          busy={c.busy}
+          onAll={() => setSel(new Set(pets.map((p) => p.id)))}
+          onClear={() => setSel(new Set())}
+          onApply={apply}
+        />
+        <PickGrid
+          kind="pets"
+          items={entries}
+          sel={sel}
+          owned={(id) => activeIds.has(id)}
+          worn={() => false}
+          subFor={(on) => (on ? "Active" : "Idle")}
           busy={c.busy}
           onToggle={toggle}
         />

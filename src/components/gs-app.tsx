@@ -33,7 +33,7 @@ import {
 import { GsIcon, downloadB64, fileToB64 } from "./gs-ui";
 import { GsBackups, GsBoosters, GsDashboard, GsPlayer, GsStatistics } from "./gs-panels-a";
 import { GsCards, GsDecor, GsSeasons, GsSendCards } from "./gs-panels-b";
-import { GsAvatars, GsBadges, GsFrames, GsStyles, GsTitles } from "./gs-panels-c";
+import { GsAvatars, GsBadges, GsFrames, GsPets, GsStyles, GsTitles } from "./gs-panels-c";
 
 // ---------------------------------------------------------------------------
 // Gardenscapes editor — login scene + application shell.
@@ -1124,6 +1124,7 @@ export function GsApp() {
                   {tab === "styles" && <GsStyles />}
                   {tab === "badges" && <GsBadges />}
                   {tab === "titles" && <GsTitles />}
+                  {tab === "pets" && <GsPets />}
                   {tab === "backups" && <GsBackups />}
                 </div>
               )}

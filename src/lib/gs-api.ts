@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -9,7 +9,7 @@ import { z } from "zod";
 // reaches the browser bundle) and gating on requireToken wherever a session or
 // license is involved. The six edit modules (cards/season/decor/items/stats/
 // profile) all take the session object, so every wrapper resolves it the same
-// way: getSession(sessionId, token) — a token that does not own the session
+// way: getSession(sessionId, token) â€” a token that does not own the session
 // throws, which is the same gate the IGG tool relies on.
 // ---------------------------------------------------------------------------
 
@@ -154,6 +154,17 @@ export const gsGrantCards = createServerFn({ method: "POST" })
     return m.grantCards(await sessionOf(data.token, data.sessionId), data.ids, data.amount);
   });
 
+/** Deliver ticked cards into this save (the only delivery a save edit can do). */
+export const gsSendCardsToSelf = createServerFn({ method: "POST" })
+  .validator(sess.extend({ cardIds: z.array(z.string()).min(1).max(150), amount: z.number().int().min(1).max(9999) }))
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/cards.server");
+    return m.sendCardsToSelf(await sessionOf(data.token, data.sessionId), {
+      cardIds: data.cardIds,
+      amount: data.amount,
+    });
+  });
+
 export const gsSetCardStock = createServerFn({ method: "POST" })
   .validator(sess.extend({ cardId: z.string(), stock: z.number().int().min(1).max(9999) }))
   .handler(async ({ data }) => {
@@ -222,41 +233,6 @@ export const gsClearGiftingInbox = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const m = await import("./server/gardenscapes/cards.server");
     return m.clearGiftingInbox(await sessionOf(data.token, data.sessionId));
-  });
-
-// Send cards: validate a plan first (proven write-free), then optionally grant
-// locally ("receive into my save"). No Playrix endpoint exists for delivery to
-// a real friend — the notice says so rather than claiming a send happened.
-const sendSchema = sess.extend({
-  recipients: z.array(z.string().regex(/^[A-Za-z0-9]{4,32}$/)).min(1),
-  cardIds: z.array(z.string()).min(1).max(150),
-  amount: z.number().int().min(1).max(9999),
-});
-
-export const gsPlanCardSend = createServerFn({ method: "POST" })
-  .validator(sendSchema)
-  .handler(async ({ data }) => {
-    const m = await import("./server/gardenscapes/cards.server");
-    return m.planCardSend(await sessionOf(data.token, data.sessionId), {
-      recipients: data.recipients,
-      cardIds: data.cardIds,
-      amount: data.amount,
-    });
-  });
-
-export const gsSendCardsToSelf = createServerFn({ method: "POST" })
-  .validator(
-    sess.extend({
-      cardIds: z.array(z.string()).min(1).max(150),
-      amount: z.number().int().min(1).max(9999),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const m = await import("./server/gardenscapes/cards.server");
-    return m.sendCardsToSelf(await sessionOf(data.token, data.sessionId), {
-      cardIds: data.cardIds,
-      amount: data.amount,
-    });
   });
 
 // --- season (golden pass / stages) ----------------------------------------
@@ -329,6 +305,29 @@ export const gsClaimGardenPass = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const m = await import("./server/gardenscapes/season.server");
     return m.claimAllSeasons(await sessionOf(data.token, data.sessionId));
+  });
+
+// --- pets ------------------------------------------------------------------
+
+export const gsListPets = createServerFn({ method: "POST" })
+  .validator(sess)
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/pets.server");
+    return m.listPets(await sessionOf(data.token, data.sessionId));
+  });
+
+export const gsSetPet = createServerFn({ method: "POST" })
+  .validator(sess.extend({ id: z.string(), on: z.boolean() }))
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/pets.server");
+    return m.setPet(await sessionOf(data.token, data.sessionId), data.id, data.on);
+  });
+
+export const gsUnlockAllPets = createServerFn({ method: "POST" })
+  .validator(sess)
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/pets.server");
+    return m.unlockAllPets(await sessionOf(data.token, data.sessionId));
   });
 
 // --- decorations / repairs --------------------------------------------------
@@ -550,7 +549,7 @@ export const gsWearBadge = createServerFn({ method: "POST" })
     return m.wearBadge(await sessionOf(data.token, data.sessionId), data.cipher);
   });
 
-/** Wear a badge by catalog id — the cipher is encoded server-side. */
+/** Wear a badge by catalog id â€” the cipher is encoded server-side. */
 export const gsWearBadgeById = createServerFn({ method: "POST" })
   .validator(sess.extend({ id: z.string() }))
   .handler(async ({ data }) => {
@@ -615,7 +614,7 @@ export const gsUnlockAllTitles = createServerFn({ method: "POST" })
     return m.unlockAllTitles(await sessionOf(data.token, data.sessionId));
   });
 
-/** Frame / avatar catalogs (static — no session needed, token still gated). */
+/** Frame / avatar catalogs (static â€” no session needed, token still gated). */
 export const gsProfileCatalogs = createServerFn({ method: "POST" })
   .validator(z.object({ token: z.string() }))
   .handler(async ({ data }) => {

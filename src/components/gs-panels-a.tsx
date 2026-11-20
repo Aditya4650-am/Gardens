@@ -229,10 +229,10 @@ export function GsDashboard() {
 
       <Panel title="Quick actions" icon="spark">
         <div className="gs-actions">
-          {(["cards", "send", "seasons", "decor", "statistics", "backups"] as GsTab[]).map((t) => (
+          {(["cards", "seasons", "decor", "statistics", "backups"] as GsTab[]).map((t) => (
             <Button key={t} variant="tool" size="sm" onClick={() => c.go(t)}>
-              <GsIcon name={t === "send" ? "sendCards" : t === "backups" ? "backups" : t} className="size-4" />
-              {t === "send" ? "Send Cards" : t === "backups" ? "Backups" : t[0].toUpperCase() + t.slice(1)}
+              <GsIcon name={t === "backups" ? "backups" : t} className="size-4" />
+              {t === "backups" ? "Backups" : t[0].toUpperCase() + t.slice(1)}
             </Button>
           ))}
         </div>

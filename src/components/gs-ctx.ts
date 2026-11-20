@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+﻿import { createContext, useContext } from "react";
 
 // ---------------------------------------------------------------------------
 // Gardenscapes app context.
@@ -10,7 +10,7 @@ import { createContext, useContext } from "react";
 // and the same error toast instead of each panel re-implementing it.
 // ---------------------------------------------------------------------------
 
-/** Mirrors `snapshot()` in session.server.ts — the field is `id`, not sessionId. */
+/** Mirrors `snapshot()` in session.server.ts â€” the field is `id`, not sessionId. */
 export interface GsSnapshot {
   id: string;
   device: string;
@@ -53,6 +53,7 @@ export type GsTab =
   | "styles"
   | "badges"
   | "titles"
+  | "pets"
   | "backups";
 
 /** The eight tabs shown in the first row; the rest live in the overflow row. */
@@ -63,7 +64,6 @@ export const GS_PRIMARY_TABS: GsTab[] = [
   "boosters",
   "seasons",
   "cards",
-  "send",
   "decor",
 ];
 
@@ -73,6 +73,8 @@ export const GS_OVERFLOW_TABS: GsTab[] = [
   "styles",
   "badges",
   "titles",
+  "pets",
+  "send",
   "backups",
 ];
 
@@ -90,6 +92,7 @@ export const GS_TAB_LABEL: Record<GsTab, string> = {
   styles: "Styles",
   badges: "Badges",
   titles: "Titles",
+  pets: "Pets",
   backups: "Backups",
 };
 
@@ -108,6 +111,7 @@ export const GS_TAB_ICON: Record<GsTab, string> = {
   styles: "styles",
   badges: "badges",
   titles: "titles",
+  pets: "paw",
   backups: "backups",
 };
 

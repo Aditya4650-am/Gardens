@@ -1,23 +1,23 @@
-// Cards — collection inventory, sets, packs, gifting and send-cards.
+﻿// Cards â€” collection inventory, sets, packs, gifting and send-cards.
 //
 // Measured on 3 real saves (mined GameData.db, Telegram GameData.db, and the
 // live MEmu save pulled this session). Every row below keeps its measured
-// FIELD ORDER — nothing here invents a shape no save holds:
+// FIELD ORDER â€” nothing here invents a shape no save holds:
 //   Features.<CardC*>            (CardC3..CardC9 exist per save)
 //     Core (absent on CardC5/6/9):
 //       OwnedCards     a  rows {cardId s, generatedCount i, inStockCount i, isNew f}
-//       OwnedSets      a  rows {isRewardGiven f, lastSeenProgress i, setId s} — 15 rows
-//       GivenPackInfos a  rows {count g, id s} — exactly 6 rows
-//       PendingPacks   a  — always 0 rows; a row's shape was never observed,
+//       OwnedSets      a  rows {isRewardGiven f, lastSeenProgress i, setId s} â€” 15 rows
+//       GivenPackInfos a  rows {count g, id s} â€” exactly 6 rows
+//       PendingPacks   a  â€” always 0 rows; a row's shape was never observed,
 //                            so this module never writes into it
 //       Blockers       a  rows {BlockersPairs a, setId s} (CardC3 only; pairs are
 //                            {blockerCardId s, trashCardId s} inside the set's group of 10)
-//       TotalObtainedCardsCount i · FourthPack_CurrentStreak i
+//       TotalObtainedCardsCount i Â· FourthPack_CurrentStreak i
 //     CardsGiftingCore {LastResetDay k, PendingReceivedCards a, PendingSendCards a,
 //                       ReceivedCards a, SendCardsCount i, SentCards a}
 //       ReceivedCards row (measured on the live save):
 //         {belongingCollectionId s, cardId s, cardSourceId s, senderId s, uniqueGiftingId s}
-//       SentCards / PendingSendCards rows were never non-empty in any save —
+//       SentCards / PendingSendCards rows were never non-empty in any save â€”
 //       their shape is unknown, so they are NEVER written (read as counts only).
 //     CardsRequester {RequestTimestamp k}
 //     <CardC*>Loader  {IsEventActive f, IsGrandCollection f}
@@ -26,18 +26,17 @@
 //   - sum(generatedCount) == TotalObtainedCardsCount
 //   - per set: lastSeenProgress == count(rows with isNew == false)
 //   - no duplicate cardId; every id inside card_01..card_150
-//   - card→set mapping is the group of ten: set = pad2(floor((n-1)/10)+1)
+//   - cardâ†’set mapping is the group of ten: set = pad2(floor((n-1)/10)+1)
 //     (verified 15/15 against the live save's lastSeenProgress)
 //   - OwnedSets = 15 rows, GivenPackInfos = 6 rows, isRewardGiven all false
 //   - a created OwnedCards row starts isNew=true, which moves no counter
 //     (the game flips it to false when the player views the collection)
 //
-// Send-cards mirrors AM-HOMESC's CardsSection honestly: Gardenscapes saves
-// hold NO friend roster (only an empty GameFriendsBridge) and no Playrix
-// card-send endpoint exists anywhere — both reference editors relay through
-// their own licensed backends (OxxEditor: POST oxxapp.com/gscloud/send_cards).
-// So a friend send is a VALIDATED PLAN + an explicit notice that nothing is
-// transmitted, while "receive into my save" performs REAL local writes.
+// Gifting: a Gardenscapes save holds NO friend roster (only an empty
+// GameFriendsBridge) and no Playrix card-send endpoint exists, so nothing here
+// pretends to deliver a card to another player. What does work locally â€” and
+// is what the Cards tab uses â€” is the real row write: granting cards into the
+// live save and accepting the save's own `ReceivedCards` inbox.
 
 import {
   fitNumericType,
@@ -54,19 +53,12 @@ import { GS_CARDS, GS_CARD_PACKS, gsCardById } from "./catalogs.ts";
 
 const FEATURES = "Features";
 const CARD_FEATURE = /^CardC\d+$/;
-const RECIPIENT_ID = /^[A-Za-z0-9]{4,32}$/;
 
 /** OxxEditor's own `cardAmount` bounds (its card grid sends 1..9999 each). */
 export const GS_CARD_AMOUNT_MIN = 1;
 export const GS_CARD_AMOUNT_MAX = 9999;
-/** OxxEditor's per-recipient cap — its send row prints `n/7`. */
-export const GS_SEND_RECIPIENT_CAP = 7;
 /** `GivenPackInfos.count` is stored as type `g` = u16. */
 export const GS_PACK_COUNT_MAX = 65535;
-
-/** The honest delivery notice shown by planCardSend (and the UI). */
-export const GS_SEND_NOTICE =
-  "Plan checked against your collection. Use \"Receive into my save\" to apply cards to your own save.";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -156,26 +148,6 @@ export interface GsCardsInfo {
   };
 }
 
-export interface GsCardSendRow {
-  cardId: string;
-  setId: string;
-  amount: number;
-  owned: boolean;
-}
-
-export interface GsCardSendPlan {
-  recipients: string[];
-  rows: GsCardSendRow[];
-  cardCount: number;
-  totalCards: number;
-  recipientCap: number;
-  ownedCount: number;
-  unownedCount: number;
-  /** Always false — there is no game-server connection to deliver over. */
-  deliverable: false;
-  notice: string;
-}
-
 // ---------------------------------------------------------------------------
 // Feature / row helpers
 // ---------------------------------------------------------------------------
@@ -191,7 +163,7 @@ function featureHits(d: AUDBDocument): { id: string; num: number; feat: AUDBEntr
 
 /**
  * The feature this save plays: Core exists and OwnedCards is non-empty.
- * Proven on all 3 saves — CardC8 (mined + live) and CardC7 (Telegram), while
+ * Proven on all 3 saves â€” CardC8 (mined + live) and CardC7 (Telegram), while
  * CardC3/4 carry an empty Core and CardC5/6/9 have no Core at all. Ties go to
  * the newest (highest) feature; a save whose every Core is empty falls back to
  * the newest feature that has a Core, so a fresh collection can still be edited.
@@ -617,7 +589,23 @@ export function grantCards(
 }
 
 /**
- * Set one card's stock (and generatedCount — every measured row keeps the two
+ * Deliver cards into this save. A Gardenscapes gift is handed over by the game
+ * server, so a save edit can only mint them for the account doing the editing —
+ * which is exactly what this does, through the measured grant path.
+ */
+export function sendCardsToSelf(
+  s: GardenscapesSession,
+  req: { cardIds: string[]; amount: number },
+): EditResult {
+  const amount = requireInt(req.amount, GS_CARD_AMOUNT_MIN, GS_CARD_AMOUNT_MAX, "amount per card");
+  if (!req.cardIds || req.cardIds.length === 0) throw new Error("cards: no cards selected");
+  const res = grantCards(s, req.cardIds, amount);
+  s.log.push(`Cards: delivered ${new Set(req.cardIds).size} card(s) x${amount}`);
+  return res;
+}
+
+/**
+ * Set one card's stock (and generatedCount â€” every measured row keeps the two
  * equal, so this module never writes gen != stock). Missing row is reported:
  * stock is edited, not created.
  */
@@ -687,7 +675,7 @@ export function setCardNew(
   return { changed: [], missing: [`Features.${id}.Core.OwnedCards.${cardId}`] };
 }
 
-/** Clear (or restore) the new-card dots — `ids` omitted = every owned card. */
+/** Clear (or restore) the new-card dots â€” `ids` omitted = every owned card. */
 export function markCardsSeen(s: GardenscapesSession, ids?: string[]): EditResult {
   const { id, feat } = activeOrFail(s);
   const rows = arrOf(feat, "Core.OwnedCards") ?? [];
@@ -737,7 +725,7 @@ export function setPackCount(
   return { changed: [], missing: [`Features.${id}.Core.GivenPackInfos.${packId}`] };
 }
 
-/** `Core.FourthPack_CurrentStreak` — measured 0 on every save. */
+/** `Core.FourthPack_CurrentStreak` â€” measured 0 on every save. */
 export function setPackStreak(s: GardenscapesSession, value: number): EditResult {
   const n = requireInt(value, 0, 9999, "streak");
   const { id, feat } = activeOrFail(s);
@@ -753,7 +741,7 @@ export function setPackStreak(s: GardenscapesSession, value: number): EditResult
 }
 
 /**
- * OxxEditor's "Activate Grand Collection" — its payload key `activate_grand`
+ * OxxEditor's "Activate Grand Collection" â€” its payload key `activate_grand`
  * is a view-layer key no real save holds; the real save key is the measured
  * `Loader.IsGrandCollection`, which is what this writes.
  */
@@ -766,7 +754,7 @@ export function setGrandCollection(s: GardenscapesSession, on: boolean): EditRes
   return res;
 }
 
-/** `Loader.IsEventActive` — measured on every save's loader. */
+/** `Loader.IsEventActive` â€” measured on every save's loader. */
 export function setEventActive(s: GardenscapesSession, on: boolean): EditResult {
   const { id, feat } = activeOrFail(s);
   const flag = loaderFlag(feat, "IsEventActive");
@@ -777,13 +765,13 @@ export function setEventActive(s: GardenscapesSession, on: boolean): EditResult 
 }
 
 // ---------------------------------------------------------------------------
-// Gifting — real local writes over the one row shape a save has held
+// Gifting â€” real local writes over the one row shape a save has held
 // ---------------------------------------------------------------------------
 
 /**
  * Accept every pending gift: each ReceivedCards row grants its card into
  * OwnedCards (a duplicate raises gen+stock, a new card gets its row), then the
- * rows are cleared — exactly what accepting does. Rows whose cardId is outside
+ * rows are cleared â€” exactly what accepting does. Rows whose cardId is outside
  * the catalog stay in the inbox rather than being destroyed, and land in
  * `missing` so the caller sees them.
  */
@@ -859,87 +847,6 @@ export function clearGiftingInbox(s: GardenscapesSession): EditResult {
   }
   if (changed.length) s.log.push("Cards: gift inbox cleared");
   return { changed, missing };
-}
-
-// ---------------------------------------------------------------------------
-// Send-cards — validated plan for friends, real local write for yourself
-// ---------------------------------------------------------------------------
-
-/**
- * Build the send plan a friend delivery WOULD perform. Validates recipients
- * (1..7 save ids), card ids and the per-card amount against the same bounds
- * OxxEditor uses (1..9999). Never writes: `deliverable` is literally false
- * and `notice` states why — mirroring AM-HOMESC's honest plan path.
- */
-export function planCardSend(
-  s: GardenscapesSession,
-  req: { recipients: string[]; cardIds: string[]; amount: number },
-): GsCardSendPlan {
-  const recipients = (req.recipients ?? []).map((r) => r.trim()).filter((r) => r.length > 0);
-  if (recipients.length === 0) throw new Error("cards: enter at least one recipient save id");
-  if (recipients.length > GS_SEND_RECIPIENT_CAP) {
-    throw new Error(
-      `cards: at most ${GS_SEND_RECIPIENT_CAP} recipients per send (${recipients.length} given)`,
-    );
-  }
-  for (const r of recipients) {
-    if (!RECIPIENT_ID.test(r)) throw new Error(`cards: bad recipient save id "${r}"`);
-  }
-  const cardIds = [...new Set(req.cardIds ?? [])];
-  if (cardIds.length === 0) throw new Error("cards: no cards selected");
-  if (cardIds.length > GS_CARDS.length) throw new Error("cards: more cards than the catalog holds");
-  const amount = requireInt(
-    req.amount,
-    GS_CARD_AMOUNT_MIN,
-    GS_CARD_AMOUNT_MAX,
-    "amount per card",
-  );
-  for (const id of cardIds) {
-    if (!gsCardById(id)) throw new Error(`cards: unknown card id "${id}"`);
-  }
-
-  const info = readCards(s);
-  const owned = new Set(info.cards.map((c) => c.cardId));
-  const rows: GsCardSendRow[] = cardIds.map((cardId) => {
-    const cat = gsCardById(cardId)!;
-    return { cardId, setId: cat.setId, amount, owned: owned.has(cardId) };
-  });
-  const ownedCount = rows.filter((r) => r.owned).length;
-  return {
-    recipients,
-    rows,
-    cardCount: rows.length,
-    totalCards: rows.length * amount,
-    recipientCap: GS_SEND_RECIPIENT_CAP,
-    ownedCount,
-    unownedCount: rows.length - ownedCount,
-    deliverable: false,
-    notice: GS_SEND_NOTICE,
-  };
-}
-
-/**
- * "Receive into my save" — the real local write behind the send tab: the
- * ticked cards land in THIS save's inventory with the chosen amount. This is
- * the only path in the send-cards feature that mutates the document, and it
- * mutates only measured rows (grant).
- */
-export function sendCardsToSelf(
-  s: GardenscapesSession,
-  req: { cardIds: string[]; amount: number },
-): EditResult {
-  const amount = requireInt(
-    req.amount,
-    GS_CARD_AMOUNT_MIN,
-    GS_CARD_AMOUNT_MAX,
-    "amount per card",
-  );
-  if (!req.cardIds || req.cardIds.length === 0) throw new Error("cards: no cards selected");
-  const res = grantCards(s, req.cardIds, amount);
-  s.log.push(
-    `Cards: received ${new Set(req.cardIds).size} card(s) x${amount} into this save`,
-  );
-  return res;
 }
 
 export type { AUDBDocument, AUDBEntry, EditResult };

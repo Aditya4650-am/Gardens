@@ -6,8 +6,7 @@ built-in emoji/letter instead, so nothing breaks.
 
 - **Format:** PNG with transparency, square, 256×256 (512×512 also fine)
 - **Name:** exactly the save id + `.png` (case-sensitive)
-- **Folder:** one of `frames/`, `styles/`, `avatar-styles/`, `badges/`,
-  `titles/`
+- **Folder:** one of `frames/`, `styles/`, `badges/`, `titles/`, `pets/`
 
 ## frames/ (14)
 
@@ -63,7 +62,6 @@ Magic_Badge_Grand.png
 ```
 
 ## titles/ (22)
-
 ```
 Expedition_b25.png
 Expedition_b25_Post.png
@@ -87,4 +85,23 @@ Exp40.png
 Exp40_Post.png
 Exp41.png
 Exp41_Post.png
+```
+
+## pets/ (14)
+
+```
+MainDog.png
+Cat.png
+Horse.png
+Koala.png
+Dalmatian.png
+Goat.png
+MiniPig.png
+OwlSP.png
+RaccoonSP.png
+LionSP.png
+EventDeer.png
+EventDeerScarf.png
+EventParrot.png
+GerardParrot.png
 ```
