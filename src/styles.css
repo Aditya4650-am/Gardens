@@ -6403,3 +6403,263 @@ html:has(.gs-theme.gs-dark) {
 .gs-theme.gs-dark .sidebar-log > div {
   color: #b7d5ef;
 }
+
+/* ------------------------------------------------------------------ */
+/* Three-across cosmetic pickers (Frames / Styles / Badges / Titles)   */
+/* ------------------------------------------------------------------ */
+
+.gs-theme .gs-pickbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+
+.gs-theme .gs-pickbar-btn {
+  flex: 1 1 0;
+  min-width: 96px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(31, 77, 58, 0.2);
+  background: linear-gradient(180deg, #ffffff 0%, #f5f8f0 100%);
+  color: #1f4d3a;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 8px 18px -16px rgba(24, 62, 46, 0.6);
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, filter 150ms ease;
+}
+
+.gs-theme .gs-pickbar-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(198, 156, 62, 0.6);
+  box-shadow: 0 10px 22px -16px rgba(24, 62, 46, 0.6), 0 0 16px rgba(198, 156, 62, 0.22);
+}
+
+.gs-theme .gs-pickbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gs-theme .gs-pickbar-btn--ghost {
+  background: transparent;
+  color: #5c7266;
+}
+
+.gs-theme .gs-pickbar-btn--go {
+  color: #f6fff8;
+  border-color: rgba(24, 62, 46, 0.5);
+  background: linear-gradient(180deg, #35815c 0%, #256849 55%, #1d5338 100%);
+  box-shadow: 0 10px 22px -16px rgba(24, 62, 46, 0.85);
+}
+
+.gs-theme .gs-pickbar-count {
+  margin-left: auto;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #70857a;
+}
+
+.gs-theme .gs-pick3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gs-theme .gs-pick3-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 74px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(31, 77, 58, 0.14);
+  background: linear-gradient(180deg, #ffffff 0%, #fbf8f1 100%);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.gs-theme .gs-pick3-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(198, 156, 62, 0.55);
+  box-shadow: 0 12px 26px -18px rgba(24, 62, 46, 0.5);
+}
+
+.gs-theme .gs-pick3-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gs-theme .gs-pick3-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(198, 156, 62, 0.12);
+  border: 1px solid rgba(198, 156, 62, 0.28);
+  color: #8a6a1e;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.gs-theme .gs-pick3-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.gs-theme .gs-pick3-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.gs-theme .gs-pick3-label {
+  font-size: 0.84rem;
+  font-weight: 750;
+  color: #1f4d3a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gs-theme .gs-pick3-sub {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #81968a;
+}
+
+.gs-theme .gs-pick3-tick {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(31, 77, 58, 0.22);
+  background: #ffffff;
+  color: #1f4d3a;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.gs-theme .gs-pick3-tick.on {
+  background: linear-gradient(145deg, #ffe9a8 0%, #e7c367 60%, #c69c3e 100%);
+  border-color: rgba(198, 156, 62, 0.9);
+  box-shadow: 0 0 12px rgba(198, 156, 62, 0.55);
+}
+
+.gs-theme .gs-pick3-btn.is-owned {
+  border-color: rgba(46, 138, 92, 0.3);
+}
+
+.gs-theme .gs-pick3-btn.is-worn {
+  border-color: rgba(46, 138, 92, 0.55);
+  background: linear-gradient(180deg, #ffffff 0%, #eef8f1 100%);
+}
+
+.gs-theme .gs-pick3-btn.is-worn .gs-pick3-sub {
+  color: #2f7d54;
+}
+
+.gs-theme .gs-pick3-btn.is-sel {
+  border-color: rgba(198, 156, 62, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(198, 156, 62, 0.75),
+    0 0 26px rgba(198, 156, 62, 0.4);
+}
+
+.gs-theme .gs-pick3-btn.is-sel:active {
+  box-shadow:
+    0 0 0 3px rgba(198, 156, 62, 0.85),
+    0 0 34px rgba(198, 156, 62, 0.6);
+}
+
+/* Dark twins */
+
+.gs-theme.gs-dark .gs-pickbar-btn {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: linear-gradient(180deg, #1b273e 0%, #162034 100%);
+  color: #dbe9f5;
+}
+
+.gs-theme.gs-dark .gs-pickbar-btn--ghost {
+  background: transparent;
+  color: #93a3b8;
+}
+
+.gs-theme.gs-dark .gs-pickbar-btn--go {
+  color: #f6fff8;
+  background: linear-gradient(180deg, #35815c 0%, #256849 55%, #1d5338 100%);
+}
+
+.gs-theme.gs-dark .gs-pickbar-count {
+  color: #93a3b8;
+}
+
+.gs-theme.gs-dark .gs-pick3-btn {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, #1a2438 0%, #151e30 100%);
+}
+
+.gs-theme.gs-dark .gs-pick3-btn.is-worn {
+  background: linear-gradient(180deg, #16283a 0%, #132233 100%);
+}
+
+.gs-theme.gs-dark .gs-pick3-label {
+  color: #e6f0fa;
+}
+
+.gs-theme.gs-dark .gs-pick3-sub {
+  color: #93a3b8;
+}
+
+.gs-theme.gs-dark .gs-pick3-tick {
+  background: #0f1828;
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #dbe9f5;
+}
+
+.gs-theme.gs-dark .gs-pick3-icon {
+  background: rgba(231, 195, 103, 0.12);
+  border-color: rgba(231, 195, 103, 0.3);
+  color: #e7c367;
+}
+
+@media (max-width: 560px) {
+  .gs-theme .gs-pick3 {
+    gap: 7px;
+  }
+  .gs-theme .gs-pick3-btn {
+    min-height: 64px;
+    padding: 8px;
+    gap: 7px;
+    border-radius: 13px;
+  }
+  .gs-theme .gs-pick3-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+  .gs-theme .gs-pick3-label {
+    font-size: 0.74rem;
+  }
+  .gs-theme .gs-pick3-tick {
+    display: none;
+  }
+}
