@@ -5,6 +5,7 @@ import {
   gsListPets,
   gsProfileCatalogs,
   gsReadProfile,
+  gsReadStats,
   gsSetPet,
   gsUnlockAllPets,
   gsUnlockBadges,
@@ -344,8 +345,20 @@ export function GsFrames() {
 export function GsStyles() {
   const { c, p, runSeq } = useProfile();
   const [nameSel, setNameSel] = useState<Set<string>>(new Set());
+  const [playerName, setPlayerName] = useState("Player");
 
   const nameOwned = useMemo(() => new Set(p?.nameStylesShown ?? []), [p]);
+
+  useEffect(() => {
+    if (!c.sessionId) return;
+    void c.act(async () => {
+      const st = await gsReadStats({ data: sessOf(c) });
+      const hit = (st as Array<{ key: string; value: unknown }> | undefined)?.find((x) => x.key === "name");
+      if (hit && typeof hit.value === "string" && hit.value.trim()) setPlayerName(hit.value.trim());
+      return st;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.sessionId]);
 
   const toggle = (set: Set<string>, id: string) => {
     const n = new Set(set);
@@ -384,15 +397,33 @@ export function GsStyles() {
           onClear={() => setNameSel(new Set())}
           onApply={applyName}
         />
-        <PickGrid
-          kind="styles"
-          items={GS_STYLES}
-          sel={nameSel}
-          owned={(id) => nameOwned.has(id)}
-          worn={(id) => p?.wornNameStyle === id}
-          busy={c.busy}
-          onToggle={(id) => setNameSel((s) => toggle(s, id))}
-        />
+        <div className="gs-stylegrid">
+          {GS_STYLES.map((s) => {
+            const on = nameSel.has(s.id);
+            const isWorn = p?.wornNameStyle === s.id;
+            const isOwned = nameOwned.has(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                className={cn("gs-stylebtn", on && "is-sel", isWorn && "is-worn", isOwned && "is-owned")}
+                aria-pressed={on}
+                disabled={c.busy}
+                onClick={() => setNameSel((prev) => toggle(prev, s.id))}
+                title={`${s.label} — ${isWorn ? "worn" : isOwned ? "owned" : "locked"}`}
+              >
+                <span className={`gs-namefx sfx-${s.id}`}>{playerName}</span>
+                <span className="gs-stylemeta">
+                  <span>{s.label}</span>
+                  <span className="gs-stylemeta-state">{isWorn ? "Worn" : isOwned ? "Owned" : "Locked"}</span>
+                </span>
+                <span className={cn("gs-pick3-tick", on && "on")} aria-hidden="true">
+                  {on ? <GsIcon name="check" className="size-3.5" /> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </Panel>
     </div>
   );

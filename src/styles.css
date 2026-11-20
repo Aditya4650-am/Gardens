@@ -7348,3 +7348,179 @@ html:has(.gs-theme.gs-dark) {
 .gs-theme.gs-dark .gs-tile-art {
   background-image: linear-gradient(180deg, rgba(26, 36, 56, 0.95), rgba(18, 26, 42, 0.95));
 }
+
+/* ------------------------------------------------------------------ */
+/* Name-style buttons — the player's own name rendered in the style,    */
+/* never cropped.                                                      */
+/* ------------------------------------------------------------------ */
+
+.gs-theme .gs-stylegrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gs-theme .gs-stylebtn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 96px;
+  padding: 12px 8px 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(31, 77, 58, 0.14);
+  background: linear-gradient(180deg, #ffffff 0%, #fbf8f1 100%);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  overflow: visible;
+}
+
+.gs-theme .gs-stylebtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(198, 156, 62, 0.55);
+  box-shadow: 0 12px 26px -18px rgba(24, 62, 46, 0.5);
+}
+
+.gs-theme .gs-stylebtn.is-owned {
+  border-color: rgba(46, 138, 92, 0.3);
+}
+
+.gs-theme .gs-stylebtn.is-worn {
+  border-color: rgba(46, 138, 92, 0.6);
+  background: linear-gradient(180deg, #ffffff 0%, #eef8f1 100%);
+}
+
+.gs-theme .gs-stylebtn.is-sel {
+  border-color: rgba(198, 156, 62, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(198, 156, 62, 0.75),
+    0 0 26px rgba(198, 156, 62, 0.4);
+}
+
+.gs-theme .gs-stylebtn .gs-pick3-tick {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+/* the preview text */
+.gs-theme .gs-namefx {
+  display: block;
+  max-width: 100%;
+  padding: 0 4px;
+  font-family: var(--font-display, "Baloo 2", ui-rounded, system-ui, sans-serif);
+  font-weight: 900;
+  font-size: clamp(1rem, 1.9vw, 1.55rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: visible;
+  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.28);
+}
+
+.gs-theme .sfx-NameStyle_Fire {
+  background: linear-gradient(180deg, #ffe27a 0%, #ff9d2e 45%, #e8451c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 10px rgba(255, 132, 32, 0.75)) drop-shadow(0 2px 0 rgba(120, 22, 6, 0.55));
+}
+
+.gs-theme .sfx-NameStyle_Glamour {
+  background: linear-gradient(180deg, #ffb8f4 0%, #ef4fd0 48%, #8b3cf0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 10px rgba(239, 79, 208, 0.6)) drop-shadow(0 2px 0 rgba(76, 20, 120, 0.5));
+}
+
+.gs-theme .sfx-NameStyle_Garland {
+  background: linear-gradient(180deg, #ffe9a8 0%, #f2c94c 40%, #b3202a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 9px rgba(242, 201, 76, 0.65)) drop-shadow(0 2px 0 rgba(90, 12, 16, 0.55));
+}
+
+.gs-theme .sfx-NameStyle_Neon {
+  background: linear-gradient(180deg, #b8f7ff 0%, #35c6ff 45%, #7a5cff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 12px rgba(53, 198, 255, 0.75)) drop-shadow(0 2px 0 rgba(18, 40, 120, 0.55));
+}
+
+.gs-theme .sfx-NameStyle_Dragon {
+  background: linear-gradient(180deg, #fff3b0 0%, #ffd24a 45%, #c9761a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 12px rgba(255, 196, 60, 0.8)) drop-shadow(0 2px 0 rgba(110, 52, 6, 0.6));
+}
+
+.gs-theme .sfx-NameStyle_Test {
+  background: linear-gradient(180deg, #8ff3ff 0%, #2fc7e8 50%, #127fa0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(8, 44, 60, 0.5));
+}
+
+.gs-theme .gs-stylemeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #5c7266;
+}
+
+.gs-theme .gs-stylemeta-state {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(31, 77, 58, 0.08);
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gs-theme .gs-stylebtn.is-worn .gs-stylemeta-state {
+  background: rgba(46, 138, 92, 0.18);
+  color: #2f7d54;
+}
+
+/* dark twins */
+.gs-theme.gs-dark .gs-stylebtn {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, #1a2438 0%, #151e30 100%);
+}
+
+.gs-theme.gs-dark .gs-stylebtn.is-worn {
+  background: linear-gradient(180deg, #16283a 0%, #132233 100%);
+}
+
+.gs-theme.gs-dark .gs-stylemeta {
+  color: #93a3b8;
+}
+
+.gs-theme.gs-dark .gs-stylemeta-state {
+  background: rgba(148, 163, 184, 0.16);
+}
+
+@media (max-width: 560px) {
+  .gs-theme .gs-stylegrid {
+    gap: 7px;
+  }
+  .gs-theme .gs-stylebtn {
+    min-height: 82px;
+    padding: 9px 5px 7px;
+  }
+  .gs-theme .gs-namefx {
+    font-size: 0.92rem;
+  }
+  .gs-theme .gs-stylemeta {
+    font-size: 0.64rem;
+  }
+}
