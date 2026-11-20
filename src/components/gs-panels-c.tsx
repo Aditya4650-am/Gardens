@@ -167,7 +167,6 @@ function PickGrid({
             </span>
             <span className="gs-pick3-body">
               <span className="gs-pick3-label">{e.label}</span>
-              <span className="gs-pick3-sub">{sub}</span>
             </span>
             <span className={cn("gs-pick3-tick", on && "on")} aria-hidden="true">
               {on ? <GsIcon name="check" className="size-3.5" /> : null}
@@ -255,9 +254,6 @@ export function GsAvatars() {
           <Chip tone="ok" icon="check">
             {owned.size} / {GS_AVATARS.length}
           </Chip>
-          <Chip tone="gold" icon="user">
-            {p?.currentAvatarId || "—"}
-          </Chip>
         </div>
         <Grid cols="narrow">
           {GS_AVATARS.map((a) => (
@@ -313,9 +309,6 @@ export function GsFrames() {
         <div className="gs-chips">
           <Chip tone="ok" icon="check">
             {owned.size} / {all.length}
-          </Chip>
-          <Chip tone="gold" icon="frames">
-            {p?.wornAvatarStyle || "—"}
           </Chip>
         </div>
         <PickBar
@@ -385,9 +378,6 @@ export function GsStyles() {
           <Chip tone="ok" icon="check">
             {nameOwned.size} / {GS_STYLES.length}
           </Chip>
-          <Chip tone="gold" icon="styles">
-            {p?.wornNameStyle || "—"}
-          </Chip>
         </div>
         <PickBar
           count={nameSel.size}
@@ -413,10 +403,6 @@ export function GsStyles() {
                 title={`${s.label} — ${isWorn ? "worn" : isOwned ? "owned" : "locked"}`}
               >
                 <span className={`gs-namefx sfx-${s.id}`}>{playerName}</span>
-                <span className="gs-stylemeta">
-                  <span>{s.label}</span>
-                  <span className="gs-stylemeta-state">{isWorn ? "Worn" : isOwned ? "Owned" : "Locked"}</span>
-                </span>
                 <span className={cn("gs-pick3-tick", on && "on")} aria-hidden="true">
                   {on ? <GsIcon name="check" className="size-3.5" /> : null}
                 </span>
@@ -466,9 +452,6 @@ export function GsBadges() {
         <div className="gs-chips">
           <Chip tone="ok" icon="check">
             {ownedIds.size} / {GS_BADGES.length}
-          </Chip>
-          <Chip tone="gold" icon="crown">
-            {p?.wornBadgeId || "—"}
           </Chip>
         </div>
         <PickBar
@@ -526,9 +509,6 @@ export function GsTitles() {
         <div className="gs-chips">
           <Chip tone="ok" icon="check">
             {earned.size} / {GS_TITLES.length}
-          </Chip>
-          <Chip tone="gold" icon="titles">
-            {p?.wornTitleId || "—"}
           </Chip>
         </div>
         <PickBar
