@@ -28,6 +28,12 @@ Thumbs.db
 
 # Reference material (uploaded zip + extracted copy) — not part of the deploy
 REF_V1154/
+
+# Local donor backups — these carry a real account's identity (PlayerId /
+# gameId / name) and must never be published. Only data/gardens-account.db
+# ships, and that copy has its identity stripped before commit.
+data/*backup*.db
+data/*-17nov.db
 IGG-VIP-v1.15.4-*.zip
 STYLES.zip
 
