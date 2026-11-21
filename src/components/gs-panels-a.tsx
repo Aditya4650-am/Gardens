@@ -337,49 +337,43 @@ export function GsPlayer() {
 
 // === Statistics (data center) =============================================
 
-/** The only counters this tab shows (order is the on-screen order). */
+/** The only counters this tab edits (order is the on-screen order). */
 const STAT_KEEP = [
   "coins",
   "level",
   "earnedStars",
-  "spentStars",
   "GardenCurrentChapterId",
   "name",
   "dogname",
   "horse_name",
-  "realCoins",
-  "tokens",
-  "lives",
-  "expedition_energy",
   "LastPlayedLevel",
-  "LastLevelAttempt",
-  "PlayerId",
-  "gameId",
+  "WinStreak",
+  "LivesSent",
+  "CollectionsCompleted",
+  "FirstTryWins",
 ];
 
-const PAIR_KEYS = ["lives", "expedition_energy"] as const;
+/** Readable labels for the profile counters. */
+const STAT_LABEL: Record<string, string> = {
+  WinStreak: "Current Streak",
+  LivesSent: "Helps Made",
+  CollectionsCompleted: "Collections Done",
+  FirstTryWins: "First Try Wins",
+};
 
 export function GsStatistics() {
   const c = useGs();
   const [fields, setFields] = useState<StatField[]>([]);
   const [edits, setEdits] = useState<Record<string, string>>({});
-  const [pairs, setPairs] = useState<Record<string, { current: number; max: number }>>({});
 
   const load = async () => {
     if (!c.sessionId) return;
-    const s = sessOf(c);
-    const st = await c.act(() => gsReadStats({ data: s }));
-    if (st) {
-      setFields(st as StatField[]);
-      const next: Record<string, string> = {};
-      for (const x of st as StatField[]) next[x.key] = String(x.value ?? "");
-      setEdits(next);
-    }
-    for (const key of PAIR_KEYS) {
-      const p = await c.act(() => gsReadPair({ data: { ...s, key } }));
-      const pair = (p as { pair: { current: number; max: number } | null } | undefined)?.pair;
-      if (pair) setPairs((prev) => ({ ...prev, [key]: pair }));
-    }
+    const st = await c.act(() => gsReadStats({ data: sessOf(c) }));
+    if (!st) return;
+    setFields(st as StatField[]);
+    const next: Record<string, string> = {};
+    for (const x of st as StatField[]) next[x.key] = String(x.value ?? "");
+    setEdits(next);
   };
 
   useEffect(() => {
@@ -388,54 +382,28 @@ export function GsStatistics() {
   }, [c.sessionId]);
 
   const shown = STAT_KEEP.map((k) => fields.find((f) => f.key === k)).filter((f): f is StatField => !!f);
-  const isPair = (key: string) => (PAIR_KEYS as readonly string[]).includes(key);
 
-  const dirty =
-    shown.filter((f) => !isPair(f.key) && edits[f.key] !== undefined && edits[f.key] !== String(f.value ?? "")).length +
-    PAIR_KEYS.filter((k) => pairs[k]).length;
+  const dirty = shown.filter((f) => edits[f.key] !== undefined && edits[f.key] !== String(f.value ?? "")).length;
 
   const apply = async () => {
     const changes: Record<string, string> = {};
     for (const f of shown) {
-      if (isPair(f.key)) continue;
       if (edits[f.key] !== undefined && edits[f.key] !== String(f.value ?? "")) changes[f.key] = edits[f.key];
     }
-    let touched = 0;
-    if (Object.keys(changes).length) {
-      const r = await c.act(() => gsWriteStats({ data: { ...sessOf(c), changes } }));
-      c.note(r as GsEditResult | undefined, "Statistics");
-      touched++;
-    }
-    for (const key of PAIR_KEYS) {
-      const p = pairs[key];
-      if (!p) continue;
-      const r = await c.act(() =>
-        gsWritePair({ data: { ...sessOf(c), key, current: p.current, max: p.max } }),
-      );
-      c.note(r as GsEditResult | undefined, key === "lives" ? "Lives" : "Expedition energy");
-      touched++;
-    }
-    if (!touched) {
+    if (!Object.keys(changes).length) {
       toast.info("Nothing changed");
       return;
     }
+    const r = await c.act(() => gsWriteStats({ data: { ...sessOf(c), changes } }));
+    c.note(r as GsEditResult | undefined, "Statistics");
     await c.reload();
     await load();
-  };
-
-  const reset = () => {
-    setEdits(Object.fromEntries(fields.map((f) => [f.key, String(f.value ?? "")])));
-    setPairs((prev) => {
-      const next = { ...prev };
-      return next;
-    });
-    void load();
   };
 
   return (
     <div className="gs-stack">
       <Bar
-        onClear={reset}
+        onClear={() => setEdits(Object.fromEntries(fields.map((f) => [f.key, String(f.value ?? "")])))}
         clearLabel="Reset edits"
         extra={
           <Button size="sm" onClick={() => void apply()} disabled={c.busy}>
@@ -446,43 +414,16 @@ export function GsStatistics() {
 
       <Grid cols="wide">
         {shown.map((f, i) => (
-          <div key={f.path} className="gs-stat gs-stat--edit" data-tone={String((i % 7) + 1)}>
+          <label key={f.path} className="gs-stat gs-stat--edit" data-tone={String((i % 7) + 1)}>
             <span className="gs-stat-head">
-              <span className="kicker">{f.key}</span>
+              <span className="kicker">{STAT_LABEL[f.key] ?? f.key}</span>
             </span>
-            {isPair(f.key) ? (
-              <div className="gs-pair gs-pair--inline mt-1.5">
-                <input
-                  className="field field-stat font-mono"
-                  aria-label={`${f.key} current`}
-                  value={String(pairs[f.key]?.current ?? "")}
-                  onChange={(e) =>
-                    setPairs((prev) => ({
-                      ...prev,
-                      [f.key]: { current: Math.max(0, Math.floor(Number(e.target.value) || 0)), max: prev[f.key]?.max ?? 0 },
-                    }))
-                  }
-                />
-                <input
-                  className="field field-stat font-mono"
-                  aria-label={`${f.key} max`}
-                  value={String(pairs[f.key]?.max ?? "")}
-                  onChange={(e) =>
-                    setPairs((prev) => ({
-                      ...prev,
-                      [f.key]: { current: prev[f.key]?.current ?? 0, max: Math.max(0, Math.floor(Number(e.target.value) || 0)) },
-                    }))
-                  }
-                />
-              </div>
-            ) : (
-              <input
-                className="field field-stat mt-1.5 font-mono"
-                value={edits[f.key] ?? ""}
-                onChange={(e) => setEdits((p) => ({ ...p, [f.key]: e.target.value }))}
-              />
-            )}
-          </div>
+            <input
+              className="field field-stat mt-1.5 font-mono"
+              value={edits[f.key] ?? ""}
+              onChange={(e) => setEdits((p) => ({ ...p, [f.key]: e.target.value }))}
+            />
+          </label>
         ))}
       </Grid>
       {!shown.length ? <p className="gs-empty">No stats in this save.</p> : null}

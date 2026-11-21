@@ -31,26 +31,29 @@ const HEAD = [
   "coins",
   "level",
   "earnedStars",
-  "spentStars",
   "GardenCurrentChapterId",
   "name",
   "dogname",
   "horse_name",
-  "realCoins",
-  "tokens",
-  "lives",
-  "expedition_energy",
   "LastPlayedLevel",
-  "LastLevelAttempt",
-  "PlayerId",
-  "gameId",
 ];
+
+/**
+ * Profile screen counters, stored as strings under
+ * `PlayerProfileOwn.OwnProfile.ProfileValues.Main`.
+ *
+ * `WinStreak` = Current Streak, `LivesSent` = Helps Made,
+ * `CollectionsCompleted` = Collections Done, `FirstTryWins` = First Try Wins.
+ * "Helps Received" has no field in any save — it is server-side only.
+ */
+const PROFILE = ["WinStreak", "LivesSent", "CollectionsCompleted", "FirstTryWins"] as const;
+const PROFILE_PATH = "SpecialEvents.PlayerProfileOwn.OwnProfile.ProfileValues.Main";
 
 const TABLE = "TableName";
 const ENTRY = "Properties";
 
 /** The ONLY fields this tool may ever write through the stats path. */
-const WRITABLE = new Set<string>(HEAD);
+const WRITABLE = new Set<string>([...HEAD, ...PROFILE]);
 
 function plain(v: unknown): number | string | boolean | null {
   if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") return v;
@@ -84,6 +87,24 @@ export function readStats(s: GardenscapesSession): StatField[] {
       value: plain(hit[1][1]),
     });
   }
+  // Profile-screen counters (stored as strings under ProfileValues.Main).
+  const sp = findTable(d, "SpecialEvents");
+  const ownEntry = sp ? findEntry(sp, "PlayerProfileOwn") : undefined;
+  const pvRef = ownEntry ? getRef(ownEntry, "OwnProfile.ProfileValues.Main") : null;
+  if (pvRef && pvRef.type === "o") {
+    const pvKids = objEntries({ key: "Main", type: "o", value: pvRef.value });
+    for (const key of PROFILE) {
+      const hit = pvKids.find(([k]) => k === key);
+      if (!hit) continue;
+      const raw = hit[1][1];
+      out.push({
+        path: `${PROFILE_PATH}.${key}`,
+        key,
+        type: "s",
+        value: typeof raw === "string" && /^-?\d+$/.test(raw) ? Number(raw) : plain(raw),
+      });
+    }
+  }
   for (const [key, [type, value]] of kids) {
     if (seen.has(key)) continue;
     out.push({ path: `${TABLE}.${ENTRY}.${key}`, key, type, value: plain(value) });
@@ -112,6 +133,11 @@ export function writeStats(s: GardenscapesSession, changes: Record<string, numbe
   for (const [key, value] of Object.entries(changes)) {
     if (!WRITABLE.has(key)) {
       missing.push(`${TABLE}.${ENTRY}.${key}`);
+      continue;
+    }
+    if ((PROFILE as readonly string[]).includes(key)) {
+      // ProfileValues are stored as strings, exactly as the game writes them.
+      ops.push({ path: `${PROFILE_PATH}.${key}`, value: String(value) });
       continue;
     }
     ops.push({ path: `${TABLE}.${ENTRY}.${key}`, value });
