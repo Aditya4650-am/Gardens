@@ -151,6 +151,17 @@ test("the gardenscapes login resumes a saved key even when the shell bridge is l
     "boot waits for the shell's ready event before giving up",
   );
   assert.ok(tsx.includes("waited * 50 >= bridgeBudgetMs"), "the wait is bounded by the same budget");
+  // The id may arrive on the URL (?did=), which shortens bridgeBudgetMs to
+  // 1.5s — but the shell's alias poller needs up to 5s, so the key read must
+  // keep the full budget or a cold start gives up before the bridge appears.
+  assert.ok(
+    tsx.includes("keyBridgeBudgetMs = inExe ? 20_000 : 1_500"),
+    "the key read keeps the full bridge budget inside the EXE",
+  );
+  assert.ok(
+    tsx.includes("Date.now() + keyBridgeBudgetMs"),
+    "the key wait is bounded by that full budget, not the shortened one",
+  );
   // The key must land in the field, and remember-me must stay on for it.
   assert.ok(tsx.includes("setKey(saved)"), "the resumed key is put in the input");
   assert.ok(tsx.includes("setRemember(true)"), "a resumed key keeps remember-me on");

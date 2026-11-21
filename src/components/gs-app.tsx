@@ -432,6 +432,13 @@ export function GsApp() {
     else setDeviceId(readStoredId() ?? mintNewId());
 
     const bridgeBudgetMs = inExe && !urlDeviceId ? 20_000 : 1_500;
+    // The saved-key read always needs the FULL bridge budget inside the EXE.
+    // bridgeBudgetMs is shortened when the id already arrived on the URL —
+    // which it always does, because the shell appends ?did= — but that short
+    // budget exists only for reading the id. The shell's alias poller runs up
+    // to 5 s, so a 1.5 s wait here would give up before the bridge appeared
+    // and leave the login field empty on a cold start.
+    const keyBridgeBudgetMs = inExe ? 20_000 : 1_500;
 
     void (async () => {
       const readNative = async (): Promise<string | null> => {
@@ -522,7 +529,7 @@ export function GsApp() {
       };
       try {
         if (!nativeBridge()) {
-          const deadline = Date.now() + bridgeBudgetMs;
+          const deadline = Date.now() + keyBridgeBudgetMs;
           await new Promise<void>((resolve) => {
             const cleanup = () => {
               window.clearInterval(tick);
