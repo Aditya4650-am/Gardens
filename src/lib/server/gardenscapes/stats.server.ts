@@ -49,6 +49,9 @@ const HEAD = [
 const TABLE = "TableName";
 const ENTRY = "Properties";
 
+/** The ONLY fields this tool may ever write through the stats path. */
+const WRITABLE = new Set<string>(HEAD);
+
 function plain(v: unknown): number | string | boolean | null {
   if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") return v;
   if (v === null) return null;
@@ -104,13 +107,19 @@ export function readStat(s: GardenscapesSession, key: string): number | string |
  * validates on load.
  */
 export function writeStats(s: GardenscapesSession, changes: Record<string, number | string | boolean>): EditResult {
-  const ops: EditOp[] = Object.entries(changes).map(([key, value]) => ({
-    path: `${TABLE}.${ENTRY}.${key}`,
-    value,
-  }));
+  const missing: string[] = [];
+  const ops: EditOp[] = [];
+  for (const [key, value] of Object.entries(changes)) {
+    if (!WRITABLE.has(key)) {
+      missing.push(`${TABLE}.${ENTRY}.${key}`);
+      continue;
+    }
+    ops.push({ path: `${TABLE}.${ENTRY}.${key}`, value });
+  }
+  if (!ops.length) return { changed: [], missing };
   const res = applyOps(s.decoded.doc, ops);
   if (res.changed.length) s.log.push(`Stats: ${res.changed.length} field(s) changed`);
-  return res;
+  return { changed: res.changed, missing: [...missing, ...res.missing] };
 }
 
 /**
