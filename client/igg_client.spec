@@ -53,7 +53,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="IGG VIP TOOL",
+    name="Gardenscapes Tool",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

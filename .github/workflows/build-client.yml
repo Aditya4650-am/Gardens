@@ -47,7 +47,7 @@ jobs:
           # A console-subsystem EXE is what produces the stray cmd window, so
           # fail the build rather than ship one. The build is onefile: one
           # standalone EXE, no folder and no zip to extract.
-          $exe = "dist/IGG VIP TOOL.exe"
+          $exe = "dist/Gardenscapes Tool.exe"
           if (-not (Test-Path $exe)) { throw "EXE was not produced" }
           $bytes = [System.IO.File]::ReadAllBytes($exe)
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
@@ -80,10 +80,10 @@ jobs:
             Sort-Object FullName -Descending | Select-Object -First 1
           if (-not $signtool) { throw "signtool.exe not found on the runner" }
           $ts = if ($env:SIGN_TIMESTAMP_URL) { $env:SIGN_TIMESTAMP_URL } else { "http://timestamp.digicert.com" }
-          & $signtool.FullName sign /f $pfx /p $env:SIGN_CERT_PASSWORD /tr $ts /td sha256 /fd sha256 "dist/IGG VIP TOOL.exe"
+          & $signtool.FullName sign /f $pfx /p $env:SIGN_CERT_PASSWORD /tr $ts /td sha256 /fd sha256 "dist/Gardenscapes Tool.exe"
           if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
           Remove-Item $pfx -Force
-          Write-Host "Signed dist/IGG VIP TOOL.exe"
+          Write-Host "Signed dist/Gardenscapes Tool.exe"
 
       - name: Hash the release EXE
         id: hash
@@ -92,23 +92,23 @@ jobs:
         run: |
           # The release IS the exe: one file, no zip. The client's auto-update
           # downloads it directly and refuses the swap unless this hash matches.
-          $h = (Get-FileHash "dist/IGG VIP TOOL.exe" -Algorithm SHA256).Hash.ToLower()
+          $h = (Get-FileHash "dist/Gardenscapes Tool.exe" -Algorithm SHA256).Hash.ToLower()
           "sha256=$h" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - uses: actions/upload-artifact@v4
         with:
-          name: IGG-VIP-TOOL-client
-          path: client/dist/IGG VIP TOOL.exe
+          name: Gardenscapes-Tool-client
+          path: client/dist/Gardenscapes Tool.exe
 
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: client/dist/IGG VIP TOOL.exe
+          files: client/dist/Gardenscapes Tool.exe
           body: |
             SHA-256 of the EXE: `${{ steps.hash.outputs.sha256 }}`
 
-            Download `IGG VIP TOOL.exe` and run it — one file, no zip, no install.
+            Download `Gardenscapes Tool.exe` and run it — one file, no zip, no install.
 
             Paste the hash above into the server's `CLIENT_UPDATE_SHA256` env
             var, and the exe's download URL into `CLIENT_UPDATE_URL`, to enable

@@ -20,14 +20,14 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist "dist\IGG VIP TOOL.exe" (
-  echo Build failed: dist\IGG VIP TOOL.exe was not produced.
+if not exist "dist\Gardenscapes Tool.exe" (
+  echo Build failed: dist\Gardenscapes Tool.exe was not produced.
   pause
   exit /b 1
 )
 
 echo [3/3] Hashing the EXE...
-powershell -NoProfile -Command "$h=(Get-FileHash 'dist\IGG VIP TOOL.exe' -Algorithm SHA256).Hash.ToLower(); Write-Host ('  SHA-256: ' + $h); $h | Out-File -FilePath 'dist\IGG VIP TOOL.exe.sha256' -Encoding ascii -NoNewline"
+powershell -NoProfile -Command "$h=(Get-FileHash 'dist\Gardenscapes Tool.exe' -Algorithm SHA256).Hash.ToLower(); Write-Host ('  SHA-256: ' + $h); $h | Out-File -FilePath 'dist\Gardenscapes Tool.exe.sha256' -Encoding ascii -NoNewline"
 if errorlevel 1 (
   echo Hashing failed.
   pause
@@ -36,8 +36,8 @@ if errorlevel 1 (
 
 echo.
 echo Done.
-echo   Single EXE:  dist\IGG VIP TOOL.exe   (no zip, no folder - just run it)
-echo   Hash file:   dist\IGG VIP TOOL.exe.sha256
+echo   Single EXE:  dist\Gardenscapes Tool.exe   (no zip, no folder - just run it)
+echo   Hash file:   dist\Gardenscapes Tool.exe.sha256
 echo.
 echo   Auto-update: paste the SHA-256 into CLIENT_UPDATE_SHA256 and the
 echo   download URL of this exe into CLIENT_UPDATE_URL.

@@ -1,15 +1,15 @@
-' Launches IGG VIP TOOL with no console window.
+' Launches Gardenscapes Tool with no console window.
 ' The EXE is already a windowed build (console=False in igg_client.spec), so
 ' this launcher is only a convenience for pinning it to the taskbar. Running
-' IGG VIP TOOL.exe directly is equivalent.
+' Gardenscapes Tool.exe directly is equivalent.
 Option Explicit
 Dim fso, shell, here, exePath
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set shell = CreateObject("WScript.Shell")
 here = fso.GetParentFolderName(WScript.ScriptFullName)
-exePath = here & "\IGG VIP TOOL.exe"
+exePath = here & "\Gardenscapes Tool.exe"
 If Not fso.FileExists(exePath) Then
-  MsgBox "IGG VIP TOOL.exe not found next to this launcher.", 16, "IGG VIP TOOL"
+  MsgBox "Gardenscapes Tool.exe not found next to this launcher.", 16, "Gardenscapes Tool"
   WScript.Quit 1
 End If
 ' 0 = hidden window, False = do not wait
