@@ -119,8 +119,20 @@ function propGet(d: AUDBDocument, key: string): unknown {
   return hit?.[1][1];
 }
 
-/** Donor facts for the panel. */
-export function cloneInfo(): GsCloneInfo {
+/** Region build flag — Vietnam clients refuse a save that says otherwise. */
+export function setRegionBuild(s: GardenscapesSession, on: boolean): EditResult {
+  const t = findTable(s.decoded.doc, "TableName");
+  const p = t ? findEntry(t, "Properties") : undefined;
+  if (!p || p.type !== "o") throw new Error("clone: save has no Properties");
+  const hit = objEntries(p).find(([k]) => k === "vietnamBuild");
+  if (!hit) throw new Error("clone: save has no vietnamBuild flag");
+  if (hit[1][1] === on) return { changed: [], missing: [] };
+  hit[1] = [on ? "t" : "f", on];
+  s.log.push(`Region build: ${on ? "Vietnam" : "standard"}`);
+  return { changed: ["TableName.Properties.vietnamBuild"], missing: [] };
+}
+
+/** Donor facts for the panel. */export function cloneInfo(): GsCloneInfo {
   const d = donor();
   const chapters = findTable(d, "repairs")?.entries.length ?? 0;
   const purchases = findTable(d, "repairs_purchases_info")?.entries.length ?? 0;

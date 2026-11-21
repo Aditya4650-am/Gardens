@@ -327,6 +327,14 @@ export const gsApplyClone = createServerFn({ method: "POST" })
     return m.applyClone(await sessionOf(data.token, data.sessionId), { withProgress: data.withProgress });
   });
 
+/** Region build flag: Vietnam clients refuse a save that says otherwise. */
+export const gsSetRegionBuild = createServerFn({ method: "POST" })
+  .validator(sess.extend({ on: z.boolean() }))
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/clone.server");
+    return m.setRegionBuild(await sessionOf(data.token, data.sessionId), data.on);
+  });
+
 export const gsListPets = createServerFn({ method: "POST" })
   .validator(sess)
   .handler(async ({ data }) => {

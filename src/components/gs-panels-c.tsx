@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   gsApplyClone,
   gsCloneInfo,
+  gsSetRegionBuild,
   gsListPets,
   gsProfileCatalogs,
   gsReadProfile,
@@ -718,6 +720,31 @@ export function GsClone() {
             <GsIcon name="check" className="size-4" />
             {withProgress ? "Also copy level, coins & stars" : "Progress stays mine"}
           </button>
+        </div>
+
+        <div className="gs-actions mt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={c.busy}
+            onClick={async () => {
+              const r = await c.act(() => gsSetRegionBuild({ data: { ...sessOf(c), on: true } }));
+              c.note(r as GsEditResult | undefined, "Vietnam build");
+            }}
+          >
+            Vietnam build
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={c.busy}
+            onClick={async () => {
+              const r = await c.act(() => gsSetRegionBuild({ data: { ...sessOf(c), on: false } }));
+              c.note(r as GsEditResult | undefined, "Standard build");
+            }}
+          >
+            Standard build
+          </Button>
         </div>
 
         {warnings.length ? (

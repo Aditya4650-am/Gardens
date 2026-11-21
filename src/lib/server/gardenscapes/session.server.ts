@@ -40,7 +40,6 @@ export function connectLoad(
     originalCipher: Buffer.from(buf),
     log: ["Save loaded", `Tables: ${decoded.doc.tables.length}`],
   };
-  normaliseRegionBuild(session);
   sessions.set(session.id, session);
   return session;
 }
