@@ -22,9 +22,17 @@ import {
   gsWriteStats,
 } from "@/lib/gs-api";
 import { useGs, sessOf, type GsEditResult, type GsTab } from "./gs-ctx";
-import { gsDeviceSavePath, gsPullFromDevice, gsPushToDevice } from "@/lib/gardenscapes/transport";
+import {
+  gsBackupDevice,
+  gsDeviceSavePath,
+  gsNewAccountDevice,
+  gsPullFromDevice,
+  gsPushToDevice,
+  gsRestoreDeviceBackup,
+} from "@/lib/gardenscapes/transport";
 import {
   Bar,
+  Chip,
   Field,
   GsIcon,
   Grid,
@@ -229,10 +237,10 @@ export function GsDashboard() {
 
       <Panel title="Quick actions" icon="spark">
         <div className="gs-actions">
-          {(["cards", "seasons", "decor", "statistics", "backups"] as GsTab[]).map((t) => (
+          {(["cards", "seasons", "decor", "statistics", "newacct"] as GsTab[]).map((t) => (
             <Button key={t} variant="tool" size="sm" onClick={() => c.go(t)}>
-              <GsIcon name={t === "backups" ? "backups" : t} className="size-4" />
-              {t === "backups" ? "Backups" : t[0].toUpperCase() + t.slice(1)}
+              <GsIcon name={t === "newacct" ? "player" : t} className="size-4" />
+              {t === "newacct" ? "New Account" : t[0].toUpperCase() + t.slice(1)}
             </Button>
           ))}
         </div>
@@ -659,6 +667,139 @@ export function GsBackups() {
       </Panel>
 
       {msg ? <p className="gs-msg gs-msg--ok">{msg}</p> : null}
+    </div>
+  );
+}
+
+// === New account ==========================================================
+
+const LS_LAST_BACKUP = "gs-last-backup";
+
+/**
+ * Create a brand-new Gardenscapes account on the connected device, or put the
+ * previous one back.
+ *
+ * A city is bound to the device's Google identity, so deleting the save alone
+ * returns the same city. This runs the real fresh-start sequence: copy the save
+ * folder to this PC, reset the Settings.Secure android_id and the GSF
+ * databases, delete the save, then relaunch — the game opens the intro of a
+ * new account. Restore writes the copied folder back.
+ */
+export function GsNewAccount() {
+  const c = useGs();
+  const [busy, setBusy] = useState<"backup" | "new" | "restore" | null>(null);
+  const [path, setPath] = useState(() => {
+    try {
+      return localStorage.getItem(LS_LAST_BACKUP) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [msg, setMsg] = useState("");
+
+  const remember = (p: string) => {
+    setPath(p);
+    try {
+      localStorage.setItem(LS_LAST_BACKUP, p);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const run = async (kind: "backup" | "new" | "restore", fn: () => Promise<string>) => {
+    setBusy(kind);
+    setMsg("");
+    try {
+      setMsg(await fn());
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Failed");
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="gs-stack">
+      <section className="gs-cta-card panel">
+        <header className="gs-cta-head">
+          <span className="gs-cta-emblem" aria-hidden="true">
+            <GsIcon name="player" className="size-6" />
+          </span>
+          <div>
+            <h3 className="gs-cta-title">New account</h3>
+            <p className="gs-cta-lead">Fresh city on this device, or restore the previous one</p>
+          </div>
+        </header>
+
+        <div className="gs-cta-actions">
+          <button
+            type="button"
+            className="gs-cta-btn gs-cta-btn--ghost"
+            disabled={!!busy || c.busy}
+            onClick={() =>
+              void run("backup", async () => {
+                const r = await gsBackupDevice(c.serial || undefined);
+                remember(r.path);
+                return `Backed up ${r.count} file(s) → ${r.path}`;
+              })
+            }
+          >
+            <GsIcon name="backups" className="size-5" />
+            <span>{busy === "backup" ? "Backing up…" : "Backup now"}</span>
+          </button>
+
+          <button
+            type="button"
+            className="gs-cta-btn"
+            disabled={!!busy || c.busy}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "Create a new account on this device? The current save is backed up first, and the device identity is reset.",
+                )
+              ) {
+                return;
+              }
+              void run("new", async () => {
+                const r = await gsNewAccountDevice(c.serial || undefined);
+                remember(r.path);
+                await c.reload();
+                return `New account started · ${r.count} files backed up → ${r.path}`;
+              });
+            }}
+          >
+            <GsIcon name="spark" className="size-5" />
+            <span>{busy === "new" ? "Creating…" : "Create new account"}</span>
+          </button>
+
+          <button
+            type="button"
+            className="gs-cta-btn gs-cta-btn--ghost"
+            disabled={!!busy || c.busy || !path}
+            onClick={() => {
+              if (!path) return;
+              if (!window.confirm("Restore the previous account from the last backup?")) return;
+              void run("restore", async () => {
+                const n = await gsRestoreDeviceBackup(path, c.serial || undefined);
+                await c.reload();
+                return `Restored ${n} file(s) and relaunched`;
+              });
+            }}
+          >
+            <GsIcon name="reload" className="size-5" />
+            <span>{busy === "restore" ? "Restoring…" : "Restore previous account"}</span>
+          </button>
+        </div>
+
+        <div className="gs-chips">
+          <Chip tone={path ? "ok" : "neutral"} icon="backups">
+            {path ? path : "no backup yet"}
+          </Chip>
+        </div>
+
+        {msg ? <p className="gs-msg gs-msg--ok mt-2">{msg}</p> : null}
+      </section>
     </div>
   );
 }

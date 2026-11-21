@@ -31,7 +31,7 @@ import {
   type GsTab,
 } from "./gs-ctx";
 import { GsIcon, downloadB64, fileToB64 } from "./gs-ui";
-import { GsBackups, GsBoosters, GsDashboard, GsPlayer, GsStatistics } from "./gs-panels-a";
+import { GsBoosters, GsDashboard, GsNewAccount, GsPlayer, GsStatistics } from "./gs-panels-a";
 import { GsCards, GsDecor, GsSeasons, GsSendCards } from "./gs-panels-b";
 import { GsAvatars, GsBadges, GsClone, GsFrames, GsPets, GsStyles, GsTitles } from "./gs-panels-c";
 
@@ -1158,7 +1158,7 @@ export function GsApp() {
                       <Button size="sm" disabled={busy} onClick={() => void pullAndConnect()}>
                         <GsIcon name="device" className="size-4" /> Pull from device
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => go("backups")}>
+                      <Button size="sm" variant="ghost" onClick={() => go("newacct")}>
                         <GsIcon name="backups" className="size-4" /> Backups
                       </Button>
                     </div>
@@ -1181,7 +1181,7 @@ export function GsApp() {
                   {tab === "titles" && <GsTitles />}
                   {tab === "pets" && <GsPets />}
                   {tab === "clone" && <GsClone />}
-                  {tab === "backups" && <GsBackups />}
+                  {tab === "newacct" && <GsNewAccount />}
                 </div>
               )}
             </div>

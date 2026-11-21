@@ -55,7 +55,7 @@ export type GsTab =
   | "titles"
   | "pets"
   | "clone"
-  | "backups";
+  | "newacct";
 
 /** The eight tabs shown in the first row; the rest live in the overflow row. */
 export const GS_PRIMARY_TABS: GsTab[] = [
@@ -76,8 +76,8 @@ export const GS_OVERFLOW_TABS: GsTab[] = [
   "titles",
   "pets",
   "clone",
+  "newacct",
   "send",
-  "backups",
 ];
 
 export const GS_TAB_LABEL: Record<GsTab, string> = {
@@ -96,7 +96,7 @@ export const GS_TAB_LABEL: Record<GsTab, string> = {
   titles: "Titles",
   pets: "Pets",
   clone: "Clone",
-  backups: "Backups",
+  newacct: "New Account",
 };
 
 /** Tab id -> gs-icons name (the OxxEditor icon vocabulary). */
@@ -116,7 +116,7 @@ export const GS_TAB_ICON: Record<GsTab, string> = {
   titles: "titles",
   pets: "paw",
   clone: "copy",
-  backups: "backups",
+  newacct: "player",
 };
 
 export interface GsCtxValue {

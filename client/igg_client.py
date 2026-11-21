@@ -941,6 +941,147 @@ class NativeBridge:
         except Exception:  # noqa: BLE001
             return {"path": GARDEN_SAVE_PATH, "package": GARDEN_PACKAGE}
 
+    # --- New account / backups -------------------------------------------
+    # A Gardenscapes city is bound to the device's Google identity, so simply
+    # deleting GameData.db gives the SAME city back. A real new account needs
+    # the identity reset that the Township fresh-start already uses: a new
+    # Settings.Secure android_id plus fresh GSF databases. Only then is the
+    # save removed and the game relaunched, where it opens the intro of a
+    # brand-new city.
+    def _garden_doc_dir(self, adb: str, serial: str) -> str:
+        path = self._garden_path(adb, serial)
+        return path.rsplit("/", 1)[0]
+
+    def _garden_list(self, adb: str, serial: str, directory: str) -> list[str]:
+        code, out, _ = _run_adb(
+            adb, ["-s", serial, "shell", f"su -c 'ls \"{directory}\"'"], timeout=25
+        )
+        if code != 0:
+            return []
+        return [
+            x.strip()
+            for x in out.decode("utf-8", "replace").splitlines()
+            if x.strip() and "/" not in x.strip()
+        ]
+
+    def gardenBackup(self, serial: str) -> dict:
+        """Copy the whole Gardenscapes save folder to this PC."""
+        adb = _find_adb()
+        if not adb:
+            raise RuntimeError("adb not found - connect an emulator first")
+        if not serial:
+            raise RuntimeError("No emulator connected - start your emulator and press Refresh.")
+        directory = self._garden_doc_dir(adb, serial)
+        names = self._garden_list(adb, serial, directory)
+        if not names:
+            raise RuntimeError("No Gardenscapes save files found to back up.")
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        dest = _app_data_dir() / "backups" / f"garden-{stamp}"
+        dest.mkdir(parents=True, exist_ok=True)
+        saved: list[dict] = []
+        for name in names:
+            diag: list[str] = []
+            buf = self._pull_privileged(adb, serial, f"{directory}/{name}", diag)
+            if not buf:
+                continue
+            (dest / name).write_bytes(buf)
+            saved.append({"name": name, "size": len(buf)})
+        if not any(x["name"] == GARDEN_SAVE_FILE for x in saved):
+            raise RuntimeError("Backup failed: GameData.db could not be read.")
+        return {"ok": True, "path": str(dest), "files": saved, "count": len(saved)}
+
+    def gardenNewAccount(self, serial: str) -> dict:
+        """Back up, reset the device identity, delete the save, relaunch."""
+        adb = _find_adb()
+        if not adb:
+            raise RuntimeError("adb not found - connect an emulator first")
+        if not serial:
+            raise RuntimeError("No emulator connected - start your emulator and press Refresh.")
+        if not self._garden_pkg_ok(adb, serial):
+            raise RuntimeError("Gardenscapes is not installed on " + serial)
+        backup = self.gardenBackup(serial)
+        android = self.resetAndroidId(serial)
+        try:
+            gsf = self.resetGsfId(serial)
+        except Exception as e:  # noqa: BLE001
+            gsf = {"ok": False, "error": str(e)}
+        directory = self._garden_doc_dir(adb, serial)
+        _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", GARDEN_PACKAGE], timeout=15)
+        time.sleep(0.6)
+        for name in (
+            GARDEN_SAVE_FILE,
+            GARDEN_SAVE_FILE + ".bak",
+            GARDEN_SAVE_FILE + ".buf",
+            "LocalGameData.xml",
+            "GlobalVars.xml",
+            "PlayerProfileCache.xml",
+        ):
+            _run_adb(
+                adb,
+                ["-s", serial, "shell", f"su -c 'rm -f \"{directory}/{name}\"'"],
+                timeout=20,
+            )
+        _run_adb(
+            adb,
+            ["-s", serial, "shell", "monkey", "-p", GARDEN_PACKAGE, "-c",
+             "android.intent.category.LAUNCHER", "1"],
+            timeout=15,
+        )
+        return {
+            "ok": True,
+            "backup": backup["path"],
+            "files": backup["count"],
+            "androidId": android.get("androidId", ""),
+            "gsf": bool(gsf.get("ok")),
+            "relaunched": True,
+        }
+
+    def gardenRestoreBackup(self, serial: str, path: str) -> dict:
+        """Put a backup folder back on the device and relaunch the game."""
+        adb = _find_adb()
+        if not adb:
+            raise RuntimeError("adb not found - connect an emulator first")
+        if not serial:
+            raise RuntimeError("No emulator connected - start your emulator and press Refresh.")
+        src = Path(str(path or ""))
+        if not src.is_dir():
+            raise RuntimeError("Backup folder not found on this PC.")
+        directory = self._garden_doc_dir(adb, serial)
+        _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", GARDEN_PACKAGE], timeout=15)
+        time.sleep(0.6)
+        code, out, _ = _run_adb(
+            adb, ["-s", serial, "shell", f"su -c 'stat -c %u:%g \"{directory}\"'"], timeout=20
+        )
+        owner = out.decode("utf-8", "replace").strip() or "u0_a66:u0_a66"
+        restored: list[str] = []
+        with tempfile.TemporaryDirectory() as td:
+            for item in sorted(src.iterdir()):
+                if not item.is_file():
+                    continue
+                local = Path(td) / item.name
+                local.write_bytes(item.read_bytes())
+                tmp = f"/data/local/tmp/gs_restore_{item.name}"
+                c1, _, e1 = _run_adb(adb, ["-s", serial, "push", str(local), tmp], timeout=90)
+                if c1 != 0:
+                    raise RuntimeError("adb push failed: " + e1.decode("utf-8", "replace").strip())
+                remote = f"{directory}/{item.name}"
+                shell = (
+                    f"su -c 'cat \"{tmp}\" > \"{remote}\"; chown {owner} \"{remote}\"; "
+                    f"chmod 600 \"{remote}\"'"
+                )
+                c2, o2, e2 = _run_adb(adb, ["-s", serial, "shell", shell], timeout=40)
+                _run_adb(adb, ["-s", serial, "shell", f"rm -f {tmp}"], timeout=15)
+                if c2 != 0 or re.search(r"permission denied|no such file|failed", (o2 + e2).decode("utf-8", "replace"), re.I):
+                    raise RuntimeError("Restore failed for " + item.name)
+                restored.append(item.name)
+        _run_adb(
+            adb,
+            ["-s", serial, "shell", "monkey", "-p", GARDEN_PACKAGE, "-c",
+             "android.intent.category.LAUNCHER", "1"],
+            timeout=15,
+        )
+        return {"ok": True, "restored": restored, "relaunched": True}
+
     def wipeFiles(self, serial: str, paths: list[str] | tuple[str, ...]) -> dict:
         """Delete exact device files (fresh-start wipe), then force-stop.
 

@@ -33,6 +33,17 @@ export interface GsBridge {
   ) => Promise<{ ok?: boolean; size?: number; file?: string; paths?: Record<string, string> }>;
   /** Save path the device is using, for the sidebar readout. */
   gardenPath?: (serial: string) => Promise<{ path?: string; package?: string }>;
+  /** Copy the whole save folder to this PC. */
+  gardenBackup?: (serial: string) => Promise<{ ok?: boolean; path: string; count: number }>;
+  /** Back up, reset the device identity, delete the save, relaunch. */
+  gardenNewAccount?: (serial: string) => Promise<{
+    ok?: boolean;
+    backup: string;
+    files: number;
+    androidId?: string;
+  }>;
+  /** Put a backup folder back on the device and relaunch. */
+  gardenRestoreBackup?: (serial: string, path: string) => Promise<{ ok?: boolean; restored: string[] }>;
 }
 
 export interface GsPulled {
@@ -191,4 +202,57 @@ export async function gsDeviceSavePath(serial?: string): Promise<string> {
   } catch {
     return "";
   }
+}
+
+// --- new account / backups ------------------------------------------------
+
+export interface GsBackupResult {
+  path: string;
+  count: number;
+}
+
+function requireBridge() {
+  const bridge = gsBridge();
+  if (!bridge) {
+    throw new Error(
+      "New account needs the Garden Studio desktop app — it copies and deletes files on your PC.",
+    );
+  }
+  return bridge;
+}
+
+/** Copy the save folder to this PC (no device changes). */
+export async function gsBackupDevice(preferred?: string): Promise<GsBackupResult> {
+  const bridge = requireBridge();
+  if (!bridge.gardenBackup) {
+    throw new Error("This build of Garden Studio cannot back up yet — update the app.");
+  }
+  const serial = await gsResolveSerial(preferred);
+  if (!serial) throw new Error("No emulator connected. Start it, then press Refresh.");
+  const res = await bridge.gardenBackup(serial);
+  return { path: res.path, count: res.count };
+}
+
+/** Back up, reset the device identity, delete the save, relaunch. */
+export async function gsNewAccountDevice(preferred?: string): Promise<GsBackupResult & { androidId: string }> {
+  const bridge = requireBridge();
+  if (!bridge.gardenNewAccount) {
+    throw new Error("This build of Garden Studio cannot create a new account yet — update the app.");
+  }
+  const serial = await gsResolveSerial(preferred);
+  if (!serial) throw new Error("No emulator connected. Start it, then press Refresh.");
+  const res = await bridge.gardenNewAccount(serial);
+  return { path: res.backup, count: res.files, androidId: res.androidId ?? "" };
+}
+
+/** Restore a backup folder and relaunch. */
+export async function gsRestoreDeviceBackup(path: string, preferred?: string): Promise<number> {
+  const bridge = requireBridge();
+  if (!bridge.gardenRestoreBackup) {
+    throw new Error("This build of Garden Studio cannot restore yet — update the app.");
+  }
+  const serial = await gsResolveSerial(preferred);
+  if (!serial) throw new Error("No emulator connected. Start it, then press Refresh.");
+  const res = await bridge.gardenRestoreBackup(serial, path);
+  return res.restored?.length ?? 0;
 }
