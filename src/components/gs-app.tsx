@@ -504,10 +504,11 @@ export function GsApp() {
     // the file-backed key the shell keeps is the real "remember me" store.
     //
     // The shell installs window.iggNative only AFTER navigation completes —
-    // its own alias poller runs for up to 5 s — so a one-shot read here read
+    // its own alias poller runs for up to 5 s — so a one-shot read here saw
     // nothing on every cold start and the login field came up empty, forcing
-    // the key to be retyped each launch. Wait for the bridge exactly as the
-    // device id read above does, then take the saved key.
+    // the key to be retyped each launch. Wait for the bridge first (the
+    // ready event, with a poll as fallback), bounded by the same budget the
+    // device id read uses, then take the saved key.
     void (async () => {
       const readSaved = async (): Promise<string | null> => {
         try {
@@ -520,38 +521,24 @@ export function GsApp() {
         }
       };
       try {
-        let saved = await readSaved();
-        if (!saved) {
-          saved = await new Promise<string | null>((resolve) => {
-            let settled = false;
-            let inFlight = false;
-            let waited = 0;
-            const done = (v: string | null) => {
-              if (settled) return;
-              settled = true;
+        if (!nativeBridge()) {
+          const deadline = Date.now() + bridgeBudgetMs;
+          await new Promise<void>((resolve) => {
+            const cleanup = () => {
               window.clearInterval(tick);
-              window.removeEventListener("igg-native-ready", onEvent);
-              resolve(v);
+              window.removeEventListener("igg-native-ready", onReady);
+              resolve();
             };
-            const probe = (): boolean => {
-              if (!nativeBridge() || inFlight || settled) return !!nativeBridge();
-              inFlight = true;
-              void (async () => {
-                const v = await readSaved();
-                inFlight = false;
-                done(v);
-              })();
-              return true;
-            };
-            const onEvent = () => probe();
+            const onReady = () => cleanup();
             const tick = window.setInterval(() => {
-              waited += 1;
-              if (probe() || waited * 50 >= bridgeBudgetMs) done(null);
+              // Only the deadline ends the wait without the bridge: bailing
+              // out the moment a read starts would abort it every time.
+              if (nativeBridge() || Date.now() >= deadline) cleanup();
             }, 50);
-            window.addEventListener("igg-native-ready", onEvent);
-            probe();
+            window.addEventListener("igg-native-ready", onReady);
           });
         }
+        const saved = await readSaved();
         if (!stop && saved) {
           setKey(saved);
           setRemember(true);
