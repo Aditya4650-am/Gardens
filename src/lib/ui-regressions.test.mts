@@ -134,6 +134,28 @@ test("every launch stops at the login screen, never auto-unlocks", () => {
   assert.ok(!tsx.includes("loadSavedKey()"), "boot must not read the saved key");
 });
 
+test("the gardenscapes login resumes a saved key even when the shell bridge is late", () => {
+  const tsx = read("../components/gs-app.tsx");
+  // The shell installs window.iggNative only after navigation completes (its
+  // alias poller runs up to 5 s), so a one-shot read at mount returned nothing
+  // on every cold start and the field came up empty — the key had to be
+  // retyped each launch.
+  assert.ok(
+    !/const bridge = nativeBridge\(\);\s*\n\s*const fn = bridge\?\.loadSavedKey/.test(tsx),
+    "boot must not read the saved key in a single shot",
+  );
+  // It has to wait for the bridge the same way the device id read does.
+  assert.ok(tsx.includes("loadSavedKey"), "the saved key is still read");
+  assert.ok(
+    tsx.includes('window.addEventListener("igg-native-ready"'),
+    "boot waits for the shell's ready event before giving up",
+  );
+  assert.ok(tsx.includes("waited * 50 >= bridgeBudgetMs"), "the wait is bounded by the same budget");
+  // The key must land in the field, and remember-me must stay on for it.
+  assert.ok(tsx.includes("setKey(saved)"), "the resumed key is put in the input");
+  assert.ok(tsx.includes("setRemember(true)"), "a resumed key keeps remember-me on");
+});
+
 test("tab bar renders two premium rows: 8 primaries plus 5 below, never 13 squeezed slots", () => {
   const tsx = read("../components/studio-app.tsx");
   assert.ok(tsx.includes("PRIMARY_TABS: Tab[] = TABS.slice(0, 8)"), "8 primary tabs must derive from TABS");
