@@ -718,7 +718,7 @@ export function GsClone() {
             onClick={() => setWithProgress((v) => !v)}
           >
             <GsIcon name="check" className="size-4" />
-            {withProgress ? "Also copy level, coins & stars" : "Progress stays mine"}
+            {withProgress ? "Add donor's level, coins & stars" : "Progress stays mine"}
           </button>
         </div>
 

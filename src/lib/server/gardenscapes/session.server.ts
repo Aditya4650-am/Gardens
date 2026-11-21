@@ -81,7 +81,9 @@ export function dropSession(id: string, token: string): boolean {
 /** Re-encode the (possibly edited) session document to device cipher bytes. */
 export function pushEncode(sessionId: string, token: string): Buffer {
   const s = getSession(sessionId, token);
-  return encodeSave(s.decoded.doc);
+  // The session's key, not the shipped default: a fresh-account save is
+  // wrapped in a key recovered at load time (see gardenscapes/key-recover.ts).
+  return encodeSave(s.decoded.doc, s.decoded.key);
 }
 
 /** Byte-exact undo: restore the document from the originally loaded bytes. */

@@ -18,7 +18,8 @@
 
 import { Buffer } from "node:buffer";
 import { xorBytes } from "./crypto.ts";
-import { XOR_KEY } from "./key.ts";
+import { XOR_KEY, FRESH_KEY } from "./key.ts";
+import { recoverXorKey } from "./key-recover.ts";
 import {
   parseAUDB,
   serializeAUDB,
@@ -39,7 +40,16 @@ export interface DecodedGardenscapesSave {
   plainBytes: Buffer;
   /** Raw device bytes (still XOR'd). */
   cipherBytes: Buffer;
+  /**
+   * The key string that actually decoded this save. Pass it to `encodeSave`
+   * so an edit writes back with the same key it was read with — the save may
+   * not be using the shipped `XOR_KEY` (see ./key-recover.ts).
+   */
+  key: string;
 }
+
+/** Keys tried before falling back to statistical recovery, in order. */
+const KEY_CANDIDATES: readonly string[] = [XOR_KEY, FRESH_KEY];
 
 /** True when the bytes are already a plaintext AUDB document (editor export). */
 function isPlainAuDb(buf: Buffer): boolean {
@@ -49,11 +59,47 @@ function isPlainAuDb(buf: Buffer): boolean {
   return buf.length >= 4 && buf.subarray(0, 4).toString("latin1") === "AUDB";
 }
 
-/** Decode a save (XOR device bytes, or an already-plaintext AUDB file) and parse it. */
-export function decodeSave(cipher: Buffer, key: string = XOR_KEY): DecodedGardenscapesSave {
-  const plain = isPlainAuDb(cipher) ? Buffer.from(cipher) : Buffer.from(xorBytes(cipher, key));
-  const doc = parseAUDB(plain);
-  return { version: doc.version, doc, plainBytes: plain, cipherBytes: cipher };
+/**
+ * Decode a save and parse it, working out which key wrapped it.
+ *
+ * Order: the key the caller names (when it passes one explicitly), then the
+ * shipped keys, then recovery from the file itself. A key is only accepted
+ * when the plaintext parses as AUDB, so a wrong candidate costs one parse
+ * attempt and never a silently corrupted document.
+ */
+export function decodeSave(cipher: Buffer, key?: string): DecodedGardenscapesSave {
+  if (isPlainAuDb(cipher)) {
+    const plain = Buffer.from(cipher);
+    const doc = parseAUDB(plain);
+    return { version: doc.version, doc, plainBytes: plain, cipherBytes: cipher, key: key ?? XOR_KEY };
+  }
+
+  const tried = new Set<string>();
+  const candidates = key ? [key, ...KEY_CANDIDATES] : KEY_CANDIDATES;
+  let firstError: unknown = null;
+  for (const k of candidates) {
+    if (tried.has(k)) continue;
+    tried.add(k);
+    try {
+      const plain = Buffer.from(xorBytes(cipher, k));
+      const doc = parseAUDB(plain);
+      return { version: doc.version, doc, plainBytes: plain, cipherBytes: cipher, key: k };
+    } catch (e) {
+      if (firstError === null) firstError = e;
+    }
+  }
+
+  // Neither shipped key fits: recover the key from the file itself.
+  try {
+    const k = recoverXorKey(cipher);
+    const plain = Buffer.from(xorBytes(cipher, k));
+    const doc = parseAUDB(plain);
+    return { version: doc.version, doc, plainBytes: plain, cipherBytes: cipher, key: k };
+  } catch {
+    throw firstError instanceof Error
+      ? firstError
+      : new Error("save: not a Gardenscapes AUDB container");
+  }
 }
 
 /** Re-serialize an (edited) AUDB document back to device cipher bytes. */
@@ -62,19 +108,22 @@ export function encodeSave(doc: AUDBDocument, key: string = XOR_KEY): Buffer {
 }
 
 /** Convenience: decrypt without caring about the document. */
-export function readPlain(cipher: Buffer, key: string = XOR_KEY): Buffer {
-  return isPlainAuDb(cipher) ? Buffer.from(cipher) : Buffer.from(xorBytes(cipher, key));
+export function readPlain(cipher: Buffer, key?: string): Buffer {
+  return decodeSave(cipher, key).plainBytes;
 }
 
 /**
  * Backwards-compatible alias used by older transport code / probes.
  * Gardenscapes saves are AUDB documents, not XML; an "xml" argument is ignored
  * and the document is re-serialized verbatim (byte-exact round trip).
+ *
+ * Re-encodes with the key the cipher was read with, so a save wrapped in a
+ * recovered key is written back under that same key.
  */
-export function writeSaveXml(cipher: Buffer | Uint8Array, _xml?: string, key: string = XOR_KEY): Buffer {
+export function writeSaveXml(cipher: Buffer | Uint8Array, _xml?: string, key?: string): Buffer {
   const buf = Buffer.isBuffer(cipher) ? cipher : Buffer.from(cipher);
   const dec = decodeSave(buf, key);
-  return encodeSave(dec.doc, key);
+  return encodeSave(dec.doc, dec.key);
 }
 
 // ---------------------------------------------------------------------------
