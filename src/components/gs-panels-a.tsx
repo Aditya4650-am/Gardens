@@ -799,6 +799,11 @@ export function GsNewAccount() {
         </div>
 
         {msg ? <p className="gs-msg gs-msg--ok mt-2">{msg}</p> : null}
+
+        <p className="gs-msg gs-msg--info mt-2">
+          New account resets the device ID, signs out Google and clears the app — the cleanest start a
+          device-side tool can make. Playrix decides bans on its server; no tool can promise unban.
+        </p>
       </section>
     </div>
   );

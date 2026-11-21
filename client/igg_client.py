@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 Garden Studio - Windows Client.
 Native WebView2 window that loads the web app from your deployed server and
@@ -45,7 +45,7 @@ if sys.stderr is None:
 import webview  # pywebview - native WebView2 window
 
 APP_NAME = "Garden Studio"
-APP_VERSION = "1.1.31"
+APP_VERSION = "1.1.33"
 
 # Where the app UI comes from. Override with env IGG_VIP_URL or
 # %APPDATA%\IGG-VIP-Studio\server.txt  (the folder name stays as shipped so a
@@ -78,7 +78,7 @@ LOCAL_INFO_FILE = "mLocalInfo.xml"
 # --- Gardenscapes ---------------------------------------------------------
 # Gardenscapes keeps a *binary AUDB container* (never plain XML) as
 # Documents/GameData.db inside the package's private storage. It needs root to
-# read and write, and the running game rewrites that file on exit — so a push
+# read and write, and the running game rewrites that file on exit â€” so a push
 # has to stop the game first or the game overwrites the new bytes with its own
 # in-memory state the moment it closes.
 GARDEN_PACKAGE = "com.playrix.gardenscapes"
@@ -122,7 +122,7 @@ def candidate_paths_for_package(pkg: str, filename: str) -> list[str]:
 
 
 def localinfo_candidate_paths_for_package(pkg: str) -> list[str]:
-    """Candidate paths for mLocalInfo.xml — prioritizes files/ over saves/."""
+    """Candidate paths for mLocalInfo.xml â€” prioritizes files/ over saves/."""
     out: list[str] = []
     # LocalInfo lives in files/ or package root in most builds; saves/ is wrong.
     localinfo_subdirs = ("files", "shared_prefs", "", "saves", "app_data")
@@ -246,10 +246,10 @@ def get_device_id() -> str:
     except Exception:
         pass
     return new_id
-# ── ADB helpers ──────────────────────────────────────────────────────────────
+# â”€â”€ ADB helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # A refused write does not always say "permission denied". On MEmu's
-# SettingsProvider the answer is a Java stack trace on stdout —
-# "Exception occurred while executing 'put': java.lang.SecurityException" —
+# SettingsProvider the answer is a Java stack trace on stdout â€”
+# "Exception occurred while executing 'put': java.lang.SecurityException" â€”
 # which matched none of the plain patterns originally used here, so every
 # refusal was classified as "the id did not change" and the real reason
 # never reached the user.
@@ -275,7 +275,7 @@ def _rewrite_secure_android_id(xml: str, new_id: str) -> tuple[str, int]:
     `package="root" defaultSysSet="true"` and keeps the id in
     `defaultValue="..."`. A regex that pins one ordering finds nothing in
     the other and answers "entry not found" against a file that plainly
-    holds the id — which is how the reset ended up refusing with no usable
+    holds the id â€” which is how the reset ended up refusing with no usable
     reason. Whichever of the two the row actually carries is rewritten in
     place, and the attribute's own name is preserved so the file keeps its
     shape.
@@ -442,7 +442,7 @@ def _is_probably_file(buf: bytes) -> bool:
     if any(b not in _PRINTABLE for b in head):
         return True
     # Plain-text payloads are only a file when they are the document itself, so a
-    # leading `cat: …` diagnostic is rejected even if XML follows it.
+    # leading `cat: â€¦` diagnostic is rejected even if XML follows it.
     return head.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"<")
 
 
@@ -607,7 +607,7 @@ class NativeBridge:
             "message": "ok" if devices else "adb found but no device connected",
         }
 
-    # ADB — package helpers (v1.15 exact semantics)
+    # ADB â€” package helpers (v1.15 exact semantics)
     def _pkgs_for(self, serial: str) -> list[str]:
         preferred = _active_package.get(serial)
         out: list[str] = []
@@ -770,7 +770,7 @@ class NativeBridge:
             raise RuntimeError("Save must be plain XML (v1.15 plaintext mode).")
         if len(data) < 16:
             raise RuntimeError("Save output too short to push.")
-        # Push plain XML like v1.15 reference client — game accepts plain XML
+        # Push plain XML like v1.15 reference client â€” game accepts plain XML
         if not options.get("alreadyStopped"):
             _ = self.forceStop(serial)
             time.sleep(0.4)
@@ -796,7 +796,7 @@ class NativeBridge:
                         _run_adb(adb, ["-s", serial, "shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1"], timeout=12)
                     return {"ok": True, "package": pkg, "paths": {"xml": xml_path, "bak": bak_path}, "size": len(data), "plaintext": True, "relaunched": options.get("restart", True)}
                 errs.append(f"{pkg}: {combined or 'su cp failed'}")
-            raise RuntimeError("Push failed — " + " | ".join(errs))
+            raise RuntimeError("Push failed â€” " + " | ".join(errs))
 
     # --- Gardenscapes -----------------------------------------------------
     # The Gardenscapes save is a *binary AUDB container* (Documents/GameData.db)
@@ -841,7 +841,7 @@ class NativeBridge:
                 "from the EXE while the emulator is running."
             )
         if not serial:
-            raise RuntimeError("No emulator connected — start your emulator and press Refresh.")
+            raise RuntimeError("No emulator connected â€” start your emulator and press Refresh.")
         if not self._garden_pkg_ok(adb, serial):
             raise RuntimeError("Gardenscapes is not installed on " + serial)
         path = self._garden_path(adb, serial)
@@ -866,7 +866,7 @@ class NativeBridge:
         """Write the AUDB GameData.db back to the device and relaunch the game.
 
         The running game rewrites that file from memory as it closes, so the
-        game is always force-stopped first — otherwise the new bytes are
+        game is always force-stopped first â€” otherwise the new bytes are
         replaced by the old state before the file is ever read again.
         """
         options = options or {}
@@ -877,7 +877,7 @@ class NativeBridge:
                 "from the EXE while the emulator is running."
             )
         if not serial:
-            raise RuntimeError("No emulator connected — start your emulator and press Refresh.")
+            raise RuntimeError("No emulator connected â€” start your emulator and press Refresh.")
         data = base64.b64decode(b64)
         if len(data) > 24 * 1024 * 1024:
             raise RuntimeError("Save output exceeds the 24 MB safety limit.")
@@ -902,7 +902,7 @@ class NativeBridge:
                 raise RuntimeError("adb push failed: " + err.decode("utf-8", "replace").strip())
             # Write through a shell redirect rather than `cp`: `>` truncates the
             # existing inode in place, so the file keeps its uid/gid, mode and
-            # SELinux context — a fresh root-owned inode would be mode 600 and
+            # SELinux context â€” a fresh root-owned inode would be mode 600 and
             # unreadable by the game. `cp` on some toybox builds recreates it.
             shell = f"su -c 'cat \"{tmp}\" > \"{remote}\"; chmod 600 \"{remote}\"; ls -la \"{remote}\"'"
             code2, out2, err2 = _run_adb(adb, ["-s", serial, "shell", shell], timeout=40)
@@ -1005,9 +1005,20 @@ class NativeBridge:
             gsf = self.resetGsfId(serial)
         except Exception as e:  # noqa: BLE001
             gsf = {"ok": False, "error": str(e)}
+        # Sign out of Google and evict GMS/advertising state: a signed-in Play
+        # account is the strongest link back to the previous city, and deleting
+        # only the save leaves it in place.
+        try:
+            gms = self.clearGms(serial)
+        except Exception as e:  # noqa: BLE001
+            gms = {"ok": False, "error": str(e)}
         directory = self._garden_doc_dir(adb, serial)
         _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", GARDEN_PACKAGE], timeout=15)
         time.sleep(0.6)
+        # Clear the whole app data as well as the save: leftover state (login
+        # token, caches, tutorial flags) is what makes a "new" city look like
+        # the old account to the server.
+        _run_adb(adb, ["-s", serial, "shell", f"pm clear {GARDEN_PACKAGE}"], timeout=30)
         for name in (
             GARDEN_SAVE_FILE,
             GARDEN_SAVE_FILE + ".bak",
@@ -1033,6 +1044,7 @@ class NativeBridge:
             "files": backup["count"],
             "androidId": android.get("androidId", ""),
             "gsf": bool(gsf.get("ok")),
+            "gms": bool(gms.get("ok")) if isinstance(gms, dict) else False,
             "relaunched": True,
         }
 
@@ -1240,7 +1252,7 @@ class NativeBridge:
                 break
         # Same single-string rule as above; also try the plain shell first
         # (relaxed emulators allow it) before the su variants. The `content`
-        # command hits the same provider through a different door — delete +
+        # command hits the same provider through a different door â€” delete +
         # re-insert sometimes lands where a plain update is ignored.
         put_cmds = [
             f"settings put secure android_id {new_id}",
@@ -1259,7 +1271,7 @@ class NativeBridge:
             code, out, err = _run_adb(adb, ["-s", serial, "shell", cmd], timeout=15)
             combined = (out + err).decode("utf-8", "replace").strip()
             if code != 0 or _ADB_WRITE_REJECTED.search(combined):
-                # Keep the device's own words — see _ADB_WRITE_REJECTED.
+                # Keep the device's own words â€” see _ADB_WRITE_REJECTED.
                 last_err = combined or "su failed"
                 continue
             check = ""
@@ -1274,7 +1286,7 @@ class NativeBridge:
         if last_err:
             # The provider is dropping every write. On these builds the id
             # lives in settings_secure.xml, not settings.db, and
-            # forceAndroidId edits exactly that file — it has existed for
+            # forceAndroidId edits exactly that file â€” it has existed for
             # this case all along and simply had no caller, which is why the
             # tool used to give up and send the user to MEmu's own dialog
             # instead of doing the work itself. The reboot is part of it:
@@ -1286,7 +1298,7 @@ class NativeBridge:
                 raise RuntimeError(
                     "Android ID reset refused"
                     + (": " + detail if detail else "")
-                    + " — change it in the emulator's device settings instead "
+                    + " â€” change it in the emulator's device settings instead "
                     "(MEmu multi-instance properties), then Verify"
                 ) from e
         self._drop_ssaid_cache(adb, serial)
@@ -1338,7 +1350,7 @@ class NativeBridge:
 
         Since Android 8 each app's SSAID is derived from the device Android
         ID and cached in settings_ssaid.xml. After an ID change the stale
-        file would keep serving the OLD derived id — removing it forces a
+        file would keep serving the OLD derived id â€” removing it forces a
         recompute. Best-effort: never fails the caller.
         """
         for base in ("/data/system/users/0", "/data/system/users/10"):
@@ -1353,7 +1365,7 @@ class NativeBridge:
 
     # Fresh-start device identity, part 2: the Google Services (GSF) Android
     # ID. This is a DIFFERENT 16-hex id from Settings.Secure (gservices.db),
-    # and Play SDKs key on it — resetting only Settings.Secure leaves the
+    # and Play SDKs key on it â€” resetting only Settings.Secure leaves the
     # GSF id behind, so the server re-links the "new" city to the ban.
     # Deleting the databases forces GMS to mint fresh ids on next sync.
     _GSF_DB_CANDIDATES = (
@@ -1434,7 +1446,7 @@ class NativeBridge:
         Last resort for emulators whose settings provider silently drops
         `settings put` writes (put "succeeds", re-read shows the old id).
         The file is RENAMED (not deleted) and a reboot is required for the
-        fresh id to mint — call rebootDevice right after.
+        fresh id to mint â€” call rebootDevice right after.
         """
         adb = _find_adb()
         if not adb:
@@ -1468,7 +1480,7 @@ class NativeBridge:
         if code == 0:
             return {"ok": True}
         # The device drops the connection the moment it reboots, so a
-        # timeout/closed/offline verdict IS the success signal — the reboot
+        # timeout/closed/offline verdict IS the success signal â€” the reboot
         # is already underway. Only hard errors (unauthorized, denied)
         # mean it never started.
         if (
@@ -1500,7 +1512,7 @@ class NativeBridge:
     # Fresh-start device identity, part 3: direct file edit with root.
     # Some emulator builds silently ignore `settings put` (put "succeeds",
     # re-read shows the old id). With root confirmed, editing
-    # settings_secure.xml itself cannot be ignored — but the provider only
+    # settings_secure.xml itself cannot be ignored â€” but the provider only
     # picks it up on boot, so callers must rebootDevice right after.
     _SECURE_XML_CANDIDATES = (
         "/data/system/users/0/settings_secure.xml",
@@ -1566,7 +1578,7 @@ class NativeBridge:
         skipped: list[str] = []
         errs: list[str] = []
         # Play Games signs back in silently and restores cloud saves, so it
-        # goes too — otherwise the banned city returns by itself.
+        # goes too â€” otherwise the banned city returns by itself.
         for pkg in (
             "com.google.android.gms",
             "com.google.android.gsf",
@@ -1591,7 +1603,7 @@ class NativeBridge:
 
     # Fresh-start ("New Account") one-shot wipe: force-stop + `pm clear`.
     # PackageManager deletes the app's ENTIRE internal tree (saves, prefs,
-    # databases, cache) atomically — no per-file enumeration that can miss a
+    # databases, cache) atomically â€” no per-file enumeration that can miss a
     # directory or choke on a journal file. External app storage is removed
     # explicitly afterwards (belt and suspenders).
     def pmClear(self, serial: str) -> dict:
@@ -1634,13 +1646,13 @@ class NativeBridge:
             if sdcard:
                 out_dict["sdcard"] = " | ".join(sdcard)
             return out_dict
-        raise RuntimeError("pm clear failed — " + (" | ".join(errs) or "no package worked"))
+        raise RuntimeError("pm clear failed â€” " + (" | ".join(errs) or "no package worked"))
 
     def reinstallTownship(self, serial: str) -> dict:
         """Nuclear wipe: back up the APK, uninstall, reinstall from backup.
 
-        Uninstall removes EVERYTHING the package owns — internal tree,
-        external storage, code cache — deeper than `pm clear`, and needs no
+        Uninstall removes EVERYTHING the package owns â€” internal tree,
+        external storage, code cache â€” deeper than `pm clear`, and needs no
         root. After reinstall the game has no files at all, so whatever it
         shows next either is a genuinely fresh city or came back over the
         network (cloud/account restore), which no local wipe can prevent.
@@ -1722,18 +1734,18 @@ class NativeBridge:
 
         Wiping alone can never work: once the device has no save at all the
         game asks Playrix "which city belongs to this device?", and the server
-        re-links the same old city from its device fingerprint — that is why a
+        re-links the same old city from its device fingerprint â€” that is why a
         proven-empty wipe still comes back as the old city. TS-Lite never lets
         that request happen: it force-stops the game and copies a complete
         LocalInfo + mGameInfo pair into the saves folder, so the game loads
         the provided city instead of minting or restoring one.
 
         Runs the competitor's script command-for-command, in its own order:
-        `setenforce 0` → `rm -rf <saves>/*` → `mkdir -p` → `cp -af` both
-        files → `chmod 777` → `restorecon -vR` → `setenforce 1` → its
+        `setenforce 0` â†’ `rm -rf <saves>/*` â†’ `mkdir -p` â†’ `cp -af` both
+        files â†’ `chmod 777` â†’ `restorecon -vR` â†’ `setenforce 1` â†’ its
         `[ -f ]` SUCCESS/FAILURE probe. Both of the first two steps were
         missing from the earlier attempt: SELinux must be relaxed while the
-        root-owned files land, and the whole saves folder must be cleared —
+        root-owned files land, and the whole saves folder must be cleared â€”
         one stale file left behind is enough for the game to fall back to
         the old city. `wc -c` stays as our extra gate (SUCCESS only proves
         the files exist), so a partial copy can never be reported as
@@ -1814,7 +1826,7 @@ class NativeBridge:
                 if "FAILURE" in combined or "SUCCESS" not in combined:
                     attempts.append(f"{d}: {combined.strip()[:220] or 'no output'}")
                     continue
-                # SUCCESS only proves existence — prove the exact sizes too.
+                # SUCCESS only proves existence â€” prove the exact sizes too.
                 verdict: dict[str, int] = {}
                 ok = True
                 for fname, size in (
@@ -1841,7 +1853,7 @@ class NativeBridge:
                     }
                 attempts.append(f"{d}: verification mismatch {verdict} (want {want})")
         raise RuntimeError(
-            "fresh profile injection failed — "
+            "fresh profile injection failed â€” "
             + (" | ".join(attempts)[:600] or "no writable saves folder")
         )
 
@@ -1873,11 +1885,11 @@ class NativeBridge:
             ):
                 return {"ok": True, "package": pkg, "output": combined[:300]}
             errs.append(combined[:200] or f"exit {code}")
-        raise RuntimeError("could not launch the game — " + " | ".join(errs))
+        raise RuntimeError("could not launch the game â€” " + " | ".join(errs))
 
     def verifyWipe(self, serial: str) -> dict:
         """Prove the wipe: none of the save/login files may still exist.
-        `pm clear` printing Success is trusted, but this closes the loop —
+        `pm clear` printing Success is trusted, but this closes the loop â€”
         if anything survived, the wipe is reported as incomplete instead of
         letting a stale city through to Verify.
         """
@@ -1917,7 +1929,7 @@ class NativeBridge:
     )
 
     def deviceFingerprint(self, serial: str) -> dict:
-        """Read-only hardware profile. No ADB command changes these values —
+        """Read-only hardware profile. No ADB command changes these values â€”
         they are pinned by the emulator instance itself. Shown so a MEmu
         clone (fresh fingerprint) can be told apart from the banned one.
         """
@@ -2017,7 +2029,7 @@ def _stage_folder_release(payload: bytes, expected: str, install_dir: Path) -> d
     """Verify and unpack an onedir release beside the install folder.
 
     `CLIENT_UPDATE_SHA256` for a foldered release is the hash of the zip
-    itself — the CI workflow hashes the exact archive it attaches. Returns
+    itself â€” the CI workflow hashes the exact archive it attaches. Returns
     {"ok": True, "src": <folder holding the new exe>, "staging": <unpack
     root>} or {"ok": False, "reason": ...}. Nothing is written before the
     hash check passes.
@@ -2338,5 +2350,7 @@ if __name__ == "__main__":
             "Runtime (it is preinstalled on Windows 11)."
         )
         raise
+
+
 
 
