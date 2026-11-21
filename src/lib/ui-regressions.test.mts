@@ -164,7 +164,22 @@ test("the gardenscapes login resumes a saved key even when the shell bridge is l
   );
   // The key must land in the field, and remember-me must stay on for it.
   assert.ok(tsx.includes("setKey(saved)"), "the resumed key is put in the input");
-  assert.ok(tsx.includes("setRemember(true)"), "a resumed key keeps remember-me on");
+  // There is no "Save key" opt-out any more: the checkbox was reported as not
+  // working, and an unsaved key meant retyping it on every launch.
+  assert.ok(!tsx.includes("Save key on this device"), "the save-key checkbox must be gone");
+  assert.ok(!tsx.includes("login-remember"), "its markup must be gone");
+  assert.ok(!tsx.includes("setRemember"), "no remember state may remain");
+  // Saving must wait for the bridge as well: falling back to localStorage
+  // inside the EXE loses the key on the next launch (private mode wipes it),
+  // which is how a saved key went missing on reopen.
+  assert.ok(
+    tsx.includes("await waitForNativeBridge("),
+    "saving the key waits for the shell bridge instead of using localStorage",
+  );
+  assert.ok(
+    tsx.includes('localStorage.setItem(LS_KEY, candidate)'),
+    "a browser with no bridge still falls back to localStorage",
+  );
 });
 
 test("tab bar renders two premium rows: 8 primaries plus 5 below, never 13 squeezed slots", () => {

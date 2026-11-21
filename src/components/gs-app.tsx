@@ -151,6 +151,33 @@ function nativeBridge(): NativeBridge | undefined {
   return (window as unknown as { iggNative?: NativeBridge }).iggNative;
 }
 
+/**
+ * Wait for the shell to install `window.iggNative`.
+ *
+ * The alias is installed only after navigation completes (its own poller runs
+ * for up to 5 s), so a one-shot read returns nothing on a cold start. Used
+ * wherever the bridge is required rather than merely nice to have — saving
+ * the key among them, because falling back to localStorage there loses it on
+ * the next EXE launch (private mode wipes storage).
+ */
+async function waitForNativeBridge(budgetMs: number): Promise<NativeBridge | undefined> {
+  const existing = nativeBridge();
+  if (existing) return existing;
+  return new Promise((resolve) => {
+    const finish = () => {
+      window.clearInterval(tick);
+      window.removeEventListener("igg-native-ready", onReady);
+      resolve(nativeBridge());
+    };
+    const onReady = () => finish();
+    const deadline = Date.now() + budgetMs;
+    const tick = window.setInterval(() => {
+      if (nativeBridge() || Date.now() >= deadline) finish();
+    }, 50);
+    window.addEventListener("igg-native-ready", onReady);
+  });
+}
+
 // The WebView2 runtime injects window.chrome.webview before any page script
 // runs, so it is the only signal that answers "are we inside the EXE?"
 // synchronously at first paint.
@@ -248,7 +275,6 @@ export function GsApp() {
   // --- license / session -------------------------------------------------
   const [view, setView] = useState<View>("login");
   const [key, setKey] = useState("");
-  const [remember, setRemember] = useState(true);
   const [token, setToken] = useState("");
   const [license, setLicense] = useState<GsLicense | null>(null);
   const [deviceId, setDeviceId] = useState("");
@@ -548,7 +574,6 @@ export function GsApp() {
         const saved = await readSaved();
         if (!stop && saved) {
           setKey(saved);
-          setRemember(true);
         }
       } catch {
         /* ignore */
@@ -718,13 +743,19 @@ export function GsApp() {
       setDeviceId(r.deviceId);
       setLicense(r.license as GsLicense);
       try {
-        const native = nativeBridge();
-        if (remember) {
-          if (native?.saveKey) await native.saveKey(candidate);
-          else localStorage.setItem(LS_KEY, candidate);
+        // Always remember the key. There is no opt-out any more: a key that
+        // was not saved had to be retyped on every launch, which read as a
+        // broken login. Wait for the bridge rather than falling back to
+        // localStorage — inside the EXE storage is wiped on every launch, so
+        // a key saved there is gone by the next one.
+        const native = await waitForNativeBridge(inWebView2() ? 20_000 : 1_500);
+        if (native?.saveKey) {
+          const res = (await native.saveKey(candidate)) as { ok?: boolean } | void;
+          if (res && typeof res === "object" && res.ok === false) {
+            toast.error("Could not save the key on this device — you will be asked for it again");
+          }
         } else {
-          if (native?.clearSavedKey) await native.clearSavedKey();
-          else localStorage.removeItem(LS_KEY);
+          localStorage.setItem(LS_KEY, candidate);
         }
       } catch {
         /* ignore */
@@ -932,17 +963,6 @@ export function GsApp() {
                   <span>{loginErr}</span>
                 </p>
               ) : null}
-              <label className="login-remember">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                />
-                <span className="login-remember-box" aria-hidden="true">
-                  {remember ? <GsIcon name="check" className="size-3.5" /> : null}
-                </span>
-                <span>Save key on this device</span>
-              </label>
               <Button
                 className="login-unlock mt-5 w-full"
                 size="lg"
