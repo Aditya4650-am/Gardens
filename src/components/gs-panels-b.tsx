@@ -1043,7 +1043,8 @@ export function GsSendCards() {
             </div>
             {visible.length === 0 ? (
               <div className="rounded-xl border border-dashed border-white/10 py-7 text-center text-xs text-muted">
-                No friends yet — add a player id above
+                No friends yet — open Gardenscapes&apos; friend/Send screen once, press Scan
+                device, or add a player id above
               </div>
             ) : (
               <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1">

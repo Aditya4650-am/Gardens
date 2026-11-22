@@ -1083,18 +1083,9 @@ class NativeBridge:
         list_ids: dict[str, None] = {}
         names: dict[str, str] = {}
         scanned = 0
+        done_ranges: set[tuple[int, int]] = set()
 
-        # Fast pass: every writable region of 8 MB or more — where the game
-        # keeps its metrics snapshots (the friends list) and the player
-        # directory (names). The biggest arena usually answers on its own, so
-        # the pass stops as soon as the friends list appears (~5-6s); a full
-        # pass is about twelve. Smaller regions only ever held redundant copies.
-        fast = [
-            r
-            for r in sorted(ranges, key=lambda r: r[1] - r[0], reverse=True)
-            if r[1] - r[0] >= 8 * 1024 * 1024
-        ]
-        for idx, (lo, hi) in enumerate(fast):
+        def dump_gz(lo: int, hi: int) -> bytes:
             blocks = (hi - lo) // 4096
             code, raw, _ = _run_adb(
                 adb,
@@ -1103,19 +1094,49 @@ class NativeBridge:
                 timeout=90,
             )
             if code != 0 or not raw or len(raw) < 64:
-                continue
+                return b""
             try:
-                blob = gzip.decompress(raw)
+                return gzip.decompress(raw)
             except OSError:
+                return b""
+
+        # Phase 1 — the big arenas (where the game keeps its parsed caches):
+        # ~5-6s, and usually the whole story.
+        fast = [
+            r
+            for r in sorted(ranges, key=lambda r: r[1] - r[0], reverse=True)
+            if r[1] - r[0] >= 8 * 1024 * 1024
+        ]
+        for idx, (lo, hi) in enumerate(fast):
+            blob = dump_gz(lo, hi)
+            done_ranges.add((lo, hi))
+            if not blob:
                 continue
             scanned += len(blob)
             _merge_friend_blob(blob, list_ids, names)
-            # Stop once the friends list is known AND every friend has a name.
             if list_ids and all(names.get(i) for i in list_ids):
                 break
-            # Names are best-effort: four arenas (~10s worst) is the budget.
-            if idx >= 3:
+            if idx >= 2:
                 break
+
+        # Phase 2 — the list also appears in smaller metrics buffers on some
+        # devices; sweep every remaining region of 1 MB or more (about 15-20s)
+        # and stop as soon as the friends list is in hand.
+        if not list_ids:
+            wider = [
+                r
+                for r in sorted(ranges, key=lambda r: r[1] - r[0], reverse=True)
+                if r[1] - r[0] >= 1024 * 1024 and r not in done_ranges
+            ]
+            for lo, hi in wider:
+                blob = dump_gz(lo, hi)
+                done_ranges.add((lo, hi))
+                if not blob:
+                    continue
+                scanned += len(blob)
+                _merge_friend_blob(blob, list_ids, names)
+                if list_ids and all(names.get(i) for i in list_ids):
+                    break
 
         if not scanned:
             raise RuntimeError("Could not read the game's memory — enable root on the emulator.")
