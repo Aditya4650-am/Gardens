@@ -14,7 +14,7 @@
 // path wins whenever the bridge is present, and so a missing ADB reads as a
 // sentence a user can act on rather than a Node error.
 
-import { gsPullDevice, gsPushDevice } from "@/lib/gs-api";
+import { gsLaunchGame, gsPullDevice, gsPushDevice, gsScanDeviceFriends } from "@/lib/gs-api";
 
 export interface GsBridgeDevice {
   id: string;
@@ -33,6 +33,11 @@ export interface GsBridge {
   ) => Promise<{ ok?: boolean; size?: number; file?: string; paths?: Record<string, string> }>;
   /** Save path the device is using, for the sidebar readout. */
   gardenPath?: (serial: string) => Promise<{ path?: string; package?: string }>;
+  /** Read the friend roster (id + name) out of the running game's memory. */
+  gardenFriends?: (serial: string) => Promise<{
+    friends?: Array<{ id?: string; name?: string }>;
+    scannedMB?: number;
+  }>;
   /** Copy the whole save folder to this PC. */
   gardenBackup?: (serial: string) => Promise<{ ok?: boolean; path: string; count: number }>;
   /** Back up, reset the device identity, delete the save, relaunch. */
@@ -182,6 +187,13 @@ export async function gsPushToDevice(
       size?: number;
       file?: string;
     };
+    // The server-side push force-stops the game; relaunch it so its sync reads
+    // the new save. The EXE bridge does this inside gardenPush({restart:true}).
+    try {
+      await gsLaunchGame({ data: { serial: preferred || undefined } });
+    } catch {
+      /* the user can start the game manually */
+    }
     return {
       size: res?.size ?? Math.floor((b64.length * 3) / 4),
       file: res?.file || "GameData.db",
@@ -201,6 +213,53 @@ export async function gsDeviceSavePath(serial?: string): Promise<string> {
     return r?.path ?? "";
   } catch {
     return "";
+  }
+}
+
+export interface GsScannedFriend {
+  id: string;
+  name: string;
+}
+
+/**
+ * Friend roster (id + name) from the running game's memory.
+ *
+ * The EXE bridge does the scan locally — its ADB sits next to the emulator.
+ * The plain-browser path asks the server, which only works when `npm start`
+ * runs on the emulator's machine; the Render host has no device, which is
+ * exactly why the EXE (or that local server) is the way in.
+ */
+export async function gsScanFriendsFromDevice(
+  token: string,
+  preferred?: string,
+): Promise<{ friends: GsScannedFriend[]; scannedMB: number }> {
+  const bridge = gsBridge();
+  try {
+    if (bridge?.gardenFriends) {
+      const serial = await gsResolveSerial(preferred);
+      if (!serial) {
+        throw new Error(
+          "No emulator connected. Start your emulator, wait for it to load, then press Refresh.",
+        );
+      }
+      const r = await bridge.gardenFriends(serial);
+      const friends = (r?.friends ?? [])
+        .filter((f): f is { id: string; name?: string } => typeof f?.id === "string" && f.id !== "")
+        .map((f) => ({ id: f.id, name: typeof f.name === "string" ? f.name : "" }));
+      return { friends, scannedMB: r?.scannedMB ?? 0 };
+    }
+    if (bridge) {
+      throw new Error(
+        "This build of Garden Studio cannot scan friends yet — use Help → Update to get the latest version.",
+      );
+    }
+    const r = (await gsScanDeviceFriends({
+      data: { token, serial: preferred || undefined },
+    })) as { friends?: Array<{ id: string; name?: string }>; scannedMB?: number };
+    const friends = (r?.friends ?? []).map((f) => ({ id: f.id, name: f.name ?? "" }));
+    return { friends, scannedMB: r?.scannedMB ?? 0 };
+  } catch (e) {
+    throw gsTransportError(e);
   }
 }
 

@@ -30,6 +30,7 @@ import urllib.request
 import zipfile
 from http.client import HTTPConnection, HTTPSConnection
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -85,6 +86,75 @@ GARDEN_PACKAGE = "com.playrix.gardenscapes"
 GARDEN_SAVE_FILE = "GameData.db"
 GARDEN_SAVE_DIR = "Documents"
 GARDEN_SAVE_PATH = f"/data/data/{GARDEN_PACKAGE}/{GARDEN_SAVE_DIR}/{GARDEN_SAVE_FILE}"
+
+# --- friend scan (read the roster out of the running game's memory) ---------
+# The on-disk friend caches are PLXE-encrypted, but the game parses them into
+# heap structures the moment it loads. Two measured shapes live there:
+#   "friends_saveid_list":["id", ...]            (the game's own metrics field)
+#   saveId | numeric id | name                   (three fixed ~24-byte fields)
+# Scanning /proc/<pid>/mem therefore needs no decryption at all.
+_FRIEND_ID_RE = re.compile(
+    rb"^(?=[A-Za-z0-9]*[A-Z])(?=[A-Za-z0-9]*[a-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{8,14}$"
+)
+_FRIEND_RECORD_RE = re.compile(
+    rb"([A-Za-z0-9]{8,14})([^\x20-\x7e]{4,24})(\d{9,15})([^\x20-\x7e]{4,24})"
+    rb"([A-Za-z0-9 _\-']{2,23})(?![A-Za-z0-9 _\-'])"
+)
+_FRIEND_LIST_KEY = b'"friends_saveid_list":['
+
+
+def _scan_ranges(maps_text: str) -> list[tuple[int, int]]:
+    """Writable, sane-sized regions from /proc/<pid>/maps, contiguous runs merged."""
+    ranges: list[tuple[int, int]] = []
+    for line in maps_text.splitlines():
+        parts = line.split()
+        if len(parts) < 2 or "w" not in parts[1]:
+            continue
+        if "[vvar]" in line or "[vdso]" in line:
+            continue
+        try:
+            lo_s, hi_s = parts[0].split("-")
+            lo, hi = int(lo_s, 16), int(hi_s, 16)
+        except ValueError:
+            continue
+        if hi - lo <= 0 or hi - lo > 400 * 1024 * 1024:
+            continue
+        if ranges and ranges[-1][1] == lo:
+            ranges[-1] = (ranges[-1][0], hi)
+        else:
+            ranges.append((lo, hi))
+    return ranges
+
+
+def _merge_friend_blob(blob: bytes, found: dict[str, str]) -> None:
+    at = blob.find(_FRIEND_LIST_KEY)
+    while at >= 0:
+        end = blob.find(b"]", at)
+        if 0 < end - at < 4096:
+            arr = blob[at + len(_FRIEND_LIST_KEY): end]
+            for m in re.finditer(rb'"([^"]+)"', arr):
+                raw = m.group(1)
+                if _FRIEND_ID_RE.match(raw):
+                    found.setdefault(raw.decode("ascii", "replace"), "")
+        at = blob.find(_FRIEND_LIST_KEY, at + 1)
+    for m in _FRIEND_RECORD_RE.finditer(blob):
+        raw = m.group(1)
+        if not _FRIEND_ID_RE.match(raw):
+            continue
+        key = raw.decode("ascii", "replace")
+        name = m.group(5).decode("utf-8", "replace").strip()
+        if key not in found:
+            found[key] = name
+        elif not found[key] and name:
+            found[key] = name
+
+
+def _parse_friend_scan(blobs: list[bytes]) -> list[tuple[str, str]]:
+    found: dict[str, str] = {}
+    for blob in blobs:
+        _merge_friend_blob(blob, found)
+    return sorted(found.items())
+
 # Bundled fresh-city profile (extracted from the proven TS-Lite asset): a
 # complete LocalInfo + mGameInfo pair for a brand-new city, in the game's
 # own container encoding.
@@ -940,6 +1010,77 @@ class NativeBridge:
             return {"path": self._garden_path(adb, serial), "package": GARDEN_PACKAGE}
         except Exception:  # noqa: BLE001
             return {"path": GARDEN_SAVE_PATH, "package": GARDEN_PACKAGE}
+
+    def gardenFriends(self, serial: str) -> dict:
+        """Read the friend roster (id + name) out of the running game's memory.
+
+        The friend caches are PLXE-encrypted on disk but parsed into the heap
+        on load, so a scan of the writable regions of /proc/<pid>/mem yields
+        every friend with no crypto. Each region is dumped once and parsed
+        before the next arrives, so peak memory stays around one region.
+        """
+        adb = _find_adb()
+        if not adb:
+            raise RuntimeError(
+                "ADB not found. Install Android platform-tools, or run the tool "
+                "from the EXE while the emulator is running."
+            )
+        if not serial:
+            raise RuntimeError("No emulator connected — start your emulator and press Refresh.")
+        if not self._garden_pkg_ok(adb, serial):
+            raise RuntimeError("Gardenscapes is not installed on " + serial)
+
+        code, out, _ = _run_adb(adb, ["-s", serial, "shell", f"pidof {GARDEN_PACKAGE}"], timeout=15)
+        pids = (out or b"").decode("utf-8", "replace").split()
+        if code != 0 or not pids or not pids[0].isdigit():
+            raise RuntimeError("Gardenscapes is not running — open the game, then press Scan device again.")
+        pid = pids[0]
+
+        code, out, _ = _run_adb(adb, ["-s", serial, "shell", f"cat /proc/{pid}/maps"], timeout=30)
+        text = (out or b"").decode("utf-8", "replace")
+        ranges = _scan_ranges(text)
+        if not ranges:
+            raise RuntimeError("Could not read the game's memory map — is the emulator rooted?")
+
+        found: dict[str, str] = {}
+        scanned = 0
+        lock = threading.Lock()
+
+        def scan_region(rng: tuple[int, int]) -> int:
+            """Dump one region and merge what it holds; returns bytes read."""
+            lo, hi = rng
+            blocks = (hi - lo) // 4096
+            if blocks <= 0:
+                return 0
+            code, buf, _ = _run_adb(
+                adb,
+                ["-s", serial, "exec-out", "su", "-c",
+                 f"dd if=/proc/{pid}/mem bs=4096 skip={lo // 4096} count={blocks} 2>/dev/null"],
+                timeout=90,
+            )
+            if code != 0 or not buf or len(buf) < 64:
+                return 0
+            local: dict[str, str] = {}
+            _merge_friend_blob(buf, local)
+            if local:
+                with lock:
+                    for k, v in local.items():
+                        if k not in found:
+                            found[k] = v
+                        elif not found[k] and v:
+                            found[k] = v
+            return len(buf)
+
+        # Four streams cut the ~870 MB sweep to about a minute; adb multiplexes.
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            for n in pool.map(scan_region, ranges):
+                scanned += n or 0
+        if not scanned:
+            raise RuntimeError("Could not read the game's memory — enable root on the emulator.")
+        return {
+            "friends": [{"id": i, "name": n} for i, n in sorted(found.items())],
+            "scannedMB": round(scanned / (1024 * 1024)),
+        }
 
     # --- New account / backups -------------------------------------------
     # A Gardenscapes city is bound to the device's Google identity, so simply

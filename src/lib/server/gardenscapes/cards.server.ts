@@ -699,6 +699,26 @@ export function sendCardsToFriend(
   if (!queueRef || queueRef[1][0] !== "a") throw new Error("cards: PendingSendCards is not an array");
   const queue = queueRef[1][1] as ArrItem[];
 
+  // Drop rows a previous run already flushed. After the game syncs, the
+  // device's SentCards holds those rows while a session loaded before the
+  // sync still carries them — pushing them again would duplicate the gifts.
+  const sentIds = new Set<string>();
+  const sentRef = kids.find(([k]) => k === "SentCards");
+  if (sentRef && sentRef[1][0] === "a") {
+    for (const r of sentRef[1][1] as ArrItem[]) {
+      const k = rowKids(r);
+      const gid = k ? kidVal(k, "UniqueGiftingId") : undefined;
+      if (typeof gid === "string") sentIds.add(gid);
+    }
+  }
+  if (sentIds.size && queue.length) {
+    for (let i = queue.length - 1; i >= 0; i--) {
+      const k = rowKids(queue[i]);
+      const gid = k ? kidVal(k, "UniqueGiftingId") : undefined;
+      if (typeof gid === "string" && sentIds.has(gid)) queue.splice(i, 1);
+    }
+  }
+
   const core = childOf(feat, "Core");
   const coreKids = core && core[1][0] === "o" ? (core[1][1] as ObjChild[]) : null;
   const ownedRef = coreKids?.find(([k]) => k === "OwnedCards");

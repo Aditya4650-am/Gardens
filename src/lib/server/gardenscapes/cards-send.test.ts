@@ -186,6 +186,34 @@ test("bad input refuses before anything is written", (t) => {
   });
 });
 
+test("a row the save already recorded as sent is never queued twice", (t) => {
+  withSave(t, (s) => {
+    const kids = giftKids(s);
+    const makeRow = (): ArrItem => [
+      "o",
+      [
+        ["CardId", ["s", "card_03"]],
+        ["CardSourceId", ["s", "SendFriend"]],
+        ["CollectionId", ["s", "CardC8"]],
+        ["ReceiverId", ["s", "mhRwDZPm18"]],
+        ["UniqueGiftingId", ["s", "DUPEDgift1234567"]],
+      ],
+    ];
+    // A flushed-but-stale queue: the same gifting id sits in both arrays.
+    rowsOf(kids, "PendingSendCards").push(makeRow());
+    rowsOf(kids, "SentCards").push(makeRow());
+
+    const res = sendCardsToFriend(s, { receiverIds: ["mhRwDZPm18"], cardIds: ["card_04"] });
+    assert.equal(res.queued, 1);
+    const ids = rowsOf(giftKids(s), "PendingSendCards").map((r) => {
+      const k = rowKids(r);
+      return k ? String(kidValue(k, "UniqueGiftingId")) : "";
+    });
+    assert.ok(!ids.includes("DUPEDgift1234567"), "already-sent row dropped from the queue");
+    assert.equal(ids.length, 1, "only the new row remains");
+  });
+});
+
 test("readFriends lists who this save has exchanged gifts with", (t) => {
   withSave(t, (s) => {
     const { friends } = readFriends(s);

@@ -6,16 +6,16 @@ import {
   gsBuyPurchases,
   gsClaimGardenPass,
   gsClearGiftingInbox,
-  gsGiftingStatus,
+  gsGiftingStatusB64,
   gsGrantCards,
   gsListChapters,
   gsListPurchases,
   gsListSeasons,
   gsMarkCardsSeen,
+  gsPush,
+  gsQueueCardsToFriends,
   gsReadCards,
   gsReadFriends,
-  gsScanDeviceFriends,
-  gsSendCardsToFriends,
   gsSendCardsToSelf,
   gsSetAllStock,
   gsSetPackCount,
@@ -25,6 +25,7 @@ import {
   gsWritePurchases,
 } from "@/lib/gs-api";
 import { GS_CARD_PACKS, GS_CARD_SETS, GS_CARDS } from "@/lib/server/gardenscapes/catalogs";
+import { gsPullFromDevice, gsPushToDevice, gsScanFriendsFromDevice } from "@/lib/gardenscapes/transport";
 import { useGs, sessOf, type GsEditResult } from "./gs-ctx";
 import { Bar, Chip, Field, GsIcon, Panel, Toggle } from "./gs-ui";
 
@@ -634,6 +635,32 @@ function saveManualFriends(ids: string[]): void {
   }
 }
 
+/** Player names learned from the device scan (id -> name), kept across reloads. */
+const FRIEND_NAMES_KEY = "gs-send-friend-names-v1";
+
+function loadFriendNames(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(FRIEND_NAMES_KEY);
+    const v: unknown = raw ? JSON.parse(raw) : {};
+    if (!v || typeof v !== "object") return {};
+    const out: Record<string, string> = {};
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      if (typeof val === "string" && val) out[k] = val;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function saveFriendNames(names: Record<string, string>): void {
+  try {
+    localStorage.setItem(FRIEND_NAMES_KEY, JSON.stringify(names));
+  } catch {
+    /* private mode */
+  }
+}
+
 /** Stable avatar colour per id, from the set palette. */
 function friendTone(id: string): string {
   let h = 0;
@@ -659,7 +686,7 @@ export function GsSendCards() {
   const [q, setQ] = useState("");
   const [manualId, setManualId] = useState("");
   const [scanning, setScanning] = useState(false);
-  const [deviceNames, setDeviceNames] = useState<Record<string, string>>({});
+  const [deviceNames, setDeviceNames] = useState<Record<string, string>>(() => loadFriendNames());
   // card selection — the whole catalog ticked by default, so Send is live at first paint
   const [cardSel, setCardSel] = useState<Set<string>>(() => new Set(GS_CARDS.map((x) => x.id)));
   // send flow
@@ -753,21 +780,20 @@ export function GsSendCards() {
     });
   };
 
-  /** Read the roster out of the running game's memory (its caches are
-   * encrypted on disk but parsed into the heap on load). */
+  /** Read the roster out of the running game's memory — through the EXE
+   * bridge when there is one (its ADB is next to the emulator), otherwise
+   * the server, which needs `npm start` on the emulator's machine. */
   const scanDevice = async () => {
     if (scanning) return;
     setScanning(true);
     try {
-      const r = await c.act(() =>
-        gsScanDeviceFriends({ data: { token: c.token, serial: c.serial || undefined } }),
-      );
+      const r = await c.act(() => gsScanFriendsFromDevice(c.token, c.serial || undefined));
       if (r) {
-        const res = r as { friends: { id: string; name: string }[]; scannedMB: number };
-        const names: Record<string, string> = {};
-        for (const f of res.friends) if (f.name) names[f.id] = f.name;
-        setDeviceNames((prev) => ({ ...prev, ...names }));
-        const fresh = res.friends.filter((f) => !rosterMap.has(f.id));
+        const names: Record<string, string> = { ...deviceNames };
+        for (const f of r.friends) if (f.name) names[f.id] = f.name;
+        setDeviceNames(names);
+        saveFriendNames(names);
+        const fresh = r.friends.filter((f) => !rosterMap.has(f.id));
         if (fresh.length) {
           const next = [...manual, ...fresh.map((f) => f.id)];
           setManual(next);
@@ -779,9 +805,9 @@ export function GsSendCards() {
           });
         }
         log(
-          res.friends.length
-            ? `Device scan: ${res.friends.length} friend(s), ${fresh.length} new (${res.scannedMB} MB read)`
-            : `Device scan found no friends (${res.scannedMB} MB read) — keep the game open`,
+          r.friends.length
+            ? `Device scan: ${r.friends.length} friend(s) with names, ${fresh.length} new (${r.scannedMB} MB read)`
+            : `Device scan found no friends (${r.scannedMB} MB read) — keep the game open on its home screen`,
         );
       }
     } finally {
@@ -805,12 +831,15 @@ export function GsSendCards() {
         ? `Queue cleared — the server accepted none of the ${queued} (are they friends?)`
         : `Queue cleared — ${recorded}/${queued} recorded as sent`;
 
+  /** Pull the save through the device transport (the EXE bridge on clients)
+   * and let the server decode the gifting counters. */
   const poll = async (): Promise<{ pendingSend: number; sent: number; recorded: number } | null> => {
-    const r = await c.act(() =>
-      gsGiftingStatus({
-        data: { token: c.token, serial: c.serial || undefined, ids: idsRef.current },
-      }),
-    );
+    const r = await c.act(async () => {
+      const pull = await gsPullFromDevice(c.serial || undefined);
+      return gsGiftingStatusB64({
+        data: { token: c.token, saveB64: pull.b64, ids: idsRef.current },
+      });
+    });
     return (r ?? null) as { pendingSend: number; sent: number; recorded: number } | null;
   };
 
@@ -825,14 +854,7 @@ export function GsSendCards() {
     setProgress({ queued, pending: queued, seconds: 0 });
     log(`Queueing ${queued} gifts to ${receivers.length} friend(s)…`);
     const r = await c.act(() =>
-      gsSendCardsToFriends({
-        data: {
-          ...sessOf(c),
-          receiverIds: receivers,
-          cardIds: cards,
-          serial: c.serial || undefined,
-        },
-      }),
+      gsQueueCardsToFriends({ data: { ...sessOf(c), receiverIds: receivers, cardIds: cards } }),
     );
     if (!r) {
       setPhase("idle");
@@ -845,18 +867,28 @@ export function GsSendCards() {
       receivers: number;
       changed: string[];
       missing: string[];
-      launched: boolean;
       giftingIds: string[];
     };
     idsRef.current = res.giftingIds ?? [];
     c.note({ changed: res.changed, missing: res.missing }, "Send to friends");
-    if (!res.launched) {
+    log(`Queued ${res.queued} · encoding and pushing the save…`);
+
+    // Push through the device transport: inside the EXE the bridge writes the
+    // client's own MEmu save and restarts the game (the launch sync flushes
+    // the queue); the server path writes and relaunches.
+    const enc = await c.act(() => gsPush({ data: sessOf(c) }));
+    const pushed = enc
+      ? await c.act(() =>
+          gsPushToDevice((enc as { b64: string }).b64, c.serial || undefined),
+        )
+      : undefined;
+    if (!pushed) {
       setPhase("idle");
-      setVerdict("Saved to the device — open Gardenscapes to deliver the queue, then press Check now.");
-      log(`Queued ${res.queued} · pushed · start the game to deliver`);
+      setVerdict("Queue is in the session but the device push failed — press Send again.");
+      log("Push failed — see the error message");
       return;
     }
-    log(`Queued ${res.queued} · pushed · game restarting — waiting for its sync`);
+    log(`Queued ${res.queued} · save pushed · game restarting — waiting for its sync`);
     setPhase("waiting");
     const t0 = Date.now();
     let lastPending = res.queued;
@@ -986,6 +1018,7 @@ export function GsSendCards() {
               <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
                 {visible.map((f) => {
                   const on = friendSel.has(f.id);
+                  const nm = deviceNames[f.id] ?? "";
                   return (
                     <li key={f.id}>
                       <button
@@ -1003,11 +1036,13 @@ export function GsSendCards() {
                           className="grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white ring-2 ring-white/10"
                           style={{ background: friendTone(f.id) }}
                         >
-                          {f.id.slice(0, 1).toUpperCase()}
+                          {(nm || f.id).slice(0, 1).toUpperCase()}
                         </span>
-                        <span className="min-w-0 flex-1 truncate font-mono text-sm">{f.id}</span>
-                        <span className="shrink-0 text-[10px] text-muted">
-                          {deviceNames[f.id] ?? (f.source === "manual" ? "added" : f.source)}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{nm || f.id}</span>
+                          <span className="block truncate font-mono text-[11px] text-muted">
+                            {nm ? f.id : f.source === "manual" ? "added" : f.source}
+                          </span>
                         </span>
                         {f.source === "manual" ? (
                           <span

@@ -1111,5 +1111,51 @@ class AndroidIdReset(unittest.TestCase):
         self.assertFalse(got.get("fromFile"))
 
 
+class GardenFriendScan(unittest.TestCase):
+    """The roster scan parses the game's memory offline — no device needed."""
+
+    def test_ranges_merge_contiguous_runs_and_skip_specials(self):
+        maps = "\n".join(
+            [
+                "1000-2000 r--p 00000000 00:00 0 /x.so",
+                "2000-3000 rw-p 00000000 00:00 0 [anon:heap]",
+                "3000-4000 rw-p 00000000 00:00 0 [anon:heap2]",
+                "4000-5000 rw-p 00000000 00:00 0 [vvar]",
+                "6000-7000 r--p 00000000 00:00 0 [anon:ro]",
+            ]
+        )
+        self.assertEqual(c._scan_ranges(maps), [(0x2000, 0x4000)])
+
+    def test_parses_the_metrics_friends_list(self):
+        blob = b'...{"friends_saveid_list":["mhRwDZPm18","abcDEF1234"],"level":45}...'
+        self.assertEqual(
+            c._parse_friend_scan([blob]),
+            [("abcDEF1234", ""), ("mhRwDZPm18", "")],
+        )
+
+    def test_parses_the_fixed_record_with_its_name(self):
+        record = b"mhRwDZPm18" + b"\x00" * 14 + b"20577773718" + b"\x00" * 13 + b"test" + b"\x00"
+        self.assertEqual(
+            c._parse_friend_scan([b"noise before " + record + b" noise after"]),
+            [("mhRwDZPm18", "test")],
+        )
+
+    def test_record_name_fills_an_id_the_list_left_unnamed(self):
+        blob = b'"friends_saveid_list":["mhRwDZPm18"] ... '
+        record = b"mhRwDZPm18" + b"\x00" * 14 + b"20577773718" + b"\x00" * 13 + b"zenitsu"
+        self.assertEqual(c._parse_friend_scan([blob, record]), [("mhRwDZPm18", "zenitsu")])
+
+    def test_numbers_and_hex_noise_are_not_friends(self):
+        noise = (
+            b"00000000" + b"\x00" * 14 + b"123456789" + b"\x00" * 13 + b"junk"
+            b"0000000A2FE204" + b"\x00" * 8 + b"12345678901" + b"\x00" * 10 + b"hex"
+            b"level45 chapter2 1795364274"
+        )
+        self.assertEqual(c._parse_friend_scan([noise]), [])
+
+    def test_bad_blobs_do_not_crash(self):
+        self.assertEqual(c._parse_friend_scan([b"", b"\x00" * 32]), [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
