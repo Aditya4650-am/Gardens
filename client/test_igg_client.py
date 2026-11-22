@@ -1035,5 +1035,81 @@ class FolderUpdaterBat(unittest.TestCase):
         self.assertIn('del "%~f0"', bat)
 
 
+class AndroidIdReset(unittest.TestCase):
+    """A slow-booting emulator must not turn a landed write into a refusal.
+
+    Reported as "Create new account shows an error and does not work": the
+    reset wrote settings_secure.xml, rebooted, and then took ONE read. An
+    emulator answers adb long before its SettingsProvider and su daemon are
+    ready, so that read failed and a write that had landed was reported as
+    "the id still reads <unreadable>".
+    """
+
+    def setUp(self):
+        self._adb = c._find_adb
+        self._run = c._run_adb
+        self._sleep = c.time.sleep
+        c._find_adb = lambda: "/fake/adb"  # type: ignore[assignment]
+
+    def tearDown(self):
+        c._find_adb = self._adb  # type: ignore[assignment]
+        c._run_adb = self._run  # type: ignore[assignment]
+        c.time.sleep = self._sleep  # type: ignore[assignment]
+
+    def _shell(self, mapping):
+        def run(adb, args, timeout=30):
+            cmd = " ".join(args)
+            for key, val in mapping.items():
+                if key in cmd:
+                    return val
+            return (1, b"", b"unexpected: " + cmd.encode()[:40])
+
+        return run
+
+    def test_retry_polls_until_the_id_is_readable(self):
+        bridge = c.NativeBridge()
+        real = bridge.readAndroidId
+        calls = {"n": 0}
+
+        def fake_read(serial):
+            calls["n"] += 1
+            # The first reads land before the provider is up: unreadable.
+            if calls["n"] < 3:
+                raise RuntimeError("could not read Android ID (need root)")
+            return {"ok": True, "androidId": "0123456789abcdef"}
+
+        bridge.readAndroidId = fake_read  # type: ignore[assignment]
+        c.time.sleep = lambda s: None  # type: ignore[assignment]
+        try:
+            got = bridge._readAndroidIdRetry("emulator-5554", "0123456789abcdef", timeout=60)
+        finally:
+            bridge.readAndroidId = real  # type: ignore[assignment]
+        self.assertEqual(got, "0123456789abcdef")
+        self.assertEqual(calls["n"], 3, "it must keep polling, not give up on the first miss")
+
+    def test_file_fallback_when_the_provider_is_silent(self):
+        # Exactly the post-reboot case: every `settings get` fails, but the
+        # file the provider loads from already holds the new id.
+        c._run_adb = self._shell(
+            {
+                "settings_secure.xml": (0, b'<setting id="146" name="android_id" value="CF430A1B4700E41C" package="root" />', b""),
+            }
+        )
+        got = c.NativeBridge().readAndroidId("emulator-5554")
+        self.assertEqual(got["androidId"], "cf430a1b4700e41c")
+        self.assertTrue(got.get("fromFile"))
+
+    def test_a_provider_that_answers_wins_over_the_file(self):
+        c._run_adb = self._shell(
+            {
+                "settings get secure android_id": (0, b"14511b54ee06307f\n", b""),
+                "settings_secure.xml": (0, b'name="android_id" value="0000000000000000"', b""),
+            }
+        )
+        got = c.NativeBridge().readAndroidId("emulator-5554")
+        self.assertEqual(got["androidId"], "14511b54ee06307f")
+        self.assertFalse(got.get("fromFile"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

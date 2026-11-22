@@ -45,7 +45,7 @@ if sys.stderr is None:
 import webview  # pywebview - native WebView2 window
 
 APP_NAME = "Garden Studio"
-APP_VERSION = "1.1.34"
+APP_VERSION = "1.1.35"
 
 # Where the app UI comes from. Override with env IGG_VIP_URL or
 # %APPDATA%\IGG-VIP-Studio\server.txt  (the folder name stays as shipped so a
@@ -1236,7 +1236,59 @@ class NativeBridge:
             val = out.decode("utf-8", "replace").strip().lower()
             if code == 0 and re.fullmatch(r"[0-9a-f]{16}", val or ""):
                 return {"ok": True, "androidId": val}
+        # Last resort, root only: read the file the provider loads itself.
+        # `adb wait-for-device` returns as soon as adbd is up, which on an
+        # emulator is well before the SettingsProvider — and sometimes before
+        # su — answers. A single failed read at that moment used to abort a
+        # reset whose write had actually landed, so fall back to the file,
+        # which is the source the next boot will serve.
+        xml_id = self._androidIdFromSecureXml(adb, serial)
+        if xml_id:
+            return {"ok": True, "androidId": xml_id, "fromFile": True}
         raise RuntimeError("could not read Android ID (need root)")
+
+    def _androidIdFromSecureXml(self, adb: str, serial: str) -> str:
+        """The android_id value inside settings_secure.xml, or "" (root only)."""
+        for remote in self._SECURE_XML_CANDIDATES:
+            code, out, _ = _run_adb(
+                adb, ["-s", serial, "shell", f"su -c 'cat \"{remote}\"'"], timeout=15
+            )
+            if code != 0:
+                continue
+            text = out.decode("utf-8", "replace")
+            m = re.search(r'name="android_id"[^>]*?value="([0-9a-fA-F]{16})"', text)
+            if not m:
+                m = re.search(r'value="([0-9a-fA-F]{16})"[^>]*?name="android_id"', text)
+            if m:
+                return m.group(1).lower()
+        return ""
+
+    def _readAndroidIdRetry(self, serial: str, want: str | None = None, timeout: int = 120) -> str:
+        """Poll for the Android ID instead of trusting one read.
+
+        An emulator answers adb long before its SettingsProvider (and its su
+        daemon) are ready. A single read taken at that point fails, and the
+        reset was reported as refused even though the write had landed. An
+        unreadable value here means "not up yet", never "wrong" — keep polling
+        until the id is readable (and matches `want`, when given) or the
+        deadline passes.
+        """
+        try:
+            deadline = time.time() + max(10, min(600, int(timeout)))
+        except (TypeError, ValueError):
+            deadline = time.time() + 120
+        last = ""
+        while True:
+            try:
+                last = self.readAndroidId(serial).get("androidId", "")
+            except RuntimeError:
+                last = ""
+            if last and (want is None or last == want):
+                return last
+            if time.time() >= deadline:
+                return last
+            time.sleep(3)
+
 
     def resetAndroidId(self, serial: str) -> dict:
         adb = _find_adb()
@@ -1298,14 +1350,11 @@ class NativeBridge:
                 raise RuntimeError(
                     "Android ID reset refused"
                     + (": " + detail if detail else "")
-                    + " â€” change it in the emulator's device settings instead "
+                    + " — change it in the emulator's device settings instead "
                     "(MEmu multi-instance properties), then Verify"
                 ) from e
         self._drop_ssaid_cache(adb, serial)
-        try:
-            check = self.readAndroidId(serial).get("androidId", "")
-        except RuntimeError:
-            check = ""
+        check = self._readAndroidIdRetry(serial, new_id, timeout=30)
         if check and check != new_id:
             raise RuntimeError("Android ID did not change (old and new match)")
         return {"ok": True, "oldAndroidId": old, "androidId": new_id}
@@ -1319,22 +1368,28 @@ class NativeBridge:
         rather than a follow-up the caller must remember. Always verified by
         a re-read once the device is back: a write that did not take must
         never be reported as a success.
+
+        The read is polled, not taken once. `wait-for-device` returns as soon
+        as adbd answers, which on MEmu is well before the SettingsProvider and
+        su are ready — one read at that moment failed every time, so a reset
+        whose file write had landed was reported as refused and left the
+        operator with a rebooting emulator and an error.
         """
         adb = _find_adb()
+        if not adb:
+            raise RuntimeError("adb not found - connect an emulator first")
         r = self.forceAndroidId(serial)
         self._drop_ssaid_cache(adb, serial)
         if r.get("needsReboot"):
             self.rebootDevice(serial)
-            self.waitForDevice(serial, 180)
-            time.sleep(5)  # let SettingsProvider finish coming up
-        check = ""
-        try:
-            check = self.readAndroidId(serial).get("androidId", "")
-        except RuntimeError:
-            check = ""
+            # wait-for-device only proves adbd is up; the budget below covers
+            # the rest of boot (SettingsProvider + su), which on a cold MEmu
+            # instance can take a couple of minutes.
+            self.waitForDevice(serial, 240)
+        check = self._readAndroidIdRetry(serial, r.get("androidId"), timeout=180)
         if not check or check != r.get("androidId"):
             raise RuntimeError(
-                "settings_secure.xml was written but the id still reads "
+                "settings_secure.xml was written but the id reads "
                 + (check or "<unreadable>")
                 + " after reboot"
             )
