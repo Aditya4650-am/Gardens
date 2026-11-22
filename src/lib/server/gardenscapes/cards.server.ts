@@ -38,12 +38,16 @@
 // is what the Cards tab uses â€” is the real row write: granting cards into the
 // live save and accepting the save's own `ReceivedCards` inbox.
 
+import { randomBytes } from "node:crypto";
+import { Buffer } from "node:buffer";
 import {
+  decodeSave,
   fitNumericType,
   getRef,
   objEntries,
   toInt,
   type ArrItem,
+  type DecodedGardenscapesSave,
   type ObjChild,
 } from "@/lib/gardenscapes/save-engine";
 import { type AUDBDocument, type AUDBEntry } from "@/lib/gardenscapes/codec";
@@ -602,6 +606,257 @@ export function sendCardsToSelf(
   const res = grantCards(s, req.cardIds, amount);
   s.log.push(`Cards: delivered ${new Set(req.cardIds).size} card(s) x${amount}`);
   return res;
+}
+
+// ---------------------------------------------------------------------------
+// Send to friends — the measured real-gifting flow
+// ---------------------------------------------------------------------------
+
+/** The CardC* feature that actually holds `CardsGiftingCore` (CardC8 on the
+ * measured saves; scanned by content rather than by name so a save whose
+ * gifting lives elsewhere still works). */
+function giftingFeature(d: AUDBDocument): AUDBEntry | null {
+  const withGift = featureHits(d).filter((h) => {
+    const g = childOf(h.feat, "CardsGiftingCore");
+    return g && g[1][0] === "o";
+  });
+  return withGift.find((h) => h.id === "CardC8")?.feat ?? withGift[0]?.feat ?? null;
+}
+
+/** The `CardsGiftingCore` children of a feature that has one. */
+function giftingCore(feat: AUDBEntry): ObjChild[] | null {
+  const gift = childOf(feat, "CardsGiftingCore");
+  return gift && gift[1][0] === "o" ? (gift[1][1] as ObjChild[]) : null;
+}
+
+/** The 16-char base62 shape every measured `UniqueGiftingId` has. */
+function giftingId(): string {
+  const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = randomBytes(32);
+  let out = "";
+  for (let i = 0; i < 16; i++) out += abc[bytes[i] % abc.length];
+  return out;
+}
+
+export interface GsSendToFriendsResult extends EditResult {
+  /** Gift rows written into `PendingSendCards`. */
+  queued: number;
+  /** Distinct friends the queue addresses. */
+  receivers: number;
+  /** Distinct cards in the queue. */
+  cards: number;
+}
+
+/**
+ * Queue cards to friends for the game's own delivery.
+ *
+ * Playrix hands gifts over server-side: on the next launch the game reads
+ * `CardsGiftingCore.PendingSendCards`, posts every row and moves it into
+ * `SentCards`. Proven live on MEmu — a queue of 150 rows flushed in one
+ * launch and the receiver held all 150 with matching `uniqueGiftingId`s,
+ * while rows written straight into `SentCards` delivered nothing.
+ *
+ * Three measured rules keep a flush accepted:
+ *  - rows carry the exact field order the real Send dialog writes
+ *    (`CardId, CardSourceId, CollectionId, ReceiverId, UniqueGiftingId`);
+ *  - every gift is backed: a row holding fewer copies than gifts is topped
+ *    up first, then the gifts come out — gen == stock afterwards and
+ *    `TotalObtainedCardsCount` is re-derived, so the save never claims to
+ *    have given away more than it holds;
+ *  - the daily counter is reset the way a new day resets it (`LastResetDay`
+ *    stepped back one day, `SendCardsCount` zeroed). A queue written while
+ *    `SendCardsCount` sat at 12 was consumed and rejected wholesale on
+ *    flush; with the reset the same shape delivered 6/6, then 150/150.
+ */
+export function sendCardsToFriend(
+  s: GardenscapesSession,
+  req: { receiverIds: string[]; cardIds: string[] },
+): GsSendToFriendsResult {
+  const receivers = [...new Set((req.receiverIds ?? []).map((x) => x.trim()).filter(Boolean))];
+  if (receivers.length === 0) throw new Error("cards: no friends selected");
+  if (receivers.length > 100) throw new Error("cards: too many friends (max 100)");
+  for (const rid of receivers) {
+    if (!/^[A-Za-z0-9_-]{4,40}$/.test(rid)) throw new Error(`cards: invalid friend id "${rid}"`);
+  }
+  const cardIds = [...new Set(req.cardIds ?? [])];
+  if (cardIds.length === 0) throw new Error("cards: no cards selected");
+  if (cardIds.length > GS_CARDS.length) throw new Error("cards: too many cards");
+  for (const cid of cardIds) {
+    if (!gsCardById(cid)) throw new Error(`cards: unknown card id "${cid}"`);
+  }
+
+  const feat = giftingFeature(s.decoded.doc);
+  if (!feat) throw new Error("cards: save has no gifting feature");
+  const kids = giftingCore(feat);
+  if (!kids) throw new Error("cards: save has no CardsGiftingCore");
+
+  // The queue every measured save holds (created only if a save lacks it).
+  let queueRef = kids.find(([k]) => k === "PendingSendCards");
+  if (!queueRef) {
+    kids.push(["PendingSendCards", ["a", []]]);
+    queueRef = kids.find(([k]) => k === "PendingSendCards");
+  }
+  if (!queueRef || queueRef[1][0] !== "a") throw new Error("cards: PendingSendCards is not an array");
+  const queue = queueRef[1][1] as ArrItem[];
+
+  const core = childOf(feat, "Core");
+  const coreKids = core && core[1][0] === "o" ? (core[1][1] as ObjChild[]) : null;
+  const ownedRef = coreKids?.find(([k]) => k === "OwnedCards");
+  const owned = ownedRef && ownedRef[1][0] === "a" ? (ownedRef[1][1] as ArrItem[]) : null;
+  if (!owned) throw new Error("cards: save has no Core.OwnedCards");
+  const index = new Map<string, ObjChild[]>();
+  for (const r of owned) {
+    const k = rowKids(r);
+    const cid = k ? kidVal(k, "cardId") : undefined;
+    if (k && typeof cid === "string") index.set(cid, k);
+  }
+
+  const need = receivers.length; // copies of each card about to go out
+  const changed: string[] = [];
+  const giftingBase = `Features.${feat.key}.CardsGiftingCore`;
+  let queued = 0;
+  for (const cardId of cardIds) {
+    let k = index.get(cardId);
+    if (!k) {
+      // The save never held this card: create the measured row so every
+      // queued gift has stock behind it (field order from applyGrant).
+      const row: ArrItem = [
+        "o",
+        [
+          ["cardId", ["s", cardId]],
+          ["generatedCount", ["i", 0]],
+          ["inStockCount", ["i", 0]],
+          ["isNew", ["t", true]],
+        ],
+      ];
+      owned.push(row);
+      const created = rowKids(row);
+      if (!created) throw new Error("cards: could not create owned row");
+      k = created;
+      index.set(cardId, k);
+      changed.push(`Features.${feat.key}.Core.OwnedCards.${cardId}`);
+    }
+    // Back the gifts: top the row up to `need` when it holds fewer copies,
+    // then take the gifts out. gen == stock on both paths.
+    const st = kidNum(k, "inStockCount");
+    const gn = kidNum(k, "generatedCount");
+    const backed = Math.max(st, need);
+    const genBacked = Math.max(gn, backed);
+    rowSetNumber(k, "inStockCount", backed - need);
+    rowSetNumber(k, "generatedCount", genBacked - need);
+
+    for (const receiverId of receivers) {
+      queue.push([
+        "o",
+        [
+          ["CardId", ["s", cardId]],
+          ["CardSourceId", ["s", "SendFriend"]],
+          ["CollectionId", ["s", feat.key]],
+          ["ReceiverId", ["s", receiverId]],
+          ["UniqueGiftingId", ["s", giftingId()]],
+        ],
+      ]);
+      queued++;
+    }
+    changed.push(`${giftingBase}.PendingSendCards.${cardId}`);
+  }
+
+  // TotalObtainedCardsCount == sum(generatedCount), every set's progress kept.
+  changed.push(...syncInvariants(feat));
+
+  // The daily counter, reset the way a new day resets it.
+  const lrd = kids.find(([k]) => k === "LastResetDay");
+  if (lrd) {
+    const cur = toInt(lrd[1][1]);
+    if (typeof cur === "number" && cur > 0) lrd[1] = [lrd[1][0] || "k", cur - 1];
+  }
+  const scc = kids.find(([k]) => k === "SendCardsCount");
+  if (scc) scc[1] = [scc[1][0] || "i", 0];
+
+  s.log.push(`Cards: queued ${queued} gift(s) to ${receivers.length} friend(s)`);
+  return { changed, missing: [], queued, receivers: receivers.length, cards: cardIds.length };
+}
+
+export interface GsFriendRow {
+  id: string;
+  source: "received" | "sent";
+}
+
+/**
+ * Every player this save has exchanged gifts with: who it sent to
+ * (`SentCards.ReceiverId`) and who sent to it (`senderId` on both inbox
+ * arrays). The roster a manual id entry sits beside in the Send panel.
+ */
+export function readFriends(s: GardenscapesSession): { friends: GsFriendRow[] } {
+  const out = new Map<string, GsFriendRow>();
+  const add = (id: unknown, source: GsFriendRow["source"]) => {
+    if (typeof id === "string" && /^[A-Za-z0-9_-]{4,40}$/.test(id) && !out.has(id)) {
+      out.set(id, { id, source });
+    }
+  };
+  const feat = giftingFeature(s.decoded.doc);
+  const kids = feat ? giftingCore(feat) : null;
+  if (kids) {
+    const rowsOf = (name: string): ArrItem[] => {
+      const h = kids.find(([k]) => k === name);
+      return h && h[1][0] === "a" ? (h[1][1] as ArrItem[]) : [];
+    };
+    for (const r of rowsOf("SentCards")) {
+      const k = rowKids(r);
+      if (k) add(kidVal(k, "ReceiverId"), "sent");
+    }
+    for (const name of ["ReceivedCards", "PendingReceivedCards"]) {
+      for (const r of rowsOf(name)) {
+        const k = rowKids(r);
+        if (!k) continue;
+        add(kidVal(k, "senderId") ?? kidVal(k, "SenderId") ?? kidVal(k, "from"), "received");
+      }
+    }
+  }
+  return { friends: [...out.values()].sort((a, b) => a.id.localeCompare(b.id)) };
+}
+
+/**
+ * Gifting counters read straight off save bytes (base64) — what the Send
+ * panel polls while the game flushes a queue. Returns null when the bytes
+ * do not decode or hold no gifting feature, so a torn read mid-write is a
+ * skipped tick rather than an error.
+ */
+export function readGiftingState(
+  saveB64: string,
+): {
+  pendingSend: number;
+  sent: number;
+  received: number;
+  pendingReceived: number;
+  sendCardsCount: number;
+  lastResetDay: number;
+} | null {
+  let d: DecodedGardenscapesSave;
+  try {
+    d = decodeSave(Buffer.from(saveB64, "base64"));
+  } catch {
+    return null;
+  }
+  const feat = giftingFeature(d.doc);
+  const kids = feat ? giftingCore(feat) : null;
+  if (!kids) return null;
+  const len = (name: string) => {
+    const h = kids.find(([k]) => k === name);
+    return h && h[1][0] === "a" ? (h[1][1] as ArrItem[]).length : 0;
+  };
+  const num = (name: string) => {
+    const h = kids.find(([k]) => k === name);
+    return h ? toInt(h[1][1]) ?? 0 : 0;
+  };
+  return {
+    pendingSend: len("PendingSendCards"),
+    sent: len("SentCards"),
+    received: len("ReceivedCards"),
+    pendingReceived: len("PendingReceivedCards"),
+    sendCardsCount: num("SendCardsCount"),
+    lastResetDay: num("LastResetDay"),
+  };
 }
 
 /**

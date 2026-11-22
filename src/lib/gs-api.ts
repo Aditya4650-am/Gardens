@@ -235,6 +235,75 @@ export const gsClearGiftingInbox = createServerFn({ method: "POST" })
     return m.clearGiftingInbox(await sessionOf(data.token, data.sessionId));
   });
 
+// --- send to friends --------------------------------------------------------
+
+/**
+ * Queue cards to friends, push the save and restart the game so its own sync
+ * flushes the queue — delivery is the game's (it posts every row to Playrix),
+ * this only writes the measured PendingSendCards shape and steps the daily
+ * counter. Returns as soon as the push and restart are done; the panel polls
+ * `gsGiftingStatus` for the flush.
+ */
+export const gsSendCardsToFriends = createServerFn({ method: "POST" })
+  .validator(
+    sess.extend({
+      receiverIds: z.array(z.string().min(1).max(40)).min(1).max(100),
+      cardIds: z.array(z.string().min(1).max(16)).min(1).max(150),
+      serial: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const s = await sessionOf(data.token, data.sessionId);
+    const m = await import("./server/gardenscapes/cards.server");
+    const edit = m.sendCardsToFriend(s, { receiverIds: data.receiverIds, cardIds: data.cardIds });
+    const { pushEncode } = await import("./server/gardenscapes/session.server");
+    const cipher = pushEncode(data.sessionId, data.token);
+    const { pushGameSaveRaw, launchGameSave } = await import("./server/gardenscapes/save.server");
+    const pushed = await pushGameSaveRaw(cipher.toString("base64"), data.serial);
+    let launched = false;
+    try {
+      await launchGameSave(data.serial);
+      launched = true;
+    } catch {
+      /* the queue is safe on the device; the next manual launch flushes it */
+    }
+    return { ...edit, pushed: pushed.ok, launched };
+  });
+
+/** Live gifting counters off the device — the Send panel's flush poll. */
+export const gsGiftingStatus = createServerFn({ method: "POST" })
+  .validator(z.object({ token: z.string(), serial: z.string().optional() }))
+  .handler(async ({ data }) => {
+    const { requireToken } = await import("./server/license.server");
+    requireToken(data.token);
+    const { pullGameSaveRaw } = await import("./server/gardenscapes/save.server");
+    const m = await import("./server/gardenscapes/cards.server");
+    const pull = await pullGameSaveRaw(data.serial);
+    return m.readGiftingState(pull.b64);
+  });
+
+/** Every player this save has exchanged gifts with — the Send panel roster. */
+export const gsReadFriends = createServerFn({ method: "POST" })
+  .validator(sess)
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/cards.server");
+    return m.readFriends(await sessionOf(data.token, data.sessionId));
+  });
+
+/**
+ * Read the friend roster out of the running game's memory — the on-disk
+ * caches are PLXE-encrypted but the game parses them on load, so the live
+ * heap holds every friend (id + name) in the clear.
+ */
+export const gsScanDeviceFriends = createServerFn({ method: "POST" })
+  .validator(z.object({ token: z.string(), serial: z.string().optional() }))
+  .handler(async ({ data }) => {
+    const { requireToken } = await import("./server/license.server");
+    requireToken(data.token);
+    const { scanDeviceFriends } = await import("./server/gardenscapes/save.server");
+    return scanDeviceFriends(data.serial);
+  });
+
 // --- season (golden pass / stages) ----------------------------------------
 
 export const gsListSeasons = createServerFn({ method: "POST" })

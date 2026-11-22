@@ -65,6 +65,130 @@ export async function pushGameSaveRaw(b64: string, serial?: string): Promise<{ o
   }
 }
 
+/**
+ * Start the game after a push. The gifting flush runs on launch: the game
+ * reads `PendingSendCards`, posts every row to Playrix and moves it into
+ * `SentCards` — so a queued send only leaves the device once the game has
+ * been restarted here (pushGameSaveRaw force-stops it first).
+ */
+export async function launchGameSave(serial?: string): Promise<{ ok: boolean; output: string }> {
+  const { adb, serial: target } = await resolveAdb(serial);
+  const res = await execFileP(
+    adb,
+    ["-s", target, "shell", "monkey", "-p", GAME_PACKAGE, "-c", "android.intent.category.LAUNCHER", "1"],
+    { timeout: 30000, encoding: "utf8" },
+  );
+  const out = `${res.stdout ?? ""}${res.stderr ?? ""}`;
+  if (/Activity not started|No activities found|monkey aborted/i.test(out)) {
+    throw new Error(`Could not start Gardenscapes: ${out.trim().slice(0, 200)}`);
+  }
+  return { ok: true, output: out.trim() };
+}
+
+export interface GsDeviceFriend {
+  id: string;
+  name: string;
+}
+
+/**
+ * Read the friend roster out of the running game's memory.
+ *
+ * The on-disk caches (`ProfileFriendshipCache.xml` and friends) are
+ * PLXE-encrypted, but the game parses them into heap structures the moment it
+ * loads — measured live: the friend record sits as three 24-byte fields
+ * (`saveId | numeric id | name`) and the metrics buffer carries
+ * `friends_saveid_list:["…"]`. Scanning `/proc/<pid>/mem` therefore yields the
+ * roster with no crypto at all.
+ *
+ * Contiguous writable regions are merged first: one `dd` per merged run keeps
+ * the scan to a handful of adb round-trips instead of ~1200.
+ */
+export async function scanDeviceFriends(serial?: string): Promise<{ friends: GsDeviceFriend[]; scannedMB: number }> {
+  const { adb, serial: target } = await resolveAdb(serial);
+  const pidRes = await execFileP(adb, ["-s", target, "shell", `pidof ${GAME_PACKAGE}`], {
+    timeout: 15000,
+    encoding: "utf8",
+  });
+  const pid = (pidRes.stdout ?? "").trim().split(/\s+/)[0];
+  if (!pid || !/^\d+$/.test(pid)) {
+    throw new Error("Gardenscapes is not running — open the game, then press Scan again.");
+  }
+  const mapsRes = await execFileP(adb, ["-s", target, "shell", `cat /proc/${pid}/maps`], {
+    timeout: 30000,
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  type Range = { lo: number; hi: number };
+  const ranges: Range[] = [];
+  for (const line of (mapsRes.stdout ?? "").split("\n")) {
+    const m = /^([0-9a-f]+)-([0-9a-f]+)\s+(....)/.exec(line.trim());
+    if (!m || !m[3].includes("w")) continue;
+    const lo = parseInt(m[1], 16);
+    const hi = parseInt(m[2], 16);
+    if (hi - lo <= 0 || hi - lo > 400 * 1024 * 1024) continue;
+    if (/\[vvar\]|\[vdso\]/.test(line)) continue;
+    const last = ranges[ranges.length - 1];
+    if (last && lo === last.hi) last.hi = hi;
+    else ranges.push({ lo, hi });
+  }
+
+  const ID = /^[A-Za-z0-9]{8,14}$/;
+  const byId = new Map<string, string>();
+  const addListIds = (ids: string[]) => {
+    for (const id of ids) if (ID.test(id) && !byId.has(id)) byId.set(id, "");
+  };
+
+  const PAGE = 4096;
+  let scanned = 0;
+  for (const r of ranges) {
+    const blocks = Math.floor((r.hi - r.lo) / PAGE);
+    if (blocks <= 0) continue;
+    let blob: Buffer;
+    try {
+      const res = await execFileP(
+        adb,
+        ["-s", target, "exec-out", "su", "-c", `dd if=/proc/${pid}/mem bs=${PAGE} skip=${r.lo / PAGE} count=${blocks} 2>/dev/null`],
+        { timeout: 60000, encoding: "buffer", maxBuffer: 512 * 1024 * 1024 },
+      );
+      blob = res.stdout as Buffer;
+    } catch {
+      continue; // a hole mid-range stops dd — skip the run
+    }
+    if (!blob || blob.length < 64) continue;
+    scanned += blob.length;
+
+    // the game's own metrics field: friends_saveid_list:["id", …]
+    const key = Buffer.from('"friends_saveid_list":[');
+    let at = blob.indexOf(key);
+    while (at >= 0) {
+      const end = blob.indexOf(Buffer.from("]"), at + key.length);
+      if (end > at && end - at < 4096) {
+        const arr = blob.subarray(at + key.length, end + 1).toString("utf8");
+        addListIds([...arr.matchAll(/"([^"]+)"/g)].map((x) => x[1]));
+      }
+      at = blob.indexOf(key, at + 1);
+    }
+
+    // the parsed friend record: saveId | numeric id | name in 24-byte fields
+    const txt = blob.toString("latin1");
+    const re = /([A-Za-z0-9]{8,14})([\s\S]{0,24}?)(\d{6,14})([\s\S]{0,24}?)([A-Za-z0-9 _\-']{2,24})/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(txt)) !== null) {
+      const [, id, gap1, num, gap2, name] = m;
+      if (!ID.test(id) || gap1.length > 24 || gap2.length > 24) continue;
+      if (!/^\d{6,14}$/.test(num)) continue;
+      if (num.length + gap2.length !== 24 && gap2.length > 16) continue;
+      if (!byId.has(id)) byId.set(id, name.trim());
+      else if (!byId.get(id)) byId.set(id, name.trim());
+    }
+  }
+
+  const friends = [...byId.entries()]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+  return { friends, scannedMB: Math.round(scanned / (1024 * 1024)) };
+}
+
 export async function decodeGameSave(b64: string): Promise<{ ok: true; data: DecodedGardenscapesSave } | { ok: false; error: string }> {
   try {
     const buf = Buffer.from(b64, "base64");

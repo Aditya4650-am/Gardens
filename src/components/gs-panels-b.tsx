@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -6,12 +6,16 @@ import {
   gsBuyPurchases,
   gsClaimGardenPass,
   gsClearGiftingInbox,
+  gsGiftingStatus,
   gsGrantCards,
   gsListChapters,
   gsListPurchases,
   gsListSeasons,
   gsMarkCardsSeen,
   gsReadCards,
+  gsReadFriends,
+  gsScanDeviceFriends,
+  gsSendCardsToFriends,
   gsSendCardsToSelf,
   gsSetAllStock,
   gsSetPackCount,
@@ -603,20 +607,90 @@ export function GsCards() {
 
 // === Send Cards ===========================================================
 
+type GsFriendSource = "received" | "sent" | "manual";
+interface GsFriendEntry {
+  id: string;
+  source: GsFriendSource;
+}
+
+/** Friend ids the user added by hand survive reloads (localStorage). */
+const MANUAL_FRIENDS_KEY = "gs-send-friends-v1";
+
+function loadManualFriends(): string[] {
+  try {
+    const raw = localStorage.getItem(MANUAL_FRIENDS_KEY);
+    const v: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveManualFriends(ids: string[]): void {
+  try {
+    localStorage.setItem(MANUAL_FRIENDS_KEY, JSON.stringify(ids));
+  } catch {
+    /* private mode — the list lives for this visit only */
+  }
+}
+
+/** Stable avatar colour per id, from the set palette. */
+function friendTone(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h + id.charCodeAt(i)) % SET_TONES.length;
+  return SET_TONES[h];
+}
+
 /**
- * Cards land in this save. The game hands friend gifts over server-side, so a
- * save edit can only mint them for the account doing the editing — every
- * button here writes real rows into your own collection.
+ * Two sends in one tab. The friend half writes the measured
+ * `PendingSendCards` rows, pushes and restarts the game — the game's own
+ * sync then posts every row to Playrix, which is what actually delivers
+ * (proven on MEmu: 150 rows in one flush, receiver held all 150). The
+ * collection half mints cards into this save.
  */
 export function GsSendCards() {
   const c = useGs();
   const [info, setInfo] = useState<CardsInfo | null>(null);
   const [amount, setAmount] = useState("1");
+  // friend roster + selection
+  const [autoFriends, setAutoFriends] = useState<{ id: string; source: "received" | "sent" }[]>([]);
+  const [manual, setManual] = useState<string[]>(() => loadManualFriends());
+  const [friendSel, setFriendSel] = useState<Set<string>>(new Set());
+  const [q, setQ] = useState("");
+  const [manualId, setManualId] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [deviceNames, setDeviceNames] = useState<Record<string, string>>({});
+  // card selection — the whole catalog ticked by default, so Send is live at first paint
+  const [cardSel, setCardSel] = useState<Set<string>>(() => new Set(GS_CARDS.map((x) => x.id)));
+  // send flow
+  const [phase, setPhase] = useState<"idle" | "queueing" | "waiting">("idle");
+  const [progress, setProgress] = useState<{ queued: number; pending: number; seconds: number } | null>(null);
+  const [verdict, setVerdict] = useState("");
+  const [lines, setLines] = useState<string[]>([]);
+  const stopRef = useRef(false);
+  const bootedRef = useRef(false);
+
+  const log = (line: string) =>
+    setLines((L) => [...L.slice(-11), `${new Date().toLocaleTimeString()}  ${line}`]);
 
   const load = async () => {
     if (!c.sessionId) return;
     const r = await c.act(() => gsReadCards({ data: sessOf(c) }));
     if (r) setInfo(r as CardsInfo);
+    const f = await c.act(() => gsReadFriends({ data: sessOf(c) }));
+    if (f) {
+      const rows = (f as { friends: { id: string; source: "received" | "sent" }[] }).friends;
+      setAutoFriends(rows);
+      const all = [...new Set([...rows.map((x) => x.id), ...manual])];
+      if (!bootedRef.current) {
+        // first load: the whole roster starts ticked
+        bootedRef.current = true;
+        setFriendSel(new Set(all));
+      } else {
+        // later loads: keep the user's ticks, drop ids that no longer exist
+        setFriendSel((prev) => new Set([...prev].filter((id) => all.includes(id))));
+      }
+    }
   };
 
   useEffect(() => {
@@ -624,10 +698,210 @@ export function GsSendCards() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.sessionId]);
 
+  const rosterMap = new Map<string, GsFriendEntry>();
+  for (const f of autoFriends) rosterMap.set(f.id, { id: f.id, source: f.source });
+  for (const id of manual) if (!rosterMap.has(id)) rosterMap.set(id, { id, source: "manual" });
+  const roster = [...rosterMap.values()].sort((a, b) => a.id.localeCompare(b.id));
+  const needle = q.trim().toLowerCase();
+  const visible = roster.filter((f) => !needle || f.id.toLowerCase().includes(needle));
+
+  const toggle = (set: Set<string>, id: string): Set<string> => {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  };
+  const toggleFriend = (id: string) => setFriendSel((prev) => toggle(prev, id));
+  const toggleCard = (id: string) => setCardSel((prev) => toggle(prev, id));
+  const setGroup = (ids: string[], on: boolean) =>
+    setCardSel((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (on) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+
+  const addManual = () => {
+    const id = manualId.trim();
+    if (!/^[A-Za-z0-9_-]{4,40}$/.test(id)) {
+      log(id ? `Invalid friend id: ${id}` : "Type a player id first");
+      return;
+    }
+    if (rosterMap.has(id)) {
+      setManualId("");
+      return;
+    }
+    const next = [...manual, id];
+    setManual(next);
+    saveManualFriends(next);
+    setFriendSel((prev) => new Set(prev).add(id));
+    setManualId("");
+    log(`Added friend ${id}`);
+  };
+
+  const dropManual = (id: string) => {
+    const next = manual.filter((x) => x !== id);
+    setManual(next);
+    saveManualFriends(next);
+    setFriendSel((prev) => {
+      const s = new Set(prev);
+      s.delete(id);
+      return s;
+    });
+  };
+
+  /** Read the roster out of the running game's memory (its caches are
+   * encrypted on disk but parsed into the heap on load). */
+  const scanDevice = async () => {
+    if (scanning) return;
+    setScanning(true);
+    try {
+      const r = await c.act(() =>
+        gsScanDeviceFriends({ data: { token: c.token, serial: c.serial || undefined } }),
+      );
+      if (r) {
+        const res = r as { friends: { id: string; name: string }[]; scannedMB: number };
+        const names: Record<string, string> = {};
+        for (const f of res.friends) if (f.name) names[f.id] = f.name;
+        setDeviceNames((prev) => ({ ...prev, ...names }));
+        const fresh = res.friends.filter((f) => !rosterMap.has(f.id));
+        if (fresh.length) {
+          const next = [...manual, ...fresh.map((f) => f.id)];
+          setManual(next);
+          saveManualFriends(next);
+          setFriendSel((prev) => {
+            const s = new Set(prev);
+            for (const f of fresh) s.add(f.id);
+            return s;
+          });
+        }
+        log(
+          res.friends.length
+            ? `Device scan: ${res.friends.length} friend(s), ${fresh.length} new (${res.scannedMB} MB read)`
+            : `Device scan found no friends (${res.scannedMB} MB read) — keep the game open`,
+        );
+      }
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const total = friendSel.size * cardSel.size;
+  const pct =
+    progress && progress.queued > 0
+      ? Math.round(((progress.queued - progress.pending) / progress.queued) * 100)
+      : 0;
+  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+  const poll = async (): Promise<{ pendingSend: number; sent: number } | null> => {
+    const r = await c.act(() =>
+      gsGiftingStatus({ data: { token: c.token, serial: c.serial || undefined } }),
+    );
+    return (r ?? null) as { pendingSend: number; sent: number } | null;
+  };
+
+  const send = async () => {
+    const receivers = [...friendSel];
+    const cards = [...cardSel];
+    if (phase !== "idle" || !receivers.length || !cards.length) return;
+    stopRef.current = false;
+    setVerdict("");
+    const queued = receivers.length * cards.length;
+    setPhase("queueing");
+    setProgress({ queued, pending: queued, seconds: 0 });
+    log(`Queueing ${queued} gifts to ${receivers.length} friend(s)…`);
+    const r = await c.act(() =>
+      gsSendCardsToFriends({
+        data: {
+          ...sessOf(c),
+          receiverIds: receivers,
+          cardIds: cards,
+          serial: c.serial || undefined,
+        },
+      }),
+    );
+    if (!r) {
+      setPhase("idle");
+      setProgress(null);
+      log("Send failed — see the error message");
+      return;
+    }
+    const res = r as {
+      queued: number;
+      receivers: number;
+      changed: string[];
+      missing: string[];
+      launched: boolean;
+    };
+    c.note({ changed: res.changed, missing: res.missing }, "Send to friends");
+    if (!res.launched) {
+      setPhase("idle");
+      setVerdict("Saved to the device — open Gardenscapes to deliver the queue, then press Check now.");
+      log(`Queued ${res.queued} · pushed · start the game to deliver`);
+      return;
+    }
+    log(`Queued ${res.queued} · pushed · game restarting — waiting for its sync`);
+    setPhase("waiting");
+    const t0 = Date.now();
+    let lastPending = res.queued;
+    while (!stopRef.current) {
+      await sleep(4000);
+      const secs = Math.round((Date.now() - t0) / 1000);
+      const st = await poll();
+      if (st) {
+        lastPending = st.pendingSend;
+        setProgress({ queued: res.queued, pending: st.pendingSend, seconds: secs });
+        if (st.pendingSend === 0) {
+          const v = `Queue cleared — the game synced ${res.queued} cards (SentCards ${st.sent})`;
+          setVerdict(v);
+          log(v);
+          break;
+        }
+        if (secs >= 300) {
+          const v = `Still flushing: ${st.pendingSend} pending after ${secs}s — it finishes on its own; press Check now later`;
+          setVerdict(v);
+          log(v);
+          break;
+        }
+      } else if (secs >= 300) {
+        const v = `Could not read the device after ${secs}s — press Check now`;
+        setVerdict(v);
+        log(v);
+        break;
+      }
+    }
+    if (stopRef.current) {
+      const v = `Stopped — ${lastPending} of ${res.queued} still pending`;
+      setVerdict(v);
+      log(v);
+    }
+    setPhase("idle");
+    await load();
+  };
+
+  const checkNow = async () => {
+    const st = await poll();
+    if (!st) {
+      log("Could not read the device");
+      return;
+    }
+    const queued = progress?.queued ?? 0;
+    setProgress((p) => (p ? { ...p, pending: st.pendingSend } : p));
+    if (st.pendingSend === 0 && queued > 0) {
+      const v = `Queue cleared — the game synced ${queued} cards (SentCards ${st.sent})`;
+      setVerdict(v);
+      log(v);
+    } else {
+      log(`${st.pendingSend} pending · SentCards ${st.sent}`);
+    }
+  };
+
   const amt = Math.max(1, Math.min(9999, Math.floor(Number(amount) || 1)));
   const owned = ownedBySet(info);
 
-  const send = async (ids: string[], label: string) => {
+  const sendSelf = async (ids: string[], label: string) => {
     const r = await c.act(() => gsSendCardsToSelf({ data: { ...sessOf(c), cardIds: ids, amount: amt } }));
     c.note(r as GsEditResult | undefined, label);
     await load();
@@ -641,8 +915,263 @@ export function GsSendCards() {
             <GsIcon name="sendCards" className="size-6" />
           </span>
           <div>
-            <h3 className="gs-cta-title">Send cards</h3>
-            <p className="gs-cta-lead">One press per set, or send the whole catalog</p>
+            <h3 className="gs-cta-title">Send to friends</h3>
+            <p className="gs-cta-lead">Pick friends, tick the cards, one press</p>
+          </div>
+          {phase !== "idle" ? (
+            <span className="gs-chip gs-chip--info ml-auto animate-pulse">
+              {phase === "queueing" ? "Queueing…" : `Syncing ${progress?.seconds ?? 0}s`}
+            </span>
+          ) : null}
+        </header>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* ── friends ─────────────────────────────────────────── */}
+          <div className="min-w-0">
+            <Bar
+              hint={`${friendSel.size} of ${roster.length} friends selected`}
+              allLabel="Select shown"
+              onAll={() => setFriendSel(new Set(visible.map((f) => f.id)))}
+              onClear={() => setFriendSel(new Set())}
+              extra={
+                <input
+                  className="field w-32 font-mono"
+                  placeholder="Search"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              }
+            />
+            <div className="mb-2 flex gap-2">
+              <input
+                className="field min-w-0 flex-1 font-mono"
+                placeholder="Add player id — e.g. mhRwDZPm18"
+                value={manualId}
+                onChange={(e) => setManualId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") addManual();
+                }}
+              />
+              <Button size="sm" variant="tool" onClick={addManual}>
+                Add
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={c.busy || scanning}
+                onClick={() => void scanDevice()}
+              >
+                {scanning ? "Scanning…" : "Scan device"}
+              </Button>
+            </div>
+            {visible.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/10 py-7 text-center text-xs text-muted">
+                No friends yet — add a player id above
+              </div>
+            ) : (
+              <ul className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+                {visible.map((f) => {
+                  const on = friendSel.has(f.id);
+                  return (
+                    <li key={f.id}>
+                      <button
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleFriend(f.id)}
+                        className={cn(
+                          "flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all duration-150",
+                          on
+                            ? "border-purple/55 bg-purple/10"
+                            : "border-white/5 bg-white/[0.02] hover:border-cyan/30 hover:bg-input",
+                        )}
+                      >
+                        <span
+                          className="grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white ring-2 ring-white/10"
+                          style={{ background: friendTone(f.id) }}
+                        >
+                          {f.id.slice(0, 1).toUpperCase()}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-mono text-sm">{f.id}</span>
+                        <span className="shrink-0 text-[10px] text-muted">
+                          {deviceNames[f.id] ?? (f.source === "manual" ? "added" : f.source)}
+                        </span>
+                        {f.source === "manual" ? (
+                          <span
+                            role="button"
+                            tabIndex={-1}
+                            title="Remove"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              dropManual(f.id);
+                            }}
+                            className="shrink-0 rounded px-1 text-muted hover:text-fg"
+                          >
+                            ✕
+                          </span>
+                        ) : null}
+                        <span
+                          className={cn(
+                            "grid size-4 shrink-0 place-items-center rounded text-[10px] font-bold",
+                            on ? "bg-purple text-white" : "bg-input text-transparent",
+                          )}
+                        >
+                          ✓
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* ── cards ───────────────────────────────────────────── */}
+          <div className="min-w-0">
+            <Bar
+              hint={`${cardSel.size} of ${GS_CARDS.length} cards selected`}
+              onAll={() => setCardSel(new Set(GS_CARDS.map((x) => x.id)))}
+              onClear={() => setCardSel(new Set())}
+            />
+            <div className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
+              {SET_IDS.map((ids, gi) => {
+                const allOn = ids.every((id) => cardSel.has(id));
+                const onCount = ids.filter((id) => cardSel.has(id)).length;
+                return (
+                  <div
+                    key={SET_IDS[gi][0]}
+                    className="rounded-xl border border-white/5 bg-black/20 p-2"
+                  >
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-pressed={allOn}
+                        onClick={() => setGroup(ids, !allOn)}
+                        className={cn(
+                          "rounded-lg border px-2 py-1 font-mono text-[11px] font-bold transition-all duration-150",
+                          allOn
+                            ? "border-amber/50 bg-amber/15 text-amber"
+                            : "border-white/10 bg-black/30 text-muted hover:border-purple/40 hover:text-fg",
+                        )}
+                      >
+                        set_{String(gi + 1).padStart(2, "0")}
+                      </button>
+                      <span className="text-[10px] text-muted tabular-nums">
+                        {onCount}/{ids.length}
+                      </span>
+                      <span className="ml-auto text-[10px] text-muted tabular-nums">
+                        {ids.filter((id) => (info?.catalog.find((x) => x.cardId === id)?.inStockCount ?? 0) > 0).length}
+                        {" in stock"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10">
+                      {ids.map((id) => {
+                        const on = cardSel.has(id);
+                        const stock = info?.catalog.find((x) => x.cardId === id)?.inStockCount ?? 0;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() => toggleCard(id)}
+                            title={`${id} · in stock ${stock}`}
+                            className={cn(
+                              "relative rounded-lg border py-1.5 font-mono text-xs font-semibold tabular-nums transition-all duration-150",
+                              on
+                                ? "border-purple/60 bg-purple/20 text-amber"
+                                : "border-white/5 bg-black/25 text-muted hover:-translate-y-px hover:border-cyan/40 hover:text-fg",
+                            )}
+                          >
+                            {id.split("_")[1]}
+                            {on ? (
+                              <span className="absolute top-1 right-1 size-1.5 rounded-full bg-amber" />
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ── send ──────────────────────────────────────────────── */}
+        <div className="gs-cta-actions mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="gs-cta-btn"
+            disabled={c.busy || phase !== "idle" || total === 0}
+            onClick={() => void send()}
+          >
+            <GsIcon name="sendCards" className="size-5" />
+            <span>
+              {phase === "queueing"
+                ? "Queueing…"
+                : phase === "waiting"
+                  ? "Waiting for the game…"
+                  : `Send ${total} cards`}
+            </span>
+            <span className="gs-cta-btn-meta">
+              {friendSel.size} × {cardSel.size}
+            </span>
+          </button>
+          {phase === "waiting" ? (
+            <Button
+              variant="danger"
+              onClick={() => {
+                stopRef.current = true;
+              }}
+            >
+              Stop
+            </Button>
+          ) : null}
+          {progress && phase === "idle" ? (
+            <Button variant="ghost" onClick={() => void checkNow()}>
+              Check now
+            </Button>
+          ) : null}
+        </div>
+
+        {progress ? (
+          <div className="mt-3 rounded-xl border border-white/5 bg-black/25 p-3">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs tabular-nums">
+              <Chip>{progress.queued} queued</Chip>
+              <Chip tone={progress.pending === 0 ? "ok" : "warn"}>
+                {progress.queued - progress.pending} synced
+              </Chip>
+              <Chip>{progress.pending} pending</Chip>
+              {phase === "waiting" ? <Chip tone="info">{progress.seconds}s</Chip> : null}
+              <span className="ml-auto text-xs font-bold text-cyan">{pct}%</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-black/50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-purple to-cyan transition-[width] duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {verdict ? <p className="mt-2 text-xs text-muted">{verdict}</p> : null}
+          </div>
+        ) : null}
+
+        {lines.length ? (
+          <div className="mt-3 max-h-40 overflow-y-auto rounded-lg border border-white/5 bg-black/30 p-2 font-mono text-[11px] leading-relaxed text-muted">
+            {lines.map((l, i) => (
+              <div key={i}>{l}</div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      {/* ── collect for myself ──────────────────────────────────── */}
+      <section className="gs-cta-card panel">
+        <header className="gs-cta-head">
+          <span className="gs-cta-emblem gs-cta-emblem--send" aria-hidden="true">
+            <GsIcon name="cards" className="size-6" />
+          </span>
+          <div>
+            <h3 className="gs-cta-title">To my collection</h3>
+            <p className="gs-cta-lead">Add cards to this save — one press per set</p>
           </div>
         </header>
 
@@ -655,7 +1184,7 @@ export function GsSendCards() {
             type="button"
             className="gs-cta-btn"
             disabled={c.busy}
-            onClick={() => void send(GS_CARDS.map((x) => x.id), "Sent all")}
+            onClick={() => void sendSelf(GS_CARDS.map((x) => x.id), "Sent all")}
           >
             <GsIcon name="sendCards" className="size-5" />
             <span>Send all {GS_CARDS.length}</span>
@@ -672,7 +1201,7 @@ export function GsSendCards() {
               total={10}
               busy={c.busy}
               label={setId}
-              onClick={() => void send(SET_IDS[i], `Sent set ${i + 1}`)}
+              onClick={() => void sendSelf(SET_IDS[i], `Sent set ${i + 1}`)}
             />
           ))}
         </div>
