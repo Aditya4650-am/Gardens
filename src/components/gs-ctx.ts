@@ -66,6 +66,7 @@ export const GS_PRIMARY_TABS: GsTab[] = [
   "seasons",
   "cards",
   "decor",
+  "send",
 ];
 
 export const GS_OVERFLOW_TABS: GsTab[] = [
@@ -77,7 +78,6 @@ export const GS_OVERFLOW_TABS: GsTab[] = [
   "pets",
   "clone",
   "newacct",
-  "send",
 ];
 
 export const GS_TAB_LABEL: Record<GsTab, string> = {
