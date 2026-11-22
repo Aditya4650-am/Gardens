@@ -132,29 +132,21 @@ export async function scanDeviceFriends(serial?: string): Promise<{ friends: GsD
     else ranges.push({ lo, hi });
   }
 
-  const ID = /^[A-Za-z0-9]{8,14}$/;
+  const ID_RE = /^(?=[A-Za-z0-9]*[A-Z])(?=[A-Za-z0-9]*[a-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{8,14}$/;
+  // saveId | numeric id | name — three fixed ~24-byte fields, so each id and
+  // number is NUL/ control-padded. Requiring non-printable gaps on BOTH sides
+  // is what keeps random hex/decimal memory noise out of the roster.
+  const REC_RE =
+    /([A-Za-z0-9]{8,14})([^\x20-\x7e]{4,24})(\d{9,15})([^\x20-\x7e]{4,24})([A-Za-z0-9 _\-']{2,23})(?![A-Za-z0-9 _\-'])/g;
   const byId = new Map<string, string>();
   const addListIds = (ids: string[]) => {
-    for (const id of ids) if (ID.test(id) && !byId.has(id)) byId.set(id, "");
+    for (const id of ids) if (ID_RE.test(id) && !byId.has(id)) byId.set(id, "");
   };
 
   const PAGE = 4096;
   let scanned = 0;
-  for (const r of ranges) {
-    const blocks = Math.floor((r.hi - r.lo) / PAGE);
-    if (blocks <= 0) continue;
-    let blob: Buffer;
-    try {
-      const res = await execFileP(
-        adb,
-        ["-s", target, "exec-out", "su", "-c", `dd if=/proc/${pid}/mem bs=${PAGE} skip=${r.lo / PAGE} count=${blocks} 2>/dev/null`],
-        { timeout: 60000, encoding: "buffer", maxBuffer: 512 * 1024 * 1024 },
-      );
-      blob = res.stdout as Buffer;
-    } catch {
-      continue; // a hole mid-range stops dd — skip the run
-    }
-    if (!blob || blob.length < 64) continue;
+  const scanBlob = (blob: Buffer) => {
+    if (!blob || blob.length < 64) return;
     scanned += blob.length;
 
     // the game's own metrics field: friends_saveid_list:["id", …]
@@ -169,19 +161,42 @@ export async function scanDeviceFriends(serial?: string): Promise<{ friends: GsD
       at = blob.indexOf(key, at + 1);
     }
 
-    // the parsed friend record: saveId | numeric id | name in 24-byte fields
+    // the parsed friend record: saveId | numeric id | name in fixed fields
     const txt = blob.toString("latin1");
-    const re = /([A-Za-z0-9]{8,14})([\s\S]{0,24}?)(\d{6,14})([\s\S]{0,24}?)([A-Za-z0-9 _\-']{2,24})/g;
     let m: RegExpExecArray | null;
-    while ((m = re.exec(txt)) !== null) {
-      const [, id, gap1, num, gap2, name] = m;
-      if (!ID.test(id) || gap1.length > 24 || gap2.length > 24) continue;
-      if (!/^\d{6,14}$/.test(num)) continue;
-      if (num.length + gap2.length !== 24 && gap2.length > 16) continue;
-      if (!byId.has(id)) byId.set(id, name.trim());
-      else if (!byId.get(id)) byId.set(id, name.trim());
+    REC_RE.lastIndex = 0;
+    while ((m = REC_RE.exec(txt)) !== null) {
+      const id = m[1];
+      if (!ID_RE.test(id)) continue;
+      if (!byId.has(id)) byId.set(id, m[5].trim());
+      else if (!byId.get(id)) byId.set(id, m[5].trim());
     }
-  }
+  };
+
+  // Dump regions with a small pool: adb multiplexes, so four streams cut the
+  // transfer to ~30s instead of one long serial sweep.
+  const CONCURRENCY = 4;
+  let nextIdx = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = nextIdx++;
+      if (i >= ranges.length) return;
+      const r = ranges[i];
+      const blocks = Math.floor((r.hi - r.lo) / PAGE);
+      if (blocks <= 0) continue;
+      try {
+        const res = await execFileP(
+          adb,
+          ["-s", target, "exec-out", "su", "-c", `dd if=/proc/${pid}/mem bs=${PAGE} skip=${r.lo / PAGE} count=${blocks} 2>/dev/null`],
+          { timeout: 60000, encoding: "buffer", maxBuffer: 512 * 1024 * 1024 },
+        );
+        scanBlob(res.stdout as Buffer);
+      } catch {
+        // a hole mid-range stops dd — skip the run
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
 
   const friends = [...byId.entries()]
     .map(([id, name]) => ({ id, name }))

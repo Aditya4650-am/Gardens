@@ -669,6 +669,7 @@ export function GsSendCards() {
   const [lines, setLines] = useState<string[]>([]);
   const stopRef = useRef(false);
   const bootedRef = useRef(false);
+  const idsRef = useRef<string[]>([]);
 
   const log = (line: string) =>
     setLines((L) => [...L.slice(-11), `${new Date().toLocaleTimeString()}  ${line}`]);
@@ -795,11 +796,22 @@ export function GsSendCards() {
       : 0;
   const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-  const poll = async (): Promise<{ pendingSend: number; sent: number } | null> => {
+  /** Honest drain verdict: SentCards rolls at ~150 rows, so the poll counts
+   * this run's exact gifting ids instead of trusting a size delta. */
+  const verdictFor = (queued: number, recorded: number): string =>
+    recorded >= queued
+      ? `Queue cleared — all ${queued} recorded as sent`
+      : recorded === 0
+        ? `Queue cleared — the server accepted none of the ${queued} (are they friends?)`
+        : `Queue cleared — ${recorded}/${queued} recorded as sent`;
+
+  const poll = async (): Promise<{ pendingSend: number; sent: number; recorded: number } | null> => {
     const r = await c.act(() =>
-      gsGiftingStatus({ data: { token: c.token, serial: c.serial || undefined } }),
+      gsGiftingStatus({
+        data: { token: c.token, serial: c.serial || undefined, ids: idsRef.current },
+      }),
     );
-    return (r ?? null) as { pendingSend: number; sent: number } | null;
+    return (r ?? null) as { pendingSend: number; sent: number; recorded: number } | null;
   };
 
   const send = async () => {
@@ -834,7 +846,9 @@ export function GsSendCards() {
       changed: string[];
       missing: string[];
       launched: boolean;
+      giftingIds: string[];
     };
+    idsRef.current = res.giftingIds ?? [];
     c.note({ changed: res.changed, missing: res.missing }, "Send to friends");
     if (!res.launched) {
       setPhase("idle");
@@ -854,7 +868,7 @@ export function GsSendCards() {
         lastPending = st.pendingSend;
         setProgress({ queued: res.queued, pending: st.pendingSend, seconds: secs });
         if (st.pendingSend === 0) {
-          const v = `Queue cleared — the game synced ${res.queued} cards (SentCards ${st.sent})`;
+          const v = verdictFor(res.queued, st.recorded ?? 0);
           setVerdict(v);
           log(v);
           break;
@@ -890,11 +904,11 @@ export function GsSendCards() {
     const queued = progress?.queued ?? 0;
     setProgress((p) => (p ? { ...p, pending: st.pendingSend } : p));
     if (st.pendingSend === 0 && queued > 0) {
-      const v = `Queue cleared — the game synced ${queued} cards (SentCards ${st.sent})`;
+      const v = verdictFor(queued, st.recorded ?? 0);
       setVerdict(v);
       log(v);
     } else {
-      log(`${st.pendingSend} pending · SentCards ${st.sent}`);
+      log(`${st.pendingSend} pending · ${st.recorded ?? 0} recorded · SentCards ${st.sent}`);
     }
   };
 

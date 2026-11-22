@@ -256,6 +256,11 @@ export const gsSendCardsToFriends = createServerFn({ method: "POST" })
     const s = await sessionOf(data.token, data.sessionId);
     const m = await import("./server/gardenscapes/cards.server");
     const edit = m.sendCardsToFriend(s, { receiverIds: data.receiverIds, cardIds: data.cardIds });
+    // The queue's gifting ids travel to the panel: it passes them back to
+    // gsGiftingStatus, which reports how many the game recorded in SentCards
+    // (the array rolls at ~150 rows, so a size delta cannot be trusted, and
+    // rows the server refuses are consumed without being recorded).
+    const giftingIds = m.queuedGiftingIds(s);
     const { pushEncode } = await import("./server/gardenscapes/session.server");
     const cipher = pushEncode(data.sessionId, data.token);
     const { pushGameSaveRaw, launchGameSave } = await import("./server/gardenscapes/save.server");
@@ -267,19 +272,25 @@ export const gsSendCardsToFriends = createServerFn({ method: "POST" })
     } catch {
       /* the queue is safe on the device; the next manual launch flushes it */
     }
-    return { ...edit, pushed: pushed.ok, launched };
+    return { ...edit, giftingIds, pushed: pushed.ok, launched };
   });
 
 /** Live gifting counters off the device — the Send panel's flush poll. */
 export const gsGiftingStatus = createServerFn({ method: "POST" })
-  .validator(z.object({ token: z.string(), serial: z.string().optional() }))
+  .validator(
+    z.object({
+      token: z.string(),
+      serial: z.string().optional(),
+      ids: z.array(z.string().max(40)).max(2000).optional(),
+    }),
+  )
   .handler(async ({ data }) => {
     const { requireToken } = await import("./server/license.server");
     requireToken(data.token);
     const { pullGameSaveRaw } = await import("./server/gardenscapes/save.server");
     const m = await import("./server/gardenscapes/cards.server");
     const pull = await pullGameSaveRaw(data.serial);
-    return m.readGiftingState(pull.b64);
+    return m.readGiftingState(pull.b64, data.ids);
   });
 
 /** Every player this save has exchanged gifts with — the Send panel roster. */

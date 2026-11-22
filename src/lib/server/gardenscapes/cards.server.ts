@@ -818,12 +818,16 @@ export function readFriends(s: GardenscapesSession): { friends: GsFriendRow[] } 
 
 /**
  * Gifting counters read straight off save bytes (base64) — what the Send
- * panel polls while the game flushes a queue. Returns null when the bytes
- * do not decode or hold no gifting feature, so a torn read mid-write is a
- * skipped tick rather than an error.
+ * panel polls while the game flushes a queue. Pass `checkIds` (the queue's
+ * gifting ids) to also learn how many the game recorded in `SentCards`:
+ * the array rolls at ~150 rows, so a size delta cannot be trusted, and rows
+ * the server refuses are consumed from the queue without being recorded.
+ * Returns null when the bytes do not decode or hold no gifting feature, so a
+ * torn read mid-write is a skipped tick rather than an error.
  */
 export function readGiftingState(
   saveB64: string,
+  checkIds?: string[],
 ): {
   pendingSend: number;
   sent: number;
@@ -831,6 +835,7 @@ export function readGiftingState(
   pendingReceived: number;
   sendCardsCount: number;
   lastResetDay: number;
+  recorded: number;
 } | null {
   let d: DecodedGardenscapesSave;
   try {
@@ -841,14 +846,24 @@ export function readGiftingState(
   const feat = giftingFeature(d.doc);
   const kids = feat ? giftingCore(feat) : null;
   if (!kids) return null;
-  const len = (name: string) => {
+  const rowsOf = (name: string): ArrItem[] => {
     const h = kids.find(([k]) => k === name);
-    return h && h[1][0] === "a" ? (h[1][1] as ArrItem[]).length : 0;
+    return h && h[1][0] === "a" ? (h[1][1] as ArrItem[]) : [];
   };
+  const len = (name: string) => rowsOf(name).length;
   const num = (name: string) => {
     const h = kids.find(([k]) => k === name);
     return h ? toInt(h[1][1]) ?? 0 : 0;
   };
+  let recorded = 0;
+  if (checkIds && checkIds.length) {
+    const want = new Set(checkIds);
+    for (const r of rowsOf("SentCards")) {
+      const k = rowKids(r);
+      const gid = k ? kidVal(k, "UniqueGiftingId") : undefined;
+      if (typeof gid === "string" && want.has(gid)) recorded++;
+    }
+  }
   return {
     pendingSend: len("PendingSendCards"),
     sent: len("SentCards"),
@@ -856,7 +871,24 @@ export function readGiftingState(
     pendingReceived: len("PendingReceivedCards"),
     sendCardsCount: num("SendCardsCount"),
     lastResetDay: num("LastResetDay"),
+    recorded,
   };
+}
+
+/** The gifting ids currently sitting in this session's PendingSendCards. */
+export function queuedGiftingIds(s: GardenscapesSession): string[] {
+  const feat = giftingFeature(s.decoded.doc);
+  const kids = feat ? giftingCore(feat) : null;
+  if (!kids) return [];
+  const h = kids.find(([k]) => k === "PendingSendCards");
+  if (!h || h[1][0] !== "a") return [];
+  const out: string[] = [];
+  for (const r of h[1][1] as ArrItem[]) {
+    const k = rowKids(r);
+    const gid = k ? kidVal(k, "UniqueGiftingId") : undefined;
+    if (typeof gid === "string") out.push(gid);
+  }
+  return out;
 }
 
 /**
