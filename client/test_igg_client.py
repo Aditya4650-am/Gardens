@@ -1133,17 +1133,22 @@ class GardenFriendScan(unittest.TestCase):
             [("abcDEF1234", ""), ("mhRwDZPm18", "")],
         )
 
-    def test_parses_the_fixed_record_with_its_name(self):
+    def test_a_name_record_is_not_a_friend_on_its_own(self):
         record = b"mhRwDZPm18" + b"\x00" * 14 + b"20577773718" + b"\x00" * 13 + b"test" + b"\x00"
+        self.assertEqual(c._parse_friend_scan([b"noise before " + record + b" noise after"]), [])
+
+    def test_the_friends_list_is_authoritative_and_records_supply_names(self):
+        blob = b'"friends_saveid_list":["mhRwDZPm18","toiAAAAA12"] ... '
+        record = b"mhRwDZPm18" + b"\x00" * 14 + b"20577773718" + b"\x00" * 13 + b"test"
         self.assertEqual(
-            c._parse_friend_scan([b"noise before " + record + b" noise after"]),
-            [("mhRwDZPm18", "test")],
+            c._parse_friend_scan([blob, record]),
+            [("mhRwDZPm18", "test"), ("toiAAAAA12", "")],
         )
 
-    def test_record_name_fills_an_id_the_list_left_unnamed(self):
-        blob = b'"friends_saveid_list":["mhRwDZPm18"] ... '
-        record = b"mhRwDZPm18" + b"\x00" * 14 + b"20577773718" + b"\x00" * 13 + b"zenitsu"
-        self.assertEqual(c._parse_friend_scan([blob, record]), [("mhRwDZPm18", "zenitsu")])
+    def test_directory_players_outside_the_friends_list_are_excluded(self):
+        blob = b'"friends_saveid_list":["testFriend1"]'
+        leader = b"arjunXXXX1" + b"\x00" * 15 + b"20577773719" + b"\x00" * 13 + b"arjun"
+        self.assertEqual(c._parse_friend_scan([blob, leader]), [("testFriend1", "")])
 
     def test_numbers_and_hex_noise_are_not_friends(self):
         noise = (

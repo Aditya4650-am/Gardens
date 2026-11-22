@@ -14,7 +14,7 @@
 // path wins whenever the bridge is present, and so a missing ADB reads as a
 // sentence a user can act on rather than a Node error.
 
-import { gsLaunchGame, gsPullDevice, gsPushDevice, gsScanDeviceFriends } from "@/lib/gs-api";
+import { gsLaunchGame, gsPullDevice, gsPushDevice, gsScanDeviceFriends, gsTapGame } from "@/lib/gs-api";
 
 export interface GsBridgeDevice {
   id: string;
@@ -39,6 +39,8 @@ export interface GsBridge {
     scannedMB?: number;
     hint?: string;
   }>;
+  /** Tap the middle of the game screen (clears reward modals). */
+  gardenTap?: (serial: string, taps?: number) => Promise<{ ok?: boolean; taps?: number }>;
   /** Copy the whole save folder to this PC. */
   gardenBackup?: (serial: string) => Promise<{ ok?: boolean; path: string; count: number }>;
   /** Back up, reset the device identity, delete the save, relaunch. */
@@ -220,6 +222,32 @@ export async function gsDeviceSavePath(serial?: string): Promise<string> {
 export interface GsScannedFriend {
   id: string;
   name: string;
+}
+
+/**
+ * Tap the middle of the game screen — the EXE bridge taps its own emulator;
+ * the plain-browser path asks the server (local `npm start` only). Used after
+ * a send's restart to clear "Tap to Open/Claim" modals that hold the save.
+ */
+export async function gsTapFromDevice(
+  preferred?: string,
+  taps = 3,
+): Promise<{ ok: boolean; taps: number }> {
+  const bridge = gsBridge();
+  try {
+    if (bridge?.gardenTap) {
+      const serial = await gsResolveSerial(preferred);
+      if (!serial) return { ok: false, taps: 0 };
+      const r = await bridge.gardenTap(serial, taps);
+      return { ok: Boolean(r?.ok), taps: r?.taps ?? 0 };
+    }
+    const r = (await gsTapGame({
+      data: { serial: preferred || undefined, taps },
+    })) as { ok?: boolean; taps?: number };
+    return { ok: Boolean(r?.ok), taps: r?.taps ?? 0 };
+  } catch (e) {
+    throw gsTransportError(e);
+  }
 }
 
 /**

@@ -288,6 +288,14 @@ export const gsLaunchGame = createServerFn({ method: "POST" })
     return launchGameSave(data.serial);
   });
 
+/** Tap the middle of the game screen — clears reward modals that hold the save cycle. */
+export const gsTapGame = createServerFn({ method: "POST" })
+  .validator(z.object({ serial: z.string().optional(), taps: z.number().int().min(1).max(6).optional() }))
+  .handler(async ({ data }) => {
+    const { tapGame } = await import("./server/gardenscapes/save.server");
+    return tapGame(data.taps ?? 3, data.serial);
+  });
+
 /** Every player this save has exchanged gifts with — the Send panel roster. */
 export const gsReadFriends = createServerFn({ method: "POST" })
   .validator(sess)

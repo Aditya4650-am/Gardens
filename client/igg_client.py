@@ -127,7 +127,14 @@ def _scan_ranges(maps_text: str) -> list[tuple[int, int]]:
     return ranges
 
 
-def _merge_friend_blob(blob: bytes, found: dict[str, str]) -> None:
+def _merge_friend_blob(blob: bytes, list_ids: dict[str, None], names: dict[str, str]) -> None:
+    """Harvest the game's own friends list plus name records from one blob.
+
+    `friends_saveid_list` is authoritative — it is literally the account's
+    friend list. The id|numeric|name records are a broader player directory
+    (leaderboard / suggested players), so they only ever supply NAMES for ids
+    the friends list already holds; they never add a friend on their own.
+    """
     at = blob.find(_FRIEND_LIST_KEY)
     while at >= 0:
         end = blob.find(b"]", at)
@@ -136,7 +143,7 @@ def _merge_friend_blob(blob: bytes, found: dict[str, str]) -> None:
             for m in re.finditer(rb'"([^"]+)"', arr):
                 raw = m.group(1)
                 if _FRIEND_ID_RE.match(raw):
-                    found.setdefault(raw.decode("ascii", "replace"), "")
+                    list_ids.setdefault(raw.decode("ascii", "replace"), None)
         at = blob.find(_FRIEND_LIST_KEY, at + 1)
     for m in _FRIEND_RECORD_RE.finditer(blob):
         raw = m.group(1)
@@ -144,17 +151,16 @@ def _merge_friend_blob(blob: bytes, found: dict[str, str]) -> None:
             continue
         key = raw.decode("ascii", "replace")
         name = m.group(5).decode("utf-8", "replace").strip()
-        if key not in found:
-            found[key] = name
-        elif not found[key] and name:
-            found[key] = name
+        if name and not names.get(key):
+            names[key] = name
 
 
 def _parse_friend_scan(blobs: list[bytes]) -> list[tuple[str, str]]:
-    found: dict[str, str] = {}
+    list_ids: dict[str, None] = {}
+    names: dict[str, str] = {}
     for blob in blobs:
-        _merge_friend_blob(blob, found)
-    return sorted(found.items())
+        _merge_friend_blob(blob, list_ids, names)
+    return sorted((i, names.get(i, "")) for i in list_ids)
 
 # Bundled fresh-city profile (extracted from the proven TS-Lite asset): a
 # complete LocalInfo + mGameInfo pair for a brand-new city, in the game's
@@ -1002,6 +1008,32 @@ class NativeBridge:
                 "relaunched": relaunched,
             }
 
+    def gardenTap(self, serial: str, taps: int = 3) -> dict:
+        """Tap the middle of the screen a few times.
+
+        Playrix reward modals ("Tap to Open" / "Tap to Claim") hold the game
+        before its save/sync cycle: measured live — a queue of 150 stayed
+        pending for 3+ minutes behind one, then flushed the moment it was
+        dismissed. The send flow restarts the game, so it uses this to walk
+        through whatever popup greets it.
+        """
+        adb = _find_adb()
+        if not adb or not serial:
+            raise RuntimeError("No emulator connected — start your emulator and press Refresh.")
+        code, out, _ = _run_adb(adb, ["-s", serial, "shell", "wm size"], timeout=15)
+        m = re.search(rb"(\d+)\s*x\s*(\d+)", out or b"")
+        w, h = (int(m.group(1)), int(m.group(2))) if m else (1600, 900)
+        cx, cy = w // 2, h // 2
+        done = 0
+        for _ in range(max(1, min(int(taps), 6))):
+            code, _, _ = _run_adb(
+                adb, ["-s", serial, "shell", "input", "tap", str(cx), str(cy)], timeout=15
+            )
+            if code == 0:
+                done += 1
+            time.sleep(2.5)
+        return {"ok": done > 0, "taps": done}
+
     def gardenPath(self, serial: str) -> dict:
         """The save path the UI shows next to the device selector."""
         adb = _find_adb()
@@ -1048,18 +1080,21 @@ class NativeBridge:
         if not ranges:
             raise RuntimeError("Could not read the game's memory map — is the emulator rooted?")
 
-        found: dict[str, str] = {}
+        list_ids: dict[str, None] = {}
+        names: dict[str, str] = {}
         scanned = 0
 
-        # Fast pass only: the biggest writable regions, gzipped on the device,
-        # stopping as soon as records appear (~5s for the first arena). The
-        # roster lives in memory only while the game holds it — after a fresh
-        # launch it may be empty until the friends/Send screen is opened, so
-        # the empty case returns a hint instead of a minute-long sweep.
-        fast = sorted(ranges, key=lambda r: r[1] - r[0], reverse=True)[:6]
-        for lo, hi in fast:
-            if hi - lo < 2 * 1024 * 1024:
-                break
+        # Fast pass: every writable region of 8 MB or more — where the game
+        # keeps its metrics snapshots (the friends list) and the player
+        # directory (names). The biggest arena usually answers on its own, so
+        # the pass stops as soon as the friends list appears (~5-6s); a full
+        # pass is about twelve. Smaller regions only ever held redundant copies.
+        fast = [
+            r
+            for r in sorted(ranges, key=lambda r: r[1] - r[0], reverse=True)
+            if r[1] - r[0] >= 8 * 1024 * 1024
+        ]
+        for idx, (lo, hi) in enumerate(fast):
             blocks = (hi - lo) // 4096
             code, raw, _ = _run_adb(
                 adb,
@@ -1074,17 +1109,21 @@ class NativeBridge:
             except OSError:
                 continue
             scanned += len(blob)
-            _merge_friend_blob(blob, found)
-            if len(found) >= 2:
+            _merge_friend_blob(blob, list_ids, names)
+            # Stop once the friends list is known AND every friend has a name.
+            if list_ids and all(names.get(i) for i in list_ids):
+                break
+            # Names are best-effort: four arenas (~10s worst) is the budget.
+            if idx >= 3:
                 break
 
         if not scanned:
             raise RuntimeError("Could not read the game's memory — enable root on the emulator.")
         return {
-            "friends": [{"id": i, "name": n} for i, n in sorted(found.items())],
+            "friends": [{"id": i, "name": names.get(i, "")} for i in sorted(list_ids)],
             "scannedMB": round(scanned / (1024 * 1024)),
             "hint": ""
-            if found
+            if list_ids
             else "Open the game's friend/Send screen once, then press Scan again.",
         }
 

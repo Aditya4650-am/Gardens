@@ -85,6 +85,36 @@ export async function launchGameSave(serial?: string): Promise<{ ok: boolean; ou
   return { ok: true, output: out.trim() };
 }
 
+/**
+ * Tap the middle of the game screen a few times.
+ *
+ * Playrix reward modals ("Tap to Open" / "Tap to Claim") hold the game before
+ * its save/sync cycle — measured live: a 150-row gifting queue stayed pending
+ * for 3+ minutes behind one and flushed the moment it was dismissed.
+ */
+export async function tapGame(taps = 3, serial?: string): Promise<{ ok: boolean; taps: number }> {
+  const { adb, serial: target } = await resolveAdb(serial);
+  const size = await execFileP(adb, ["-s", target, "shell", "wm size"], {
+    timeout: 15000,
+    encoding: "utf8",
+  });
+  const m = /(\d+)\s*x\s*(\d+)/.exec(size.stdout ?? "");
+  const w = m ? Number(m[1]) : 1600;
+  const h = m ? Number(m[2]) : 900;
+  const cx = Math.floor(w / 2);
+  const cy = Math.floor(h / 2);
+  let done = 0;
+  for (let i = 0; i < Math.max(1, Math.min(taps, 6)); i++) {
+    await execFileP(adb, ["-s", target, "shell", "input", "tap", String(cx), String(cy)], {
+      timeout: 15000,
+      encoding: "utf8",
+    });
+    done++;
+    await new Promise((r) => setTimeout(r, 2500));
+  }
+  return { ok: done > 0, taps: done };
+}
+
 export interface GsDeviceFriend {
   id: string;
   name: string;
@@ -103,7 +133,11 @@ export interface GsDeviceFriend {
  * Contiguous writable regions are merged first: one `dd` per merged run keeps
  * the scan to a handful of adb round-trips instead of ~1200.
  */
-export async function scanDeviceFriends(serial?: string): Promise<{ friends: GsDeviceFriend[]; scannedMB: number }> {
+export async function scanDeviceFriends(serial?: string): Promise<{
+  friends: GsDeviceFriend[];
+  scannedMB: number;
+  hint: string;
+}> {
   const { adb, serial: target } = await resolveAdb(serial);
   const pidRes = await execFileP(adb, ["-s", target, "shell", `pidof ${GAME_PACKAGE}`], {
     timeout: 15000,
@@ -133,14 +167,16 @@ export async function scanDeviceFriends(serial?: string): Promise<{ friends: GsD
   }
 
   const ID_RE = /^(?=[A-Za-z0-9]*[A-Z])(?=[A-Za-z0-9]*[a-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{8,14}$/;
-  // saveId | numeric id | name — three fixed ~24-byte fields, so each id and
-  // number is NUL/ control-padded. Requiring non-printable gaps on BOTH sides
-  // is what keeps random hex/decimal memory noise out of the roster.
+  // `friends_saveid_list` is authoritative — it is literally the account's
+  // friend list. The id|numeric|name records are a broader player directory
+  // (leaderboard / suggested players), so they only ever supply NAMES for ids
+  // the friends list already holds; they never add a friend on their own.
   const REC_RE =
     /([A-Za-z0-9]{8,14})([^\x20-\x7e]{4,24})(\d{9,15})([^\x20-\x7e]{4,24})([A-Za-z0-9 _\-']{2,23})(?![A-Za-z0-9 _\-'])/g;
-  const byId = new Map<string, string>();
+  const listIds = new Set<string>();
+  const names = new Map<string, string>();
   const addListIds = (ids: string[]) => {
-    for (const id of ids) if (ID_RE.test(id) && !byId.has(id)) byId.set(id, "");
+    for (const id of ids) if (ID_RE.test(id)) listIds.add(id);
   };
 
   const PAGE = 4096;
@@ -161,15 +197,15 @@ export async function scanDeviceFriends(serial?: string): Promise<{ friends: GsD
       at = blob.indexOf(key, at + 1);
     }
 
-    // the parsed friend record: saveId | numeric id | name in fixed fields
+    // player-directory records: id | numeric id | name (names for friends)
     const txt = blob.toString("latin1");
     let m: RegExpExecArray | null;
     REC_RE.lastIndex = 0;
     while ((m = REC_RE.exec(txt)) !== null) {
       const id = m[1];
       if (!ID_RE.test(id)) continue;
-      if (!byId.has(id)) byId.set(id, m[5].trim());
-      else if (!byId.get(id)) byId.set(id, m[5].trim());
+      const name = m[5].trim();
+      if (name && !names.get(id)) names.set(id, name);
     }
   };
 
@@ -198,10 +234,14 @@ export async function scanDeviceFriends(serial?: string): Promise<{ friends: GsD
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
 
-  const friends = [...byId.entries()]
-    .map(([id, name]) => ({ id, name }))
+  const friends = [...listIds]
+    .map((id) => ({ id, name: names.get(id) ?? "" }))
     .sort((a, b) => a.id.localeCompare(b.id));
-  return { friends, scannedMB: Math.round(scanned / (1024 * 1024)) };
+  return {
+    friends,
+    scannedMB: Math.round(scanned / (1024 * 1024)),
+    hint: friends.length ? "" : "Open the game's friend/Send screen once, then press Scan again.",
+  };
 }
 
 export async function decodeGameSave(b64: string): Promise<{ ok: true; data: DecodedGardenscapesSave } | { ok: false; error: string }> {

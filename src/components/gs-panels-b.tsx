@@ -16,7 +16,6 @@ import {
   gsQueueCardsToFriends,
   gsReadCards,
   gsReadFriends,
-  gsSendCardsToSelf,
   gsSetAllStock,
   gsSetPackCount,
   gsSetPackStreak,
@@ -25,7 +24,7 @@ import {
   gsWritePurchases,
 } from "@/lib/gs-api";
 import { GS_CARD_PACKS, GS_CARD_SETS, GS_CARDS } from "@/lib/server/gardenscapes/catalogs";
-import { gsPullFromDevice, gsPushToDevice, gsScanFriendsFromDevice } from "@/lib/gardenscapes/transport";
+import { gsPullFromDevice, gsPushToDevice, gsScanFriendsFromDevice, gsTapFromDevice } from "@/lib/gardenscapes/transport";
 import { useGs, sessOf, type GsEditResult } from "./gs-ctx";
 import { Bar, Chip, Field, GsIcon, Panel, Toggle } from "./gs-ui";
 
@@ -608,18 +607,21 @@ export function GsCards() {
 
 // === Send Cards ===========================================================
 
-type GsFriendSource = "received" | "sent" | "manual";
+type GsFriendSource = "received" | "sent" | "manual" | "device";
 interface GsFriendEntry {
   id: string;
   source: GsFriendSource;
 }
 
 /** Friend ids the user added by hand survive reloads (localStorage). */
-const MANUAL_FRIENDS_KEY = "gs-send-friends-v1";
+const MANUAL_FRIENDS_KEY = "gs-send-friends-v2";
+/** Ids the device scan found — replaced wholesale on every scan, so the list
+ * always reflects the account's real friends, never a stale directory dump. */
+const SCAN_IDS_KEY = "gs-send-friends-scan-v2";
 
-function loadManualFriends(): string[] {
+function loadStoredIds(key: string): string[] {
   try {
-    const raw = localStorage.getItem(MANUAL_FRIENDS_KEY);
+    const raw = localStorage.getItem(key);
     const v: unknown = raw ? JSON.parse(raw) : [];
     return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
   } catch {
@@ -627,16 +629,32 @@ function loadManualFriends(): string[] {
   }
 }
 
-function saveManualFriends(ids: string[]): void {
+function saveStoredIds(key: string, ids: string[]): void {
   try {
-    localStorage.setItem(MANUAL_FRIENDS_KEY, JSON.stringify(ids));
+    localStorage.setItem(key, JSON.stringify(ids));
   } catch {
     /* private mode — the list lives for this visit only */
   }
 }
 
+function loadManualFriends(): string[] {
+  return loadStoredIds(MANUAL_FRIENDS_KEY);
+}
+
+function saveManualFriends(ids: string[]): void {
+  saveStoredIds(MANUAL_FRIENDS_KEY, ids);
+}
+
+function loadScannedFriends(): string[] {
+  return loadStoredIds(SCAN_IDS_KEY);
+}
+
+function saveScannedFriends(ids: string[]): void {
+  saveStoredIds(SCAN_IDS_KEY, ids);
+}
+
 /** Player names learned from the device scan (id -> name), kept across reloads. */
-const FRIEND_NAMES_KEY = "gs-send-friend-names-v1";
+const FRIEND_NAMES_KEY = "gs-send-friend-names-v2";
 
 function loadFriendNames(): Record<string, string> {
   try {
@@ -678,10 +696,10 @@ function friendTone(id: string): string {
 export function GsSendCards() {
   const c = useGs();
   const [info, setInfo] = useState<CardsInfo | null>(null);
-  const [amount, setAmount] = useState("1");
   // friend roster + selection
   const [autoFriends, setAutoFriends] = useState<{ id: string; source: "received" | "sent" }[]>([]);
   const [manual, setManual] = useState<string[]>(() => loadManualFriends());
+  const [scanned, setScanned] = useState<string[]>(() => loadScannedFriends());
   const [friendSel, setFriendSel] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
   const [manualId, setManualId] = useState("");
@@ -709,7 +727,7 @@ export function GsSendCards() {
     if (f) {
       const rows = (f as { friends: { id: string; source: "received" | "sent" }[] }).friends;
       setAutoFriends(rows);
-      const all = [...new Set([...rows.map((x) => x.id), ...manual])];
+      const all = [...new Set([...rows.map((x) => x.id), ...scanned, ...manual])];
       if (!bootedRef.current) {
         // first load: the whole roster starts ticked
         bootedRef.current = true;
@@ -728,6 +746,7 @@ export function GsSendCards() {
 
   const rosterMap = new Map<string, GsFriendEntry>();
   for (const f of autoFriends) rosterMap.set(f.id, { id: f.id, source: f.source });
+  for (const id of scanned) if (!rosterMap.has(id)) rosterMap.set(id, { id, source: "device" });
   for (const id of manual) if (!rosterMap.has(id)) rosterMap.set(id, { id, source: "manual" });
   const roster = [...rosterMap.values()].sort((a, b) => a.id.localeCompare(b.id));
   const needle = q.trim().toLowerCase();
@@ -795,16 +814,14 @@ export function GsSendCards() {
         for (const f of r.friends) if (f.name) names[f.id] = f.name;
         setDeviceNames(names);
         saveFriendNames(names);
-        const fresh = r.friends.filter((f) => !rosterMap.has(f.id));
-        if (fresh.length) {
-          const next = [...manual, ...fresh.map((f) => f.id)];
-          setManual(next);
-          saveManualFriends(next);
-          setFriendSel((prev) => {
-            const s = new Set(prev);
-            for (const f of fresh) s.add(f.id);
-            return s;
-          });
+        const ids = r.friends.map((f) => f.id);
+        const fresh = ids.filter((id) => !rosterMap.has(id));
+        if (ids.length) {
+          // The scan is authoritative: it REPLACES the scanned set, so players
+          // from an older directory dump never linger as "friends".
+          setScanned(ids);
+          saveScannedFriends(ids);
+          setFriendSel(new Set([...autoFriends.map((f) => f.id), ...ids, ...manual]));
         }
         log(
           r.friends.length
@@ -897,6 +914,11 @@ export function GsSendCards() {
     }
     log(`Queued ${res.queued} · save pushed · game restarting — waiting for its sync`);
     setPhase("waiting");
+    // The game reopens on reward modals ("Tap to Open" / "Tap to Claim"), which
+    // hold its save/sync cycle — measured live: a queue of 150 stayed pending
+    // until the modal was dismissed. Tap through them, then poll.
+    await sleep(25000);
+    await c.act(() => gsTapFromDevice(c.serial || undefined, 3));
     const t0 = Date.now();
     let lastPending = res.queued;
     let fails = 0;
@@ -960,15 +982,6 @@ export function GsSendCards() {
     } else {
       log(`${st.pendingSend} pending · ${st.recorded ?? 0} recorded · SentCards ${st.sent}`);
     }
-  };
-
-  const amt = Math.max(1, Math.min(9999, Math.floor(Number(amount) || 1)));
-  const owned = ownedBySet(info);
-
-  const sendSelf = async (ids: string[], label: string) => {
-    const r = await c.act(() => gsSendCardsToSelf({ data: { ...sessOf(c), cardIds: ids, amount: amt } }));
-    c.note(r as GsEditResult | undefined, label);
-    await load();
   };
 
   return (
@@ -1059,7 +1072,7 @@ export function GsSendCards() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">{nm || f.id}</span>
                           <span className="block truncate font-mono text-[11px] text-muted">
-                            {nm ? f.id : f.source === "manual" ? "added" : f.source}
+                            {nm ? f.id : f.source === "manual" ? "added" : f.source === "device" ? "friend" : f.source}
                           </span>
                         </span>
                         {f.source === "manual" ? (
@@ -1180,7 +1193,7 @@ export function GsSendCards() {
                   : `Send ${total} cards`}
             </span>
             <span className="gs-cta-btn-meta">
-              {friendSel.size} × {cardSel.size}
+              {friendSel.size} friend(s)
             </span>
           </button>
           {phase === "waiting" ? (
@@ -1228,50 +1241,6 @@ export function GsSendCards() {
             ))}
           </div>
         ) : null}
-      </section>
-
-      {/* ── collect for myself ──────────────────────────────────── */}
-      <section className="gs-cta-card panel">
-        <header className="gs-cta-head">
-          <span className="gs-cta-emblem gs-cta-emblem--send" aria-hidden="true">
-            <GsIcon name="cards" className="size-6" />
-          </span>
-          <div>
-            <h3 className="gs-cta-title">To my collection</h3>
-            <p className="gs-cta-lead">Add cards to this save — one press per set</p>
-          </div>
-        </header>
-
-        <div className="gs-pair">
-          <Field label="Amount" value={amount} onChange={setAmount} suffix="per card" />
-        </div>
-
-        <div className="gs-cta-actions">
-          <button
-            type="button"
-            className="gs-cta-btn"
-            disabled={c.busy}
-            onClick={() => void sendSelf(GS_CARDS.map((x) => x.id), "Sent all")}
-          >
-            <GsIcon name="sendCards" className="size-5" />
-            <span>Send all {GS_CARDS.length}</span>
-            <span className="gs-cta-btn-meta">×{amt}</span>
-          </button>
-        </div>
-
-        <div className="gs-setgrid">
-          {GS_CARD_SETS.map((setId, i) => (
-            <SetButton
-              key={setId}
-              index={i}
-              owned={owned.get(setId) ?? 0}
-              total={10}
-              busy={c.busy}
-              label={setId}
-              onClick={() => void sendSelf(SET_IDS[i], `Sent set ${i + 1}`)}
-            />
-          ))}
-        </div>
       </section>
     </div>
   );
