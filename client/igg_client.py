@@ -12,6 +12,7 @@ Build the EXE:     build_exe.bat
 from __future__ import annotations
 
 import base64
+import gzip
 import hashlib
 import io
 import json
@@ -1016,8 +1017,13 @@ class NativeBridge:
 
         The friend caches are PLXE-encrypted on disk but parsed into the heap
         on load, so a scan of the writable regions of /proc/<pid>/mem yields
-        every friend with no crypto. Each region is dumped once and parsed
-        before the next arrives, so peak memory stays around one region.
+        every friend with no crypto.
+
+        Speed: a full sweep moves ~870 MB and takes over a minute, but the
+        parsed records live in the two biggest writable regions (the game's
+        own heap arenas). Those are dumped through `gzip -1` on the device —
+        ~212 MB becomes ~60 MB on the wire, about six seconds end to end. The
+        uncompressed full sweep only runs when the fast pass finds nothing.
         """
         adb = _find_adb()
         if not adb:
@@ -1044,42 +1050,42 @@ class NativeBridge:
 
         found: dict[str, str] = {}
         scanned = 0
-        lock = threading.Lock()
 
-        def scan_region(rng: tuple[int, int]) -> int:
-            """Dump one region and merge what it holds; returns bytes read."""
-            lo, hi = rng
+        # Fast pass only: the biggest writable regions, gzipped on the device,
+        # stopping as soon as records appear (~5s for the first arena). The
+        # roster lives in memory only while the game holds it — after a fresh
+        # launch it may be empty until the friends/Send screen is opened, so
+        # the empty case returns a hint instead of a minute-long sweep.
+        fast = sorted(ranges, key=lambda r: r[1] - r[0], reverse=True)[:6]
+        for lo, hi in fast:
+            if hi - lo < 2 * 1024 * 1024:
+                break
             blocks = (hi - lo) // 4096
-            if blocks <= 0:
-                return 0
-            code, buf, _ = _run_adb(
+            code, raw, _ = _run_adb(
                 adb,
                 ["-s", serial, "exec-out", "su", "-c",
-                 f"dd if=/proc/{pid}/mem bs=4096 skip={lo // 4096} count={blocks} 2>/dev/null"],
+                 f"dd if=/proc/{pid}/mem bs=4096 skip={lo // 4096} count={blocks} 2>/dev/null | gzip -1"],
                 timeout=90,
             )
-            if code != 0 or not buf or len(buf) < 64:
-                return 0
-            local: dict[str, str] = {}
-            _merge_friend_blob(buf, local)
-            if local:
-                with lock:
-                    for k, v in local.items():
-                        if k not in found:
-                            found[k] = v
-                        elif not found[k] and v:
-                            found[k] = v
-            return len(buf)
+            if code != 0 or not raw or len(raw) < 64:
+                continue
+            try:
+                blob = gzip.decompress(raw)
+            except OSError:
+                continue
+            scanned += len(blob)
+            _merge_friend_blob(blob, found)
+            if len(found) >= 2:
+                break
 
-        # Four streams cut the ~870 MB sweep to about a minute; adb multiplexes.
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            for n in pool.map(scan_region, ranges):
-                scanned += n or 0
         if not scanned:
             raise RuntimeError("Could not read the game's memory — enable root on the emulator.")
         return {
             "friends": [{"id": i, "name": n} for i, n in sorted(found.items())],
             "scannedMB": round(scanned / (1024 * 1024)),
+            "hint": ""
+            if found
+            else "Open the game's friend/Send screen once, then press Scan again.",
         }
 
     # --- New account / backups -------------------------------------------

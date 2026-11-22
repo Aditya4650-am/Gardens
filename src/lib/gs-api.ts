@@ -261,7 +261,11 @@ export const gsQueueCardsToFriends = createServerFn({ method: "POST" })
     return { ...edit, giftingIds };
   });
 
-/** Decode device bytes into gifting counters — the flush poll's second half. */
+/**
+ * Decode device bytes into gifting counters — the flush poll's second half.
+ * Decoding is pure logic over bytes the client already pulled from its own
+ * device, so it carries no license gate (same class as gsPullDevice).
+ */
 export const gsGiftingStatusB64 = createServerFn({ method: "POST" })
   .validator(
     z.object({
@@ -271,8 +275,6 @@ export const gsGiftingStatusB64 = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const { requireToken } = await import("./server/license.server");
-    requireToken(data.token);
     const m = await import("./server/gardenscapes/cards.server");
     return m.readGiftingState(data.saveB64, data.ids);
   });
@@ -297,13 +299,12 @@ export const gsReadFriends = createServerFn({ method: "POST" })
 /**
  * Read the friend roster out of the running game's memory — the on-disk
  * caches are PLXE-encrypted but the game parses them on load, so the live
- * heap holds every friend (id + name) in the clear.
+ * heap holds every friend (id + name) in the clear. Device-only like
+ * gsPullDevice, so it carries no license gate.
  */
 export const gsScanDeviceFriends = createServerFn({ method: "POST" })
   .validator(z.object({ token: z.string(), serial: z.string().optional() }))
   .handler(async ({ data }) => {
-    const { requireToken } = await import("./server/license.server");
-    requireToken(data.token);
     const { scanDeviceFriends } = await import("./server/gardenscapes/save.server");
     return scanDeviceFriends(data.serial);
   });

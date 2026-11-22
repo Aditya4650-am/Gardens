@@ -786,9 +786,11 @@ export function GsSendCards() {
   const scanDevice = async () => {
     if (scanning) return;
     setScanning(true);
+    const t0 = Date.now();
     try {
       const r = await c.act(() => gsScanFriendsFromDevice(c.token, c.serial || undefined));
       if (r) {
+        const secs = Math.max(1, Math.round((Date.now() - t0) / 1000));
         const names: Record<string, string> = { ...deviceNames };
         for (const f of r.friends) if (f.name) names[f.id] = f.name;
         setDeviceNames(names);
@@ -806,8 +808,8 @@ export function GsSendCards() {
         }
         log(
           r.friends.length
-            ? `Device scan: ${r.friends.length} friend(s) with names, ${fresh.length} new (${r.scannedMB} MB read)`
-            : `Device scan found no friends (${r.scannedMB} MB read) — keep the game open on its home screen`,
+            ? `Device scan: ${r.friends.length} friend(s) with names, ${fresh.length} new — ${secs}s`
+            : r.hint || "No friends in memory — open the game's friend/Send screen once, then scan again.",
         );
       }
     } finally {
@@ -832,13 +834,18 @@ export function GsSendCards() {
         : `Queue cleared — ${recorded}/${queued} recorded as sent`;
 
   /** Pull the save through the device transport (the EXE bridge on clients)
-   * and let the server decode the gifting counters. */
+   * and let the server decode the gifting counters. A failed tick returns
+   * null instead of throwing — the loop retries quietly. */
   const poll = async (): Promise<{ pendingSend: number; sent: number; recorded: number } | null> => {
     const r = await c.act(async () => {
-      const pull = await gsPullFromDevice(c.serial || undefined);
-      return gsGiftingStatusB64({
-        data: { token: c.token, saveB64: pull.b64, ids: idsRef.current },
-      });
+      try {
+        const pull = await gsPullFromDevice(c.serial || undefined);
+        return await gsGiftingStatusB64({
+          data: { token: c.token, saveB64: pull.b64, ids: idsRef.current },
+        });
+      } catch {
+        return null;
+      }
     });
     return (r ?? null) as { pendingSend: number; sent: number; recorded: number } | null;
   };
@@ -892,11 +899,13 @@ export function GsSendCards() {
     setPhase("waiting");
     const t0 = Date.now();
     let lastPending = res.queued;
+    let fails = 0;
     while (!stopRef.current) {
       await sleep(4000);
       const secs = Math.round((Date.now() - t0) / 1000);
       const st = await poll();
       if (st) {
+        fails = 0;
         lastPending = st.pendingSend;
         setProgress({ queued: res.queued, pending: st.pendingSend, seconds: secs });
         if (st.pendingSend === 0) {
@@ -911,11 +920,20 @@ export function GsSendCards() {
           log(v);
           break;
         }
-      } else if (secs >= 300) {
-        const v = `Could not read the device after ${secs}s — press Check now`;
-        setVerdict(v);
-        log(v);
-        break;
+      } else {
+        fails++;
+        if (fails >= 3) {
+          const v = "Could not read the save — the queue is on the device; press Check now";
+          setVerdict(v);
+          log(v);
+          break;
+        }
+        if (secs >= 300) {
+          const v = `Could not read the device after ${secs}s — press Check now`;
+          setVerdict(v);
+          log(v);
+          break;
+        }
       }
     }
     if (stopRef.current) {

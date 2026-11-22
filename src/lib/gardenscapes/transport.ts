@@ -37,6 +37,7 @@ export interface GsBridge {
   gardenFriends?: (serial: string) => Promise<{
     friends?: Array<{ id?: string; name?: string }>;
     scannedMB?: number;
+    hint?: string;
   }>;
   /** Copy the whole save folder to this PC. */
   gardenBackup?: (serial: string) => Promise<{ ok?: boolean; path: string; count: number }>;
@@ -232,7 +233,7 @@ export interface GsScannedFriend {
 export async function gsScanFriendsFromDevice(
   token: string,
   preferred?: string,
-): Promise<{ friends: GsScannedFriend[]; scannedMB: number }> {
+): Promise<{ friends: GsScannedFriend[]; scannedMB: number; hint: string }> {
   const bridge = gsBridge();
   try {
     if (bridge?.gardenFriends) {
@@ -246,7 +247,7 @@ export async function gsScanFriendsFromDevice(
       const friends = (r?.friends ?? [])
         .filter((f): f is { id: string; name?: string } => typeof f?.id === "string" && f.id !== "")
         .map((f) => ({ id: f.id, name: typeof f.name === "string" ? f.name : "" }));
-      return { friends, scannedMB: r?.scannedMB ?? 0 };
+      return { friends, scannedMB: r?.scannedMB ?? 0, hint: typeof (r as { hint?: string })?.hint === "string" ? (r as { hint?: string }).hint ?? "" : "" };
     }
     if (bridge) {
       throw new Error(
@@ -255,9 +256,9 @@ export async function gsScanFriendsFromDevice(
     }
     const r = (await gsScanDeviceFriends({
       data: { token, serial: preferred || undefined },
-    })) as { friends?: Array<{ id: string; name?: string }>; scannedMB?: number };
+    })) as { friends?: Array<{ id: string; name?: string }>; scannedMB?: number; hint?: string };
     const friends = (r?.friends ?? []).map((f) => ({ id: f.id, name: f.name ?? "" }));
-    return { friends, scannedMB: r?.scannedMB ?? 0 };
+    return { friends, scannedMB: r?.scannedMB ?? 0, hint: r?.hint ?? "" };
   } catch (e) {
     throw gsTransportError(e);
   }
