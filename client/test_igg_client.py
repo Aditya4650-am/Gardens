@@ -1162,5 +1162,49 @@ class GardenFriendScan(unittest.TestCase):
         self.assertEqual(c._parse_friend_scan([b"", b"\x00" * 32]), [])
 
 
+class GardenPackagePick(unittest.TestCase):
+    """The tool targets whichever Gardenscapes build the device has."""
+
+    def setUp(self):
+        c._PKG_CACHE.clear()
+
+    def tearDown(self):
+        c._PKG_CACHE.clear()
+
+    def _stub(self, installed):
+        def fake(adb, args, timeout=30):
+            cmd = args[3] if len(args) > 3 else ""
+            if cmd.startswith("pm path"):
+                pkg = cmd.split()[-1]
+                return (0, b"package:/data/app/x/base.apk\n" if pkg in installed else b"", b"")
+            return (0, b"", b"")
+
+        return fake
+
+    def _with_stub(self, installed):
+        orig = c._run_adb
+        c._run_adb = self._stub(installed)
+        self.addCleanup(lambda: setattr(c, "_run_adb", orig))
+
+    def test_picks_the_global_build_first(self):
+        self._with_stub({"com.playrix.gardenscapes", "com.playrix.gardenscapes.vn"})
+        self.assertEqual(c.garden_pick_package("adb", "emu-1"), "com.playrix.gardenscapes")
+
+    def test_picks_the_vietnam_build_when_that_is_the_one(self):
+        self._with_stub({"com.playrix.gardenscapes.vn"})
+        self.assertEqual(c.garden_pick_package("adb", "emu-vn"), "com.playrix.gardenscapes.vn")
+
+    def test_no_build_installed_names_both(self):
+        self._with_stub(set())
+        with self.assertRaises(RuntimeError) as ctx:
+            c.garden_pick_package("adb", "emu-none")
+        self.assertIn("Vietnam", str(ctx.exception))
+
+    def test_the_choice_is_cached_per_serial(self):
+        self._with_stub({"com.playrix.gardenscapes.vn"})
+        self.assertEqual(c.garden_pick_package("adb", "emu-cache"), "com.playrix.gardenscapes.vn")
+        self.assertEqual(c._PKG_CACHE.get("emu-cache"), "com.playrix.gardenscapes.vn")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -5,14 +5,21 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { Buffer } from "node:buffer";
 import { writeSaveXml, decodeSave, type DecodedGardenscapesSave } from "@/lib/gardenscapes/save-engine";
-import { resolveAdb, GAME_PACKAGE, SAVE_REMOTE_PATH } from "@/lib/gardenscapes/adb";
+import { resolveAdb, resolveGamePackage, saveRemotePath } from "@/lib/gardenscapes/adb";
 
 const execFileP = promisify(execFile);
 const PULL_TMP = "/tmp/opencode/gs_pull_GameData.db";
 const PUSH_TMP = "/tmp/opencode/gs_push_GameData.db";
 const STAGE_TMP = "/data/local/tmp/gs_push_GameData.db";
 
-export const GAME_SAVE_RELATIVE_PATH = `data/data/${GAME_PACKAGE}/Documents/GameData.db`;
+export const GAME_SAVE_RELATIVE_PATH = "data/data/com.playrix.gardenscapes/Documents/GameData.db";
+
+/** The relative save path for whichever Gardenscapes build this device has. */
+export async function resolveSavePath(serial?: string): Promise<{ path: string; package: string }> {
+  const { adb, serial: target } = await resolveAdb(serial);
+  const pkg = await resolveGamePackage(adb, target);
+  return { path: saveRemotePath(pkg).replace(/^\//, ""), package: pkg };
+}
 
 /**
  * Read a root-only file through `su -c cat`. `adb pull` cannot be used here:
@@ -32,14 +39,18 @@ async function suCat(adb: string, serial: string, remote: string): Promise<Buffe
   return buf;
 }
 
-export async function pullGameSaveRaw(serial?: string): Promise<{ b64: string; file: string; size: number }> {
+export async function pullGameSaveRaw(serial?: string): Promise<{ b64: string; file: string; size: number; package: string }> {
   const { adb, serial: target } = await resolveAdb(serial);
-  const buf = await suCat(adb, target, SAVE_REMOTE_PATH);
-  return { b64: buf.toString("base64"), file: SAVE_REMOTE_PATH, size: buf.length };
+  const pkg = await resolveGamePackage(adb, target);
+  const remote = saveRemotePath(pkg);
+  const buf = await suCat(adb, target, remote);
+  return { b64: buf.toString("base64"), file: remote, size: buf.length, package: pkg };
 }
 
 export async function pushGameSaveRaw(b64: string, serial?: string): Promise<{ ok: boolean; size: number; file: string }> {
   const { adb, serial: target } = await resolveAdb(serial);
+  const pkg = await resolveGamePackage(adb, target);
+  const remotePath = saveRemotePath(pkg);
   const fs = await import("node:fs");
   fs.writeFileSync(PUSH_TMP, Buffer.from(b64, "base64"));
   try {
@@ -49,13 +60,13 @@ export async function pushGameSaveRaw(b64: string, serial?: string): Promise<{ o
     });
     // The game rewrites this file as it closes, so it must be stopped first or
     // the new bytes are replaced by the old in-memory state.
-    await execFileP(adb, ["-s", target, "shell", `am force-stop ${GAME_PACKAGE}`], { timeout: 30000 });
+    await execFileP(adb, ["-s", target, "shell", `am force-stop ${pkg}`], { timeout: 30000 });
     // Write through a redirect so the existing inode keeps its uid/gid and
     // SELinux context — a fresh root-owned file is unreadable by the game.
-    const shell = `cat '${STAGE_TMP}' > '${SAVE_REMOTE_PATH}'; chmod 600 '${SAVE_REMOTE_PATH}'`;
+    const shell = `cat '${STAGE_TMP}' > '${remotePath}'; chmod 600 '${remotePath}'`;
     await execFileP(adb, ["-s", target, "shell", `su -c "${shell}"`], { timeout: 60000 });
     await execFileP(adb, ["-s", target, "shell", `rm -f ${STAGE_TMP}`], { timeout: 30000 });
-    return { ok: true, size: Buffer.from(b64, "base64").length, file: SAVE_REMOTE_PATH };
+    return { ok: true, size: Buffer.from(b64, "base64").length, file: remotePath };
   } finally {
     try {
       fs.unlinkSync(PUSH_TMP);
@@ -73,9 +84,10 @@ export async function pushGameSaveRaw(b64: string, serial?: string): Promise<{ o
  */
 export async function launchGameSave(serial?: string): Promise<{ ok: boolean; output: string }> {
   const { adb, serial: target } = await resolveAdb(serial);
+  const pkg = await resolveGamePackage(adb, target);
   const res = await execFileP(
     adb,
-    ["-s", target, "shell", "monkey", "-p", GAME_PACKAGE, "-c", "android.intent.category.LAUNCHER", "1"],
+    ["-s", target, "shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1"],
     { timeout: 30000, encoding: "utf8" },
   );
   const out = `${res.stdout ?? ""}${res.stderr ?? ""}`;
@@ -139,7 +151,8 @@ export async function scanDeviceFriends(serial?: string): Promise<{
   hint: string;
 }> {
   const { adb, serial: target } = await resolveAdb(serial);
-  const pidRes = await execFileP(adb, ["-s", target, "shell", `pidof ${GAME_PACKAGE}`], {
+  const pkg = await resolveGamePackage(adb, target);
+  const pidRes = await execFileP(adb, ["-s", target, "shell", `pidof ${pkg}`], {
     timeout: 15000,
     encoding: "utf8",
   });

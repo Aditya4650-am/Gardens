@@ -84,6 +84,10 @@ LOCAL_INFO_FILE = "mLocalInfo.xml"
 # has to stop the game first or the game overwrites the new bytes with its own
 # in-memory state the moment it closes.
 GARDEN_PACKAGE = "com.playrix.gardenscapes"
+# The Vietnam build ships the same game, the same AUDB save format and the same
+# Documents/GameData.db layout under its own package. Every GS method resolves
+# which build this device actually has.
+GARDEN_PACKAGES = (GARDEN_PACKAGE, "com.playrix.gardenscapes.vn")
 GARDEN_SAVE_FILE = "GameData.db"
 GARDEN_SAVE_DIR = "Documents"
 GARDEN_SAVE_PATH = f"/data/data/{GARDEN_PACKAGE}/{GARDEN_SAVE_DIR}/{GARDEN_SAVE_FILE}"
@@ -227,6 +231,31 @@ _PATH_CACHE: dict[tuple[str, str, str], str] = {}
 # Track which package each device actually uses, so push goes back to the same
 # package the pull came from (v1.15 behavior).
 _active_package: dict[str, str] = {}
+
+# Which Gardenscapes build (global / Vietnam) each device has, cached per serial.
+_PKG_CACHE: dict[str, str] = {}
+
+
+def garden_pick_package(adb: str, serial: str) -> str:
+    """The Gardenscapes package installed on this device.
+
+    Two builds ship the same game and save layout: the global build and the
+    Vietnam build (`com.playrix.gardenscapes.vn`). The installed one is cached
+    per serial so every later adb call targets the same package.
+    """
+    cached = _PKG_CACHE.get(serial)
+    if cached:
+        return cached
+    for pkg in GARDEN_PACKAGES:
+        code, out, _ = _run_adb(adb, ["-s", serial, "shell", f"pm path {pkg}"], timeout=20)
+        if code == 0 and b"package:" in (out or b""):
+            _PKG_CACHE[serial] = pkg
+            return pkg
+    raise RuntimeError(
+        "Gardenscapes is not installed on "
+        + serial
+        + " (checked the global and Vietnam builds)."
+    )
 
 
 def _app_data_dir() -> Path:
@@ -880,19 +909,25 @@ class NativeBridge:
     # inside private storage, so it needs root in both directions and must never
     # go through the plain-XML check above.
     def _garden_pkg_ok(self, adb: str, serial: str) -> bool:
-        return self._is_pkg_installed(adb, serial, GARDEN_PACKAGE)
+        try:
+            garden_pick_package(adb, serial)
+            return True
+        except RuntimeError:
+            return False
 
     def _garden_path(self, adb: str, serial: str) -> str:
-        """Where GameData.db really lives on this device (cached per serial)."""
-        cached = _PATH_CACHE.get((serial, GARDEN_PACKAGE, GARDEN_SAVE_FILE))
+        """Where GameData.db really lives on this device (cached per serial+package)."""
+        pkg = garden_pick_package(adb, serial)
+        cached = _PATH_CACHE.get((serial, pkg, GARDEN_SAVE_FILE))
+        save_path = f"/data/data/{pkg}/{GARDEN_SAVE_DIR}/{GARDEN_SAVE_FILE}"
         ordered: list[str] = []
         for path in (
-            _find_on_device(adb, serial, GARDEN_PACKAGE, GARDEN_SAVE_FILE),
+            _find_on_device(adb, serial, pkg, GARDEN_SAVE_FILE),
             cached,
-            GARDEN_SAVE_PATH,
-            GARDEN_SAVE_PATH.replace("/data/data/", "/data/user/0/"),
-            f"/data/user/0/{GARDEN_PACKAGE}/{GARDEN_SAVE_DIR}/{GARDEN_SAVE_FILE}",
-            *[p for p in candidate_paths_for_package(GARDEN_PACKAGE, GARDEN_SAVE_FILE)],
+            save_path,
+            save_path.replace("/data/data/", "/data/user/0/"),
+            f"/data/user/0/{pkg}/{GARDEN_SAVE_DIR}/{GARDEN_SAVE_FILE}",
+            *[p for p in candidate_paths_for_package(pkg, GARDEN_SAVE_FILE)],
         ):
             if path and path not in ordered:
                 ordered.append(path)
@@ -902,7 +937,7 @@ class NativeBridge:
             )
             text = (out or b"").decode("utf-8", "replace").strip()
             if code == 0 and text and not re.search(r"no such file|permission denied", text, re.I):
-                _PATH_CACHE[(serial, GARDEN_PACKAGE, GARDEN_SAVE_FILE)] = path
+                _PATH_CACHE[(serial, pkg, GARDEN_SAVE_FILE)] = path
                 return path
         raise RuntimeError(
             "Gardenscapes save not found on this device. Open Gardenscapes once "
@@ -930,11 +965,12 @@ class NativeBridge:
                 "Could not read GameData.db (" + detail + "). Enable root on the emulator "
                 "and make sure Gardenscapes has been opened at least once."
             )
-        _active_package[serial] = GARDEN_PACKAGE
+        pkg = garden_pick_package(adb, serial)
+        _active_package[serial] = pkg
         return {
             "b64": base64.b64encode(buf).decode("ascii"),
             "file": path,
-            "package": GARDEN_PACKAGE,
+            "package": pkg,
             "size": len(buf),
             "plain": False,
         }
@@ -963,11 +999,12 @@ class NativeBridge:
         if not self._garden_pkg_ok(adb, serial):
             raise RuntimeError("Gardenscapes is not installed on " + serial)
 
+        pkg = garden_pick_package(adb, serial)
         # Stop the game before touching its save, or it overwrites the push.
         if not options.get("alreadyStopped"):
-            _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", GARDEN_PACKAGE], timeout=15)
+            _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", pkg], timeout=15)
             time.sleep(0.6)
-        _active_package[serial] = GARDEN_PACKAGE
+        _active_package[serial] = pkg
 
         remote = self._garden_path(adb, serial)
         with tempfile.TemporaryDirectory() as td:
@@ -989,18 +1026,18 @@ class NativeBridge:
                 r"permission denied|not found|no such file|failed|error:", combined, re.I
             ):
                 raise RuntimeError("Push failed: " + (combined or "su cp failed"))
-            _PATH_CACHE[(serial, GARDEN_PACKAGE, GARDEN_SAVE_FILE)] = remote
+            _PATH_CACHE[(serial, pkg, GARDEN_SAVE_FILE)] = remote
             relaunched = bool(options.get("restart", True))
             if relaunched:
                 _run_adb(
                     adb,
-                    ["-s", serial, "shell", "monkey", "-p", GARDEN_PACKAGE, "-c",
+                    ["-s", serial, "shell", "monkey", "-p", pkg, "-c",
                      "android.intent.category.LAUNCHER", "1"],
                     timeout=15,
                 )
             return {
                 "ok": True,
-                "package": GARDEN_PACKAGE,
+                "package": pkg,
                 "paths": {"save": remote},
                 "file": remote,
                 "size": len(data),
@@ -1040,7 +1077,8 @@ class NativeBridge:
         if not adb or not serial:
             return {"path": "", "package": GARDEN_PACKAGE}
         try:
-            return {"path": self._garden_path(adb, serial), "package": GARDEN_PACKAGE}
+            pkg = garden_pick_package(adb, serial)
+            return {"path": self._garden_path(adb, serial), "package": pkg}
         except Exception:  # noqa: BLE001
             return {"path": GARDEN_SAVE_PATH, "package": GARDEN_PACKAGE}
 
@@ -1067,8 +1105,9 @@ class NativeBridge:
             raise RuntimeError("No emulator connected — start your emulator and press Refresh.")
         if not self._garden_pkg_ok(adb, serial):
             raise RuntimeError("Gardenscapes is not installed on " + serial)
+        pkg = garden_pick_package(adb, serial)
 
-        code, out, _ = _run_adb(adb, ["-s", serial, "shell", f"pidof {GARDEN_PACKAGE}"], timeout=15)
+        code, out, _ = _run_adb(adb, ["-s", serial, "shell", f"pidof {pkg}"], timeout=15)
         pids = (out or b"").decode("utf-8", "replace").split()
         if code != 0 or not pids or not pids[0].isdigit():
             raise RuntimeError("Gardenscapes is not running — open the game, then press Scan device again.")
@@ -1220,12 +1259,13 @@ class NativeBridge:
         except Exception as e:  # noqa: BLE001
             gms = {"ok": False, "error": str(e)}
         directory = self._garden_doc_dir(adb, serial)
-        _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", GARDEN_PACKAGE], timeout=15)
+        pkg = garden_pick_package(adb, serial)
+        _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", pkg], timeout=15)
         time.sleep(0.6)
         # Clear the whole app data as well as the save: leftover state (login
         # token, caches, tutorial flags) is what makes a "new" city look like
         # the old account to the server.
-        _run_adb(adb, ["-s", serial, "shell", f"pm clear {GARDEN_PACKAGE}"], timeout=30)
+        _run_adb(adb, ["-s", serial, "shell", f"pm clear {pkg}"], timeout=30)
         for name in (
             GARDEN_SAVE_FILE,
             GARDEN_SAVE_FILE + ".bak",
@@ -1241,7 +1281,7 @@ class NativeBridge:
             )
         _run_adb(
             adb,
-            ["-s", serial, "shell", "monkey", "-p", GARDEN_PACKAGE, "-c",
+            ["-s", serial, "shell", "monkey", "-p", pkg, "-c",
              "android.intent.category.LAUNCHER", "1"],
             timeout=15,
         )
@@ -1266,7 +1306,8 @@ class NativeBridge:
         if not src.is_dir():
             raise RuntimeError("Backup folder not found on this PC.")
         directory = self._garden_doc_dir(adb, serial)
-        _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", GARDEN_PACKAGE], timeout=15)
+        pkg = garden_pick_package(adb, serial)
+        _run_adb(adb, ["-s", serial, "shell", "am", "force-stop", pkg], timeout=15)
         time.sleep(0.6)
         code, out, _ = _run_adb(
             adb, ["-s", serial, "shell", f"su -c 'stat -c %u:%g \"{directory}\"'"], timeout=20
@@ -1295,7 +1336,7 @@ class NativeBridge:
                 restored.append(item.name)
         _run_adb(
             adb,
-            ["-s", serial, "shell", "monkey", "-p", GARDEN_PACKAGE, "-c",
+            ["-s", serial, "shell", "monkey", "-p", pkg, "-c",
              "android.intent.category.LAUNCHER", "1"],
             timeout=15,
         )

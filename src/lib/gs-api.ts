@@ -121,8 +121,12 @@ export const gsSavePath = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireToken } = await import("./server/license.server");
     requireToken(data.token);
-    const { GAME_SAVE_RELATIVE_PATH } = await import("./server/gardenscapes/save.server");
-    return { path: GAME_SAVE_RELATIVE_PATH };
+    const { resolveSavePath, GAME_SAVE_RELATIVE_PATH } = await import("./server/gardenscapes/save.server");
+    try {
+      return await resolveSavePath();
+    } catch {
+      return { path: GAME_SAVE_RELATIVE_PATH, package: "com.playrix.gardenscapes" };
+    }
   });
 
 // --- cards -----------------------------------------------------------------

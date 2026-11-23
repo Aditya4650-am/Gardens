@@ -15,8 +15,40 @@ import { promisify } from "node:util";
 const execFileP = promisify(execFile);
 
 export const GAME_PACKAGE = "com.playrix.gardenscapes";
+/** Both Gardenscapes builds share the save format and the Documents layout. */
+export const GAME_PACKAGES = [GAME_PACKAGE, "com.playrix.gardenscapes.vn"];
 export const SAVE_FILENAME = "GameData.db";
 export const SAVE_REMOTE_PATH = `/data/data/${GAME_PACKAGE}/Documents/${SAVE_FILENAME}`;
+
+/** Absolute device path of `GameData.db` inside a package's Documents folder. */
+export function saveRemotePath(pkg: string): string {
+  return `/data/data/${pkg}/Documents/${SAVE_FILENAME}`;
+}
+
+const pkgCache = new Map<string, string>();
+
+/** Which Gardenscapes build this device has (global first, then Vietnam). */
+export async function resolveGamePackage(adb: string, serial: string): Promise<string> {
+  const cached = pkgCache.get(serial);
+  if (cached) return cached;
+  for (const pkg of GAME_PACKAGES) {
+    try {
+      const res = await execFileP(adb, ["-s", serial, "shell", `pm path ${pkg}`], {
+        timeout: 20000,
+        encoding: "utf8",
+      });
+      if ((res.stdout ?? "").includes("package:")) {
+        pkgCache.set(serial, pkg);
+        return pkg;
+      }
+    } catch {
+      /* try the next build */
+    }
+  }
+  throw new Error(
+    `Gardenscapes is not installed on ${serial} (checked the global and Vietnam builds).`,
+  );
+}
 
 // Legacy constants kept so existing imports keep compiling. Both are empty on
 // purpose: the real values are resolved per call, never fixed at build time.
