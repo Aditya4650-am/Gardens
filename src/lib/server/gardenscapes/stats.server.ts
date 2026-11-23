@@ -52,8 +52,29 @@ const PROFILE_PATH = "SpecialEvents.PlayerProfileOwn.OwnProfile.ProfileValues.Ma
 const TABLE = "TableName";
 const ENTRY = "Properties";
 
-/** The ONLY fields this tool may ever write through the stats path. */
-const WRITABLE = new Set<string>([...HEAD, ...PROFILE]);
+/**
+ * Alternate spellings different builds use for the same counter. The Vietnam
+ * build (and some save revisions) rename a few of these, so a write resolves
+ * through its family before giving up.
+ */
+const KEY_ALIASES: Record<string, string[]> = {
+  coins: ["coins", "coin", "money", "cash"],
+  level: ["level", "levelup", "level_up", "playerlevel", "player_level", "currentlevel"],
+  earnedStars: [
+    "earnedStars",
+    "earned_stars",
+    "stars",
+    "totalstars",
+    "total_stars",
+    "starscount",
+    "stars_count",
+  ],
+  name: ["name", "playername", "player_name", "username"],
+  LastPlayedLevel: ["LastPlayedLevel", "lastplayedlevel", "last_played_level"],
+};
+
+/** Types that hold a single writable value (never objects/arrays). */
+const SCALAR_TYPES = new Set(["i", "s", "f", "d", "k", "g", "u", "t", "b"]);
 
 function plain(v: unknown): number | string | boolean | null {
   if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") return v;
@@ -123,27 +144,59 @@ export function readStat(s: GardenscapesSession, key: string): number | string |
 }
 
 /**
- * Write a batch of Properties edits. A key the save does not hold is reported
- * in `missing` rather than created — Properties is a closed set the game
- * validates on load.
+ * Write a batch of Properties edits.
+ *
+ * Resolution is build-tolerant: an exact key wins, then a case-insensitive
+ * match, then the alias family (the Vietnam build renames a few counters).
+ * Only keys the save ALREADY holds are ever written — Properties is a closed
+ * set the game validates on load — and only scalar fields, so a collection is
+ * never replaced by a number. Anything unresolvable is reported in `missing`
+ * rather than invented.
  */
 export function writeStats(s: GardenscapesSession, changes: Record<string, number | string | boolean>): EditResult {
+  const d = s.decoded.doc;
+  const t = findTable(d, TABLE);
+  const e = t ? findEntry(t, ENTRY) : undefined;
+  if (!e || e.type !== "o") {
+    return { changed: [], missing: Object.keys(changes).map((k) => `${TABLE}.${ENTRY}.${k}`) };
+  }
+  const kids = objEntries(e);
+  const byLower = new Map<string, string>();
+  for (const [k] of kids) if (!byLower.has(k.toLowerCase())) byLower.set(k.toLowerCase(), k);
+
+  const resolve = (want: string): string | null => {
+    if (kids.some(([k]) => k === want)) return want;
+    const lower = want.toLowerCase();
+    const ci = byLower.get(lower);
+    if (ci) return ci;
+    for (const family of Object.values(KEY_ALIASES)) {
+      if (!family.some((alias) => alias.toLowerCase() === lower)) continue;
+      for (const alias of family) {
+        const hit = byLower.get(alias.toLowerCase());
+        if (hit) return hit;
+      }
+    }
+    return null;
+  };
+
   const missing: string[] = [];
   const ops: EditOp[] = [];
-  for (const [key, value] of Object.entries(changes)) {
-    if (!WRITABLE.has(key)) {
-      missing.push(`${TABLE}.${ENTRY}.${key}`);
+  for (const [requested, value] of Object.entries(changes)) {
+    if ((PROFILE as readonly string[]).includes(requested)) {
+      // ProfileValues are stored as strings, exactly as the game writes them.
+      ops.push({ path: `${PROFILE_PATH}.${requested}`, value: String(value) });
       continue;
     }
-    if ((PROFILE as readonly string[]).includes(key)) {
-      // ProfileValues are stored as strings, exactly as the game writes them.
-      ops.push({ path: `${PROFILE_PATH}.${key}`, value: String(value) });
+    const key = resolve(requested);
+    const hit = key ? kids.find(([k]) => k === key) : undefined;
+    if (!key || !hit || !SCALAR_TYPES.has(hit[1][0])) {
+      missing.push(`${TABLE}.${ENTRY}.${requested}`);
       continue;
     }
     ops.push({ path: `${TABLE}.${ENTRY}.${key}`, value });
   }
   if (!ops.length) return { changed: [], missing };
-  const res = applyOps(s.decoded.doc, ops);
+  const res = applyOps(d, ops);
   if (res.changed.length) s.log.push(`Stats: ${res.changed.length} field(s) changed`);
   return { changed: res.changed, missing: [...missing, ...res.missing] };
 }
