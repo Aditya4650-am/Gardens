@@ -74,7 +74,18 @@ const KEY_ALIASES: Record<string, string[]> = {
 };
 
 /** Types that hold a single writable value (never objects/arrays). */
-const SCALAR_TYPES = new Set(["i", "s", "f", "d", "k", "g", "u", "t", "b"]);
+const SCALAR_TYPES = new Set(["i", "s", "f", "d", "k", "g", "u", "t", "b", "c", "e", "j"]);
+/** Types whose value is a number (the save keeps its own type). */
+const NUMERIC_TYPES = new Set(["i", "c", "g", "u", "k", "d", "e", "b", "j"]);
+
+/**
+ * Schema fields a build may not have written yet. `earnedStars` is the
+ * measured stars counter of this game version (the global build carries it;
+ * a fresh Vietnam-build account simply hasn't earned a star yet, so the key
+ * is absent). Creating it uses the same name and type the sibling build
+ * writes — it is the one field this tab may add.
+ */
+const CREATABLE = new Set<string>(["earnedStars"]);
 
 function plain(v: unknown): number | string | boolean | null {
   if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") return v;
@@ -180,6 +191,7 @@ export function writeStats(s: GardenscapesSession, changes: Record<string, numbe
   };
 
   const missing: string[] = [];
+  const created: string[] = [];
   const ops: EditOp[] = [];
   for (const [requested, value] of Object.entries(changes)) {
     if ((PROFILE as readonly string[]).includes(requested)) {
@@ -188,17 +200,51 @@ export function writeStats(s: GardenscapesSession, changes: Record<string, numbe
       continue;
     }
     const key = resolve(requested);
-    const hit = key ? kids.find(([k]) => k === key) : undefined;
-    if (!key || !hit || !SCALAR_TYPES.has(hit[1][0])) {
+    if (!key) {
+      if (CREATABLE.has(requested)) {
+        const n = typeof value === "number" ? value : Number(value);
+        if (Number.isFinite(n)) {
+          kids.push([requested, ["i", Math.trunc(n)]]);
+          created.push(`${TABLE}.${ENTRY}.${requested}`);
+          continue;
+        }
+      }
       missing.push(`${TABLE}.${ENTRY}.${requested}`);
       continue;
     }
-    ops.push({ path: `${TABLE}.${ENTRY}.${key}`, value });
+    const hit = kids.find(([k]) => k === key);
+    const type = hit?.[1][0] ?? "";
+    if (!hit || !SCALAR_TYPES.has(type)) {
+      missing.push(`${TABLE}.${ENTRY}.${requested}`);
+      continue;
+    }
+    // Write the value in the field's OWN type. The Vietnam build stores
+    // `coins` as a string ("100000"); handing it a number would flip the
+    // field to `i` and the game would drop the edit on its next save.
+    if (type === "s") {
+      ops.push({ path: `${TABLE}.${ENTRY}.${key}`, value: String(value) });
+    } else if (type === "t" || type === "f") {
+      ops.push({
+        path: `${TABLE}.${ENTRY}.${key}`,
+        value: typeof value === "boolean" ? value : String(value) === "true" || value === 1,
+      });
+    } else if (NUMERIC_TYPES.has(type)) {
+      const n = typeof value === "number" ? value : Number(value);
+      if (!Number.isFinite(n)) {
+        missing.push(`${TABLE}.${ENTRY}.${requested}`);
+        continue;
+      }
+      ops.push({ path: `${TABLE}.${ENTRY}.${key}`, value: n });
+    } else {
+      missing.push(`${TABLE}.${ENTRY}.${requested}`);
+    }
   }
-  if (!ops.length) return { changed: [], missing };
+  if (!ops.length) return { changed: created, missing };
   const res = applyOps(d, ops);
-  if (res.changed.length) s.log.push(`Stats: ${res.changed.length} field(s) changed`);
-  return { changed: res.changed, missing: [...missing, ...res.missing] };
+  if (res.changed.length || created.length) {
+    s.log.push(`Stats: ${res.changed.length + created.length} field(s) changed`);
+  }
+  return { changed: [...created, ...res.changed], missing: [...missing, ...res.missing] };
 }
 
 /**

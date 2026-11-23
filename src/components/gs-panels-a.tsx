@@ -274,6 +274,9 @@ export function GsPlayer() {
     if (st) {
       const next: Record<string, string> = {};
       for (const x of st as StatField[]) next[x.key] = String(x.value ?? "");
+      // Every identity field gets an input, including a counter this build
+      // has not written yet (earnedStars on a fresh Vietnam account).
+      for (const k of KEYS) if (!(k in next)) next[k] = "";
       setF(next);
     }
     if (pf) setInfo(pf as ProfileInfo);
@@ -289,7 +292,12 @@ export function GsPlayer() {
   const apply = async () => {
     if (!c.sessionId) return;
     const changes: Record<string, string> = {};
-    for (const k of KEYS) if (k in f) changes[k] = f[k];
+    // Blank inputs are skipped: a field the save has not written yet starts
+    // empty, and sending "" would wipe a real value.
+    for (const k of KEYS) {
+      const v = f[k];
+      if (typeof v === "string" && v.trim() !== "") changes[k] = v;
+    }
     const r = await c.act(() => gsWriteStats({ data: { ...sessOf(c), changes } }));
     c.note(r as GsEditResult | undefined, "Player");
     await c.reload();
@@ -363,11 +371,21 @@ const STAT_KEEP = [
 
 /** Readable labels for the profile counters. */
 const STAT_LABEL: Record<string, string> = {
+  coins: "Coins",
+  level: "Level",
+  earnedStars: "Stars",
   WinStreak: "Current Streak",
   LivesSent: "Helps Made",
   CollectionsCompleted: "Collections Done",
   FirstTryWins: "First Try Wins",
 };
+
+/**
+ * Kept visible even when the save has not written the key yet: the writer
+ * creates `earnedStars` (the stars counter of this game version) on first
+ * write, which is exactly what a fresh Vietnam-build account needs.
+ */
+const STAT_CREATABLE = new Set<string>(["earnedStars"]);
 
 export function GsStatistics() {
   const c = useGs();
@@ -389,7 +407,14 @@ export function GsStatistics() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.sessionId]);
 
-  const shown = STAT_KEEP.map((k) => fields.find((f) => f.key === k)).filter((f): f is StatField => !!f);
+  const shown: StatField[] = [];
+  for (const k of STAT_KEEP) {
+    const hit = fields.find((f) => f.key === k);
+    if (hit) shown.push(hit);
+    else if (STAT_CREATABLE.has(k)) {
+      shown.push({ path: `TableName.Properties.${k}`, key: k, type: "i", value: null });
+    }
+  }
 
   const dirty = shown.filter((f) => edits[f.key] !== undefined && edits[f.key] !== String(f.value ?? "")).length;
 
