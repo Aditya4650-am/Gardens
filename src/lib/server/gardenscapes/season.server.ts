@@ -260,6 +260,17 @@ export function claimAllStages(s: GardenscapesSession, season: string): EditResu
     }
     if (cOps.length) changed.push(...applyOps(d, cOps).changed);
   }
+  // The golden row is a PURCHASE FLAG, not a stage state: every real
+  // "Activated" pass carries `Purchases.GoldPass.BoughtCount = 1`, and stage
+  // writes alone leave the premium road locked. Activate the pass here so one
+  // press puts both roads on screen with working claim buttons.
+  if ((toInt(getRef(e, "Purchases.GoldPass.BoughtCount")?.value ?? null) ?? 0) !== 1) {
+    const gp = applyOps(d, [
+      { path: `${TABLE}.${season}.Purchases.GoldPass.BoughtCount`, value: 1 },
+    ]);
+    changed.push(...gp.changed);
+    missing.push(...gp.missing);
+  }
   if (changed.length) s.log.push(`Season: ${season} garden pass unlocked (score ${score})`);
   return { changed, missing };
 }
