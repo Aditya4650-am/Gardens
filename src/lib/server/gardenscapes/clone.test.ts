@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { decodeSave, findEntry, findTable, objEntries } from "@/lib/gardenscapes/save-engine";
+import { type AUDBEntry } from "@/lib/gardenscapes/codec";
 import { addBounded, applyClone } from "./clone.server.ts";
 import { connectLoad, dropSession } from "./session.server.ts";
 
@@ -85,34 +86,60 @@ test("clone: the optional progression is ADDED to ours, never replacing ours", (
   dropSession(s.id, TOKEN);
 });
 
-test("clone: decoration roots the target never held are CREATED, not skipped", (t) => {
+test("clone: only chapters the save never held are added, and nothing of ours is repainted", (t) => {
   if (!existsSync(OWN) || !existsSync(DONOR)) {
     t.skip("fixture not present");
     return;
   }
   const donorDoc = decodeSave(readFileSync(DONOR)).doc;
-  const donorRedesign = findTable(donorDoc, "Redesign");
-  assert.ok(donorRedesign && donorRedesign.entries.length > 0, "donor carries redesign decor");
   const s = connectLoad(TOKEN, "dev1", readFileSync(OWN).toString("base64"));
-  const hadRedesign = !!findTable(s.decoded.doc, "Redesign");
+  // What our own save says before the clone.
+  const ownBefore = decodeSave(readFileSync(OWN)).doc;
+  const ownRepairs = findTable(ownBefore, "repairs");
+  const ownChapter2 = ownRepairs?.entries.find((e) => e.key === "chapter2");
+  const ownQuests = findTable(ownBefore, "quests")?.entries.map((e) => e.key) ?? [];
+  const ownHistory = findTable(ownBefore, "history_data")?.entries ?? [];
+  const ownStat = (doc: ReturnType<typeof decodeSave>["doc"], key: string) => {
+    const t = findTable(doc, "TableName");
+    const p = t ? findEntry(t, "Properties") : undefined;
+    const hit = p && p.type === "o" ? objEntries(p).find(([k]) => k === key) : undefined;
+    return hit ? hit[1][1] : undefined;
+  };
+  const ownChapterId = ownStat(ownBefore, "GardenCurrentChapterId");
+  const ownChapterKeys = ownRepairs?.entries.map((e) => e.key) ?? [];
 
   const r = applyClone(s);
   const after = s.decoded.doc;
+  const donorRepairs = findTable(donorDoc, "repairs");
+  const afterRepairs = findTable(after, "repairs");
+  assert.ok(donorRepairs && afterRepairs, "repairs present on both sides");
 
-  // The device save has no `Redesign` table — the clone used to skip it and
-  // report success while the garden kept none of its redesign state.
-  const got = findTable(after, "Redesign");
-  assert.ok(got, "Redesign table now exists on the target");
-  assert.equal(got.entries.length, donorRedesign.entries.length);
-  if (!hadRedesign) {
-    assert.ok(
-      r.cloned.some((c) => c.startsWith("Redesign") && c.includes("new")),
-      `the created root is reported: ${r.cloned.join(" | ")}`,
-    );
+  // A chapter the save never held is created with the donor's decoration items
+  // and no story flags (so it stays closed until the story opens it).
+  const missingDonorChapters = donorRepairs.entries.filter(
+    (e) => !ownChapterKeys.includes(e.key),
+  );
+  assert.ok(missingDonorChapters.length > 0, "the donor holds chapters our save lacks");
+  for (const e of missingDonorChapters) {
+    const made: AUDBEntry | undefined = afterRepairs.entries.find((x) => x.key === e.key);
+    assert.ok(made, `missing chapter ${e.key} is created`);
+    assert.equal(objEntries(made).filter(([k]) => k.startsWith("@")).length, 0, `${e.key} gains no story flags`);
   }
+  // Our own chapters survive untouched — items, steps and flags alike.
+  for (const key of ownChapterKeys) {
+    const before: AUDBEntry | undefined = ownRepairs?.entries.find((e) => e.key === key);
+    const now: AUDBEntry | undefined = afterRepairs.entries.find((e) => e.key === key);
+    assert.ok(now, `our chapter ${key} survives`);
+    assert.equal(JSON.stringify(now), JSON.stringify(before), `our chapter ${key} is not repainted`);
+  }
+  assert.ok(ownChapter2, "our save holds chapter2");
+  assert.ok(
+    r.cloned.some((c) => c.startsWith("repairs")),
+    `the decoration merge is reported: ${r.cloned.join(" | ")}`,
+  );
 
-  // Every decoration root the donor holds lands on the target.
-  for (const name of ["repairs", "repairs_purchases_info", "CharacterProperties", "main_pers_objects", "quest_targets"]) {
+  // Whole-replace roots still match the donor.
+  for (const name of ["repairs_purchases_info", "CharacterProperties"]) {
     const d = findTable(donorDoc, name);
     if (!d) continue;
     const a = findTable(after, name);
@@ -120,36 +147,29 @@ test("clone: decoration roots the target never held are CREATED, not skipped", (
     assert.equal(a.entries.length, d.entries.length, `${name} entry count matches donor`);
   }
 
-  // The donor's decor quests arrive, and a quest only our save holds survives.
-  const dq = findTable(donorDoc, "quests");
-  const aq = findTable(after, "quests");
-  if (dq && aq) {
-    for (const e of dq.entries) assert.ok(aq.entries.some((x) => x.key === e.key), `donor quest ${e.key} landed`);
+  // The clone never re-themes the garden: no `Redesign` table arrives and the
+  // donor's redesign event row stays out.
+  if (!findTable(ownBefore, "Redesign")) {
+    assert.equal(findTable(after, "Redesign"), undefined, "no redesign table is created");
   }
+  const ownSpecial = findTable(ownBefore, "SpecialEvents")?.entries.find((e) => e.key === "special_redesign");
+  const afterSpecial = findTable(after, "SpecialEvents")?.entries.find((e) => e.key === "special_redesign");
+  assert.equal(JSON.stringify(afterSpecial), JSON.stringify(ownSpecial), "special_redesign stays ours");
 
-  // The redesign render flags — the device starts with none at all, and
-  // without them the garden keeps its base look instead of the donor's.
-  const dh = findTable(donorDoc, "history_data");
-  const ah = findTable(after, "history_data");
-  assert.ok(dh, "donor carries history_data");
-  assert.ok(dh.entries.length > 0, "donor carries history_data");
-  assert.ok(ah, "history_data present after clone");
-  const redesignFlags = dh.entries.filter((e) => /Redesign$/i.test(e.key));
-  assert.ok(redesignFlags.length > 0, `donor holds redesign flags (${redesignFlags.length})`);
-  for (const e of redesignFlags) {
-    const hit = ah.entries.find((x) => x.key === e.key) as { key: string; value: unknown } | undefined;
-    assert.ok(hit, `render flag ${e.key} landed`);
-    assert.equal(hit.value, e.value, `render flag ${e.key} keeps the donor's value`);
+  // The story pointer and every story table stay ours.
+  assert.equal(ownStat(after, "GardenCurrentChapterId"), ownChapterId, "the current chapter is never moved by a clone");
+  const afterQuests = findTable(after, "quests")?.entries.map((e) => e.key) ?? [];
+  assert.deepEqual(afterQuests, ownQuests, "quests table is untouched");
+  for (const name of ["main_pers_objects", "quest_targets"]) {
+    assert.equal(
+      findTable(after, name)?.entries.length ?? 0,
+      findTable(ownBefore, name)?.entries.length ?? 0,
+      `${name} is untouched`,
+    );
   }
+  const afterHistory = findTable(after, "history_data")?.entries ?? [];
+  assert.deepEqual(afterHistory, ownHistory, "history_data is untouched");
 
-  // The named SpecialEvents decor rows arrive too.
-  for (const key of ["special_redesign", "RoomDesignVSO", "GardenMeta"]) {
-    const de = findTable(donorDoc, "SpecialEvents")?.entries.find((x) => x.key === key);
-    if (!de) continue;
-    const ae = findTable(after, "SpecialEvents")?.entries.find((x) => x.key === key);
-    assert.ok(ae, `SpecialEvents.${key} landed`);
-    assert.equal(JSON.stringify(ae.value), JSON.stringify(de.value), `SpecialEvents.${key} matches donor`);
-  }
   dropSession(s.id, TOKEN);
 });
 

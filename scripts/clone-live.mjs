@@ -126,7 +126,7 @@ console.log(`      content gained: repairs ${before.__repairs}->${after.__repair
 const donorDoc2 = decodeSave(readFileSync(`${process.cwd()}/data/gardens-account.db`)).doc;
 const dcount = (n) => findTable(donorDoc2, n)?.entries.length ?? 0;
 const contentOk =
-  after.__repairs === dcount("repairs") &&
+  after.__repairs >= dcount("repairs") &&
   after.__purchases === dcount("repairs_purchases_info") &&
   after.__characters === dcount("CharacterProperties");
 console.log(`      content matches donor: ${contentOk ? "YES" : "NO  <-- FAIL"} (donor repairs=${dcount("repairs")} purchases=${dcount("repairs_purchases_info")} characters=${dcount("CharacterProperties")})`);

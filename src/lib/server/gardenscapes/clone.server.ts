@@ -4,7 +4,7 @@
 // **content**, never **progress**.
 //
 // Content that travels
-//   repairs                     every garden chapter / decoration step
+//   repairs                     chapters the save never held (items only)
 //   repairs_purchases_info      the decor purchases behind them
 //   CharacterProperties         the characters and pets in the garden
 //   cosmetic profile lists      avatars, frames/styles, badges, titles
@@ -12,7 +12,10 @@
 //
 // Progress that deliberately stays on the client
 //   level, XP, coins, tokens, earned/spent stars, name, ids, lives, boosters,
-//   card collections, season passes, quests, statistics
+//   card collections, season passes, quests, history, redesign state,
+//   statistics — and every chapter the save already holds, decoration steps
+//   and story flags included (see the config comment below for the live
+//   measurements behind each exclusion).
 //
 // Nothing identity-bearing is ever written: the clone only touches tables and
 // keys whose values are the same for every account. That is also why there is
@@ -25,65 +28,38 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { decodeSave, ensureTable, findEntry, findTable, objEntries, type ObjChild } from "@/lib/gardenscapes/save-engine";
-import { type AUDBDocument, type AUDBEntry } from "@/lib/gardenscapes/codec";
+import { type AUDBDocument, type AUDBEntry, type AUDBTable } from "@/lib/gardenscapes/codec";
 import { type EditResult } from "./common.server";
 import { type GardenscapesSession } from "./session.server";
 
-const CONTENT_TABLES = [
-  "repairs",
-  "repairs_purchases_info",
-  "CharacterProperties",
-  "Redesign",
-  "main_pers_objects",
-  "quest_targets",
-] as const;
 /**
- * Decor quests — `chBRO_day1_Decorate*`, `PlantLawn`, `PlaceLanterns` … the
- * completion half of `quest_targets`, exactly the `Quests` / `QuestTargets`
- * pair the Homescapes reference classifies as content behind `Repairs`.
+ * What a clone carries: the bundled account's **content**, never the client's
+ * story — and never a repaint of the garden the client already has.
  *
- * Merged rather than replaced: the donor's row wins on a shared id, but an id
- * only our save holds (a fresh account's `chTUT_Trash`) survives, so cloning
- * never deletes a task the game still has open.
- */
-const MERGED_TABLES = ["quests", "history_data"] as const;
-/**
- * Specific `SpecialEvents` rows the garden renders from.
+ * Three facts were measured live on a real global save (2026-11-25), and each
+ * one narrowed this list:
  *
- * Measured: the donor carries `special_redesign` (`UsingRedesigns` — the
- * redesign themes this account has applied, plus `lastActiveRedesign`),
- * `RoomDesignVSO` and `GardenMeta`, and the device has **none** of the three.
- * These are named one by one rather than copying `SpecialEvents` wholesale:
- * that table also holds event counters, offers and analytics, and the whole of
- * it is progression the server scores — the same reason the Homescapes
- * reference lists `SpecialEvents` among its `PROGRESS_ROOTS`.
+ * 1. Replacing the story tables (`quests`, `quest_targets`, `main_pers_objects`)
+ *    and copying the chapter pointer together wrote a save the game refused to
+ *    start — *"Loading of resources required to continue the game failed"* —
+ *    although the file was internally consistent. The account was in chapter 2
+ *    with four tablet tasks; the clone made it claim chapter 62 while
+ *    `QuestIndexInChapter` stayed ours, and the game could not resolve that pair.
+ * 2. Copying the donor's `Redesign` / `special_redesign` / redesign history
+ *    re-themed the current garden: the courtyard's default scenery vanished.
+ * 3. Replacing a decoration the account already holds is worse than leaving it.
+ *    The donor's chapter-2 values are event skins (`Christmas20`, …); outside
+ *    that event the game renders the bare base, so a repaired bench became an
+ *    empty spot and the chapter's fountain/plants disappeared.
+ *
+ * So: our own chapters are left exactly as they are (items and `@completed` /
+ * `@opened` flags alike), and only chapters the save has never held are created
+ * — with the donor's decoration items and **no** flags, so they stay closed
+ * until the story opens them. Characters, cosmetics and the worn look travel;
+ * the redesign state, quests, history and every progression leaf stay ours.
  */
-const CONTENT_EVENT_ENTRIES = ["special_redesign", "RoomDesignVSO", "GardenMeta"] as const;
-const CONTENT_FEATURE_ENTRIES = [
-  "ProfileBadgesGFF",
-  "LocationsRedesign",
-  "RedesignCascade",
-  "GardeningDuties",
-] as const;
+const CONTENT_TABLES = ["repairs", "repairs_purchases_info", "CharacterProperties"] as const;
 const PROP_PREFIXES = ["BoughtAvatar_", "ObtainedStyle_", "UserAvatar_", "UserNameStyle_"] as const;
-/** Decoration economy — the redesign shop, not level/coins/stars. */
-const DECOR_PROPS = [
-  "boughtRoomTokens",
-  "earnedRoomTokensCount",
-  "spentRoomTokensCount",
-  "realRoomTokens",
-  "room_design_tokens",
-  "coinsForDesign",
-  "boughtClusterRedesignTokens",
-  "earnedClusterRedesignTokensCount",
-  "spentClusterRedesignTokensCount",
-  "realClusterRedesignTokens",
-  "RedesignManagerFinishingModeAVChapter",
-  "RedesignManagerFinishingModeState",
-  "ShowGardenMapButton",
-  /** Which chapter's decoration set the garden renders. */
-  "GardenCurrentChapterId",
-] as const;
 const OWN_CONTENT = ["AvatarStyle", "PlayerNameStyle", "PlayerTitleId", "PlayerTitleIdsEarned", "ProfileBadgeId"] as const;
 const COIN_CEILING = 2_000_000_000;
 /** A level move bigger than this is reported, never silently written. */
@@ -181,7 +157,38 @@ export function setRegionBuild(s: GardenscapesSession, on: boolean): EditResult 
   return { changed: ["TableName.Properties.vietnamBuild"], missing: [] };
 }
 
-/** Donor facts for the panel. */export function cloneInfo(): GsCloneInfo {
+/**
+ * Add the decoration content of chapters this save has never held.
+ *
+ * A chapter we already have is left **completely** alone — its items, their
+ * steps and its `@completed` / `@opened` flags are the client's own garden. The
+ * donor's chapter values are event skins (`Christmas20`, …) and outside that
+ * event the game renders the bare base, so importing them replaced a repaired
+ * bench with an empty spot and blanked the courtyard's fountain and plants
+ * (measured live). A chapter we have never held is created with the donor's
+ * decoration items only — no `@` flags — so it stays closed until the story
+ * opens it and the game builds it its own way.
+ */
+function addMissingChapters(src: AUDBTable, dst: AUDBTable): { chapters: number; items: number } {
+  let chapters = 0;
+  let items = 0;
+  for (const donorChapter of src.entries) {
+    if (donorChapter.type !== "o") continue;
+    if (dst.entries.some((e) => e.key === donorChapter.key)) continue;
+    const kids: ObjChild[] = [];
+    for (const [name, pair] of objEntries(donorChapter)) {
+      if (name.startsWith("@")) continue;
+      kids.push([name, deepClone(pair)]);
+      items++;
+    }
+    dst.entries.push({ key: donorChapter.key, type: "o", value: kids });
+    chapters++;
+  }
+  return { chapters, items };
+}
+
+/** Donor facts for the panel. */
+export function cloneInfo(): GsCloneInfo {
   const d = donor();
   const chapters = findTable(d, "repairs")?.entries.length ?? 0;
   const purchases = findTable(d, "repairs_purchases_info")?.entries.length ?? 0;
@@ -212,49 +219,23 @@ export function applyClone(
   const progress: string[] = [];
   const warnings: string[] = [];
 
-  // 1. Whole content tables. A root the target has never held is **created**,
-  //    not skipped: the device save has no `Redesign` table at all, and
-  //    skipping it is what left the cloned garden without its redesign state.
-  //    (The Homescapes reference creates missing content roots for the same
-  //    reason — a clone that quietly drops a root reports success and changes
-  //    nothing in game.)
+  // 1. Content roots. Our own chapters are never rewritten (see the config
+  //    comment above); a chapter the save has never held is created with the
+  //    donor's decoration items and no story flags.
   for (const name of CONTENT_TABLES) {
     const st = findTable(src, name);
     if (!st) continue;
     const dt = ensureTable(dst, name);
     const created = dt.entries.length === 0;
+    if (name === "repairs") {
+      const added = addMissingChapters(st, dt);
+      cloned.push(
+        `${name} (${added.chapters} new chapter(s), ${added.items} item(s)${created ? ", new" : ""})`,
+      );
+      continue;
+    }
     dt.entries = deepClone(st.entries);
     cloned.push(`${name} (${st.entries.length}${created ? ", new" : ""})`);
-  }
-
-  // 1b. Merged content tables — donor rows win, ours survive by id.
-  for (const name of MERGED_TABLES) {
-    const st = findTable(src, name);
-    if (!st) continue;
-    const dt = ensureTable(dst, name);
-    let added = 0;
-    for (const e of st.entries) {
-      const hit = dt.entries.find((x) => x.key === e.key);
-      if (hit) hit.value = deepClone(e.value);
-      else {
-        dt.entries.push(deepClone(e));
-        added++;
-      }
-    }
-    cloned.push(`${name} (${st.entries.length}, +${added} new)`);
-  }
-
-  // 1c. Named `SpecialEvents` rows the garden renders from.
-  for (const key of CONTENT_EVENT_ENTRIES) {
-    const st = findTable(src, "SpecialEvents");
-    const se = st ? findEntry(st, key) : undefined;
-    if (!se) continue;
-    const dt = ensureTable(dst, "SpecialEvents");
-    const hit = findEntry(dt, key);
-    const fresh = !hit;
-    if (hit) hit.value = deepClone(se.value);
-    else dt.entries.push(deepClone(se));
-    cloned.push(`SpecialEvents.${key}${fresh ? " (new)" : ""}`);
   }
 
   // 2. Cosmetic profile lists inside TableName.Properties (never identity).
@@ -270,25 +251,7 @@ export function applyClone(
       else kids.push([k, [t, deepClone(v)]]);
       n++;
     }
-    // Decoration economy leaves, copied as-is so the redesign shop matches.
-    for (const key of DECOR_PROPS) {
-      const from = objEntries(sp).find(([k]) => k === key);
-      if (!from) continue;
-      const hit = kids.find(([k]) => k === key);
-      if (hit) hit[1] = [from[1][0], deepClone(from[1][1])];
-      else kids.push([key, [from[1][0], deepClone(from[1][1])]]);
-      n++;
-    }
-    if (n) cloned.push(`cosmetics + decor (${n})`);
-  }
-
-  // 3. Owned badges.
-  for (const name of CONTENT_FEATURE_ENTRIES) {
-    const se = entry(src, "Features", name);
-    const de = entry(dst, "Features", name);
-    if (!se || !de) continue;
-    de.value = deepClone(se.value);
-    cloned.push(name);
+    if (n) cloned.push(`cosmetics (${n})`);
   }
 
   // 4. The worn look (not identity: every account can wear any of these).

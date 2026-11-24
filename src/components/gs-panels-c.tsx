@@ -663,16 +663,29 @@ interface CloneInfo {
 export function GsClone() {
   const c = useGs();
   const [info, setInfo] = useState<CloneInfo | null>(null);
+  const [infoErr, setInfoErr] = useState<string | null>(null);
   const [withProgress, setWithProgress] = useState(false);
   const [warnings, setWarnings] = useState<string[]>([]);
 
-  useEffect(() => {
+  // Reading the donor facts is a convenience, never a gate. The clone itself
+  // needs only the session, so a failed read must not leave the primary button
+  // dead: one transient failure (a cold host, a dropped request) used to leave
+  // the panel saying "reading the bundled account…" with the button disabled
+  // until a full page reload, which reads exactly like "the button is not
+  // clickable". The error is shown in place and can be retried.
+  const loadDonor = async () => {
     if (!c.token) return;
-    void c.act(async () => {
+    setInfoErr(null);
+    try {
       const r = await gsCloneInfo({ data: { token: c.token } });
       setInfo(r as CloneInfo);
-      return r;
-    });
+    } catch (e) {
+      setInfoErr(e instanceof Error ? e.message : "donor facts unavailable");
+    }
+  };
+
+  useEffect(() => {
+    void loadDonor();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [c.token]);
 
@@ -694,20 +707,24 @@ export function GsClone() {
           <div>
             <h3 className="gs-cta-title">Clone account</h3>
             <p className="gs-cta-lead">
-              {info ? `${info.donorName} · level ${info.donorLevel}` : "reading the bundled account…"}
+              {info
+                ? `${info.donorName} · level ${info.donorLevel}`
+                : infoErr
+                  ? `Donor facts unavailable — ${infoErr}`
+                  : "reading the bundled account…"}
             </p>
           </div>
         </header>
 
         <div className="gs-chips">
-          <Chip tone="info" icon="decosets">{info?.chapters ?? 0} chapters</Chip>
-          <Chip tone="info" icon="cart">{info?.purchases ?? 0} purchases</Chip>
-          <Chip tone="info" icon="paw">{info?.characters ?? 0} characters</Chip>
-          <Chip tone="gold" icon="avatars">{info?.avatars ?? 0} avatars</Chip>
+          <Chip tone="info" icon="decosets">{info ? info.chapters : "—"} chapters</Chip>
+          <Chip tone="info" icon="cart">{info ? info.purchases : "—"} purchases</Chip>
+          <Chip tone="info" icon="paw">{info ? info.characters : "—"} characters</Chip>
+          <Chip tone="gold" icon="avatars">{info ? info.avatars : "—"} avatars</Chip>
         </div>
 
         <div className="gs-cta-actions">
-          <button type="button" className="gs-cta-btn" disabled={c.busy || !info} onClick={() => void run()}>
+          <button type="button" className="gs-cta-btn" disabled={c.busy} onClick={() => void run()}>
             <GsIcon name="copy" className="size-5" />
             <span>Clone this account</span>
           </button>
@@ -720,7 +737,24 @@ export function GsClone() {
             <GsIcon name="check" className="size-4" />
             {withProgress ? "Add donor's level, coins & stars" : "Progress stays mine"}
           </button>
+          {infoErr ? (
+            <button
+              type="button"
+              className="gs-pickbar-btn"
+              disabled={c.busy}
+              onClick={() => void loadDonor()}
+            >
+              <GsIcon name="reload" className="size-4" />
+              Reload donor facts
+            </button>
+          ) : null}
         </div>
+
+        {!c.sessionId ? (
+          <p className="gs-cta-lead">
+            No save connected — pull the save first, then Clone writes the bundled garden into it.
+          </p>
+        ) : null}
 
         <div className="gs-actions mt-2">
           <Button

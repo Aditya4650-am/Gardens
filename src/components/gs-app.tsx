@@ -1204,7 +1204,7 @@ export function GsApp() {
             </nav>
 
             <div className="dashboard-content min-h-0 flex-1 overflow-auto p-4 sm:p-5">
-              {!snap ? (
+              {!snap && tab !== "clone" ? (
                 <div className="panel-in grid min-h-64 place-items-center text-center">
                   <div>
                     <GsIcon name="device" className="empty-state-icon mx-auto size-8 text-muted" />
