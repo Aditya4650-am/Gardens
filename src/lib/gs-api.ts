@@ -506,10 +506,10 @@ export const gsBuyPurchases = createServerFn({ method: "POST" })
 
 /** Max every decor chapter in the measured finished shape (steps + flags + buys). */
 export const gsMaxDecor = createServerFn({ method: "POST" })
-  .validator(sess)
+  .validator(sess.extend({ keys: z.array(z.string()).optional() }))
   .handler(async ({ data }) => {
     const m = await import("./server/gardenscapes/decor.server");
-    return m.maxDecor(await sessionOf(data.token, data.sessionId));
+    return m.maxDecor(await sessionOf(data.token, data.sessionId), data.keys);
   });
 
 export const gsDecorSummary = createServerFn({ method: "POST" })

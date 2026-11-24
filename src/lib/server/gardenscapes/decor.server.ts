@@ -212,10 +212,11 @@ export interface GsMaxDecorResult extends EditResult {
  * mid-chapter makes the game consume the tablet's quests and stall on an empty
  * To Do. Steps alone give the repaired garden without that side effect.
  */
-export function maxDecor(s: GardenscapesSession): GsMaxDecorResult {
+export function maxDecor(s: GardenscapesSession, keys?: string[]): GsMaxDecorResult {
   const d = s.decoded.doc;
   const t = findTable(d, TABLE);
   if (!t) throw new Error("decor: save has no repairs table");
+  const only = keys && keys.length ? new Set(keys) : null;
   const changed: string[] = [];
   const missing: string[] = [];
   const skipped: string[] = [];
@@ -236,6 +237,7 @@ export function maxDecor(s: GardenscapesSession): GsMaxDecorResult {
 
   for (const e of t.entries) {
     if (e.type !== "o" || !addressable(e.key)) continue;
+    if (only && !only.has(e.key)) continue;
     const final = DECOR_FINAL_STEPS[e.key];
     if (!final) {
       // Structural chapters (cluster* / "completed") carry no items.

@@ -166,10 +166,7 @@ export function GsDecor() {
   const apply = () => {
     const keys = [...sel];
     if (!keys.length) return;
-    void act2(
-      () => gsWriteChapters({ data: { ...sessOf(c), keys, completed: true } }),
-      `${keys.length} chapter(s)`,
-    );
+    void act2(() => gsMaxDecor({ data: { ...sessOf(c), keys } }), `${keys.length} chapter(s)`);
     setSel(new Set());
   };
 
