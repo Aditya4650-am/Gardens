@@ -504,6 +504,14 @@ export const gsBuyPurchases = createServerFn({ method: "POST" })
     return m.buyPurchases(await sessionOf(data.token, data.sessionId), data.prefix ?? "");
   });
 
+/** Max every decor chapter in the measured finished shape (steps + flags + buys). */
+export const gsMaxDecor = createServerFn({ method: "POST" })
+  .validator(sess)
+  .handler(async ({ data }) => {
+    const m = await import("./server/gardenscapes/decor.server");
+    return m.maxDecor(await sessionOf(data.token, data.sessionId));
+  });
+
 export const gsDecorSummary = createServerFn({ method: "POST" })
   .validator(sess)
   .handler(async ({ data }) => {

@@ -14,8 +14,9 @@
 // Writes are limited to the two chapter flags and `isBuy` — the fields real
 // saves demonstrably flip.
 
-import { findTable, getRef, toInt, type ObjChild } from "@/lib/gardenscapes/save-engine";
+import { findTable, getRef, objEntries, toInt, type ObjChild } from "@/lib/gardenscapes/save-engine";
 import { type AUDBDocument, type AUDBEntry } from "@/lib/gardenscapes/codec";
+import { DECOR_FINAL_STEPS } from "./decor-steps.ts";
 import { applyOps, entry as entryOf, type EditOp, type EditResult } from "./common.server";
 import { type GardenscapesSession } from "./session.server";
 
@@ -192,6 +193,85 @@ export function decorSummary(s: GardenscapesSession): {
     opened: list.filter((c) => c.opened).length,
     items: list.reduce((n, c) => n + c.items.length, 0),
   };
+}
+
+export interface GsMaxDecorResult extends EditResult {
+  chapters: number;
+  items: number;
+  skipped: string[];
+}
+
+/**
+ * Max every decor chapter the save holds — VISUAL completion only.
+ *
+ * Each item is written to the `step` a genuinely finished item carries
+ * (`DECOR_FINAL_STEPS`, harvested from a real 60/60 save) and a chapter's
+ * missing items are added in that same finished shape, because the garden
+ * renders from item steps. The chapter `@completed` flag is deliberately NOT
+ * touched: measured live twice, flipping it while the plant-a-story chain is
+ * mid-chapter makes the game consume the tablet's quests and stall on an empty
+ * To Do. Steps alone give the repaired garden without that side effect.
+ */
+export function maxDecor(s: GardenscapesSession): GsMaxDecorResult {
+  const d = s.decoded.doc;
+  const t = findTable(d, TABLE);
+  if (!t) throw new Error("decor: save has no repairs table");
+  const changed: string[] = [];
+  const missing: string[] = [];
+  const skipped: string[] = [];
+  let chapters = 0;
+  let items = 0;
+
+  const setStr = (fields: ObjChild[], key: string, value: string | undefined): boolean => {
+    if (value === undefined) return false;
+    const hit = fields.find(([k]) => k === key);
+    if (hit) {
+      if (hit[1][1] === value) return false;
+      hit[1] = ["s", value];
+      return true;
+    }
+    fields.push([key, ["s", value]]);
+    return true;
+  };
+
+  for (const e of t.entries) {
+    if (e.type !== "o" || !addressable(e.key)) continue;
+    const final = DECOR_FINAL_STEPS[e.key];
+    if (!final) {
+      // Structural chapters (cluster* / "completed") carry no items.
+      skipped.push(e.key);
+      continue;
+    }
+    const kids = objEntries(e);
+    let touched = 0;
+    for (const [name, want] of Object.entries(final)) {
+      const item = kids.find(([k, pair]) => k === name && pair[0] === "o");
+      if (!item) {
+        const fields: ObjChild[] = [];
+        setStr(fields, "step", want.step);
+        setStr(fields, "keep_step", want.keep_step);
+        setStr(fields, "base_step", want.base_step);
+        kids.push([name, ["o", fields]]);
+        changed.push(`${TABLE}.${e.key}.${name}`);
+        touched++;
+        continue;
+      }
+      const fields = item[1][1] as ObjChild[];
+      if (setStr(fields, "step", want.step)) {
+        changed.push(`${TABLE}.${e.key}.${name}.step`);
+        touched++;
+      }
+      setStr(fields, "keep_step", want.keep_step);
+      setStr(fields, "base_step", want.base_step);
+    }
+    items += touched;
+    chapters++;
+    // Visual completion ONLY: the chapter's `@completed` flag is deliberately
+    // left as the save had it (see the doc comment above).
+  }
+
+  s.log.push(`Decor: ${chapters} chapter(s), ${items} item(s) maxed`);
+  return { changed, missing, chapters, items, skipped };
 }
 
 export type { AUDBDocument };

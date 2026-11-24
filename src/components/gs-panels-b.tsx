@@ -12,6 +12,7 @@ import {
   gsListPurchases,
   gsListSeasons,
   gsMarkCardsSeen,
+  gsMaxDecor,
   gsPush,
   gsQueueCardsToFriends,
   gsReadCards,
@@ -204,15 +205,10 @@ export function GsDecor() {
             type="button"
             className="gs-cta-btn"
             disabled={c.busy || !chapters.length}
-            onClick={() =>
-              void act2(
-                () => gsWriteChapters({ data: { ...sessOf(c), keys: chapters.map((x) => x.key), completed: true } }),
-                "All chapters",
-              )
-            }
+            onClick={() => void act2(() => gsMaxDecor({ data: sessOf(c) }), "Max all decor")}
           >
             <GsIcon name="check" className="size-5" />
-            <span>Complete all</span>
+            <span>Max all decor</span>
           </button>
           <button
             type="button"
