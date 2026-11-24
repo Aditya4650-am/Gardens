@@ -754,7 +754,12 @@ export function GsClone() {
           <p className="gs-cta-lead">
             No save connected — pull the save first, then Clone writes the bundled garden into it.
           </p>
-        ) : null}
+        ) : (
+          <p className="gs-cta-lead">
+            Content only — the chapters this save already has keep their own look; the donor&apos;s
+            other chapters, characters and cosmetics are added.
+          </p>
+        )}
 
         <div className="gs-actions mt-2">
           <Button
